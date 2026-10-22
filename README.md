@@ -1,16 +1,33 @@
 # Tidewater world content
 
-This repository contains the authored Tidewater example world as data and
+This repository contains the authored Tidewater Example Island as data and
 content-addressed assets. It is not a standalone application or buildable game.
-ElseMesh imports it as the `worlds/tidewater` Git submodule, validates its
+ElseMesh imports it at `worlds/tidewater`, validates its
 `tidewater.world-source/1` document, and serves its package assets to visitors.
 
-The package includes the world source and presentation, deterministic runtime
-assets, LOD sources, and terrain validation report. `source/audio` and
-`source/models` retain source recordings, scanned models, textures, and their
-attribution. Runtime behavior is described by versioned world components;
-ElseMesh implements and validates those behaviors.
+## Repository map
 
-The exporter and format validators live in the ElseMesh engine repository. Run
-`npm run export:island` from an ElseMesh checkout to regenerate this package.
-Changes to `world-source.json` and packaged bytes should be reviewed together.
+- `world-source.json` is the canonical unsigned world layout: identity, spawn,
+  rules, placed objects, portals, versioned components, and asset references.
+  Its field definitions are in the [ElseMesh world-source schema](../../docs/schemas/world-source.schema.json).
+- `presentation.json` contains editable title copy, tips, and loading-stage text
+  that the exporter copies into the source document's `experience` field.
+- `assets/<sha256>` contains exact runtime package bytes. Filenames are SHA-256
+  digests without extensions; use the [human-readable asset index](ASSET-INDEX.md)
+  to find an asset by purpose, format, size, or world object.
+- `source/audio/` contains source recordings and `CREDITS.md`.
+- `source/models/debris/`, `source/models/props/`, and `source/models/whale/`
+  contain model inputs, texture maps, buffers, and attribution. `props.json` /
+  `props.bin` and `humpback.json` / `humpback.bin` are glTF JSON and binary
+  buffers, with adjacent files supplying their textures.
+- `lod-source/` contains lower-detail village and moored-boat GLB inputs used
+  during export.
+- `terrain-validation.json` records hashes, dimensions, encodings, and renderer
+  roles for the exported terrain package.
+
+The asset catalogue is generated, not hand-edited. Exporter and format
+validators live in ElseMesh. Run `npm run export:island` from an ElseMesh
+checkout to regenerate `world-source.json`, `assets/`, the terrain validation
+report, and `ASSET-INDEX.md`. Review generated package changes together with
+the source edits. See [world repository layout and file definitions](../../docs/world-repository-layout.md)
+for the shared contract and Burning Horizons layout.
