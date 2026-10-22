@@ -7,9 +7,9 @@ ElseMesh imports it as the `worlds/tidewater` Git submodule, validates its
 
 The package includes the world source and presentation, deterministic runtime
 assets, LOD sources, and terrain validation report. `source/audio` and
-`source/models/debris` retain the island's source recordings, scanned assets,
-and their attribution. Runtime behavior is described by versioned world
-components; ElseMesh implements and validates those behaviors.
+`source/models` retain source recordings, scanned models, textures, and their
+attribution. Runtime behavior is described by versioned world components;
+ElseMesh implements and validates those behaviors.
 
 The exporter and format validators live in the ElseMesh engine repository. Run
 `npm run export:island` from an ElseMesh checkout to regenerate this package.
