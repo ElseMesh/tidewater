@@ -1,6 +1,6 @@
 # Example Island asset index
 
-Generated from [world-source.json](world-source.json) (59 verified content-addressed assets).
+Generated from [world-source.json](world-source.json) (60 verified content-addressed assets).
 Each filename is the SHA-256 of the exact packaged bytes. Keep these names immutable; use the descriptions and use sites below to identify the assets.
 
 | Description / use | Format | Size | SHA-256 asset |
@@ -62,6 +62,7 @@ Each filename is the SHA-256 of the exact packaged bytes. Keep these names immut
 | Reef placement tile 2-2 — placement data | Binary (tidewater.static-reef/1) | 9.0 KiB | [`915b9b99134d08eeb0d6e42945f162758960432bcb20b3944cd3ce0d01a1addb`](assets/915b9b99134d08eeb0d6e42945f162758960432bcb20b3944cd3ce0d01a1addb) |
 | Reef placement tile 2-3 — placement data | Binary (tidewater.static-reef/1) | 0.3 KiB | [`f9dfbd9eab64e24254837c585f1ed8ceddce1392aeaea477e1aaea03d36e0143`](assets/f9dfbd9eab64e24254837c585f1ed8ceddce1392aeaea477e1aaea03d36e0143) |
 | Terrain visual-surface data — component data | Binary (tidewater.terrain-surface/1) | 27.23 MiB | [`6aa0547b983d023f64c329f767e7711a56c40be4b1240b62f7d5d410b915f438`](assets/6aa0547b983d023f64c329f767e7711a56c40be4b1240b62f7d5d410b915f438) |
+| Vegetation placement data — grass density mask | Binary (tidewater.static-vegetation/1) | 4.00 MiB | [`36507b8de08a52423c0eb3d5bf7cba6c373dbbec931aa1e1969e09abac9df8c2`](assets/36507b8de08a52423c0eb3d5bf7cba6c373dbbec931aa1e1969e09abac9df8c2) |
 | Vegetation placement data — placement data | Binary (tidewater.static-vegetation/1) | 2.56 MiB | [`e9ead2780768e0dabea07317da0c020497137472e6adc1cb3f166611fb0fbae6`](assets/e9ead2780768e0dabea07317da0c020497137472e6adc1cb3f166611fb0fbae6) |
 | Village PBR material package — component data | Binary (tidewater.village-materials/2) | 18.30 MiB | [`60d14e77d041465d0d71b499a7e695ea5f12da696d5be4a616b0bde1d332bde6`](assets/60d14e77d041465d0d71b499a7e695ea5f12da696d5be4a616b0bde1d332bde6) |
 

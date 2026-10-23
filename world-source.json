@@ -58,6 +58,7 @@
       "tidewater.village-materials/2",
       "tidewater.terrain-surface/1",
       "tidewater.static-vegetation/1",
+      "tidewater.static-grass/1",
       "tidewater.static-reef/1",
       "tidewater.static-fish-props/1",
       "tidewater.example-island-wildlife/1",
@@ -12421,7 +12422,8 @@
       "id": "tw-component:island-vegetation",
       "type": "tidewater.static-vegetation/1",
       "priority": "portal-preview",
-      "placementAssetId": "sha256:e9ead2780768e0dabea07317da0c020497137472e6adc1cb3f166611fb0fbae6"
+      "placementAssetId": "sha256:e9ead2780768e0dabea07317da0c020497137472e6adc1cb3f166611fb0fbae6",
+      "grassMaskAssetId": "sha256:36507b8de08a52423c0eb3d5bf7cba6c373dbbec931aa1e1969e09abac9df8c2"
     },
     {
       "id": "tw-component:island-fish-props",
