@@ -1,5 +1,5 @@
 {
-  "protocol": "tidewater.world-source/1",
+  "protocol": "tidewater.world-source/2",
   "worldId": "tw-world:example-island",
   "title": "Example Island",
   "experience": {
@@ -43,6 +43,8 @@
   "styleGuide": "Procedural volcanic island terrain. Preserve the coast, central bay, volcanic ridge, beaches, seabed, and terrain color regions.",
   "rules": {
     "gravity": 1,
+    "maxVisitors": 128,
+    "spawnRadius": 8,
     "seaLevel": 0,
     "avatarComplexity": 20000,
     "physicsProfile": "tidewater-default",
