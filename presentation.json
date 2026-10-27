@@ -1,5 +1,6 @@
 {
 	"genre": "A coastal fishing adventure",
+	"behaviors": [ "elsemesh.fishing-game/1", "elsemesh.shore-aware-boat/1" ],
 	"tagline": "Take the boat out, work the reef and deep water, and sell your catch to Joe before dark.",
 	"loadingNote": "The first launch compiles shaders and can take a minute or two. Later visits load much faster.",
 	"tips": [

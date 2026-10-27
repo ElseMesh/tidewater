@@ -4,9 +4,9 @@
   "assets": [
     {
       "role": "visual-surface",
-      "id": "sha256:6aa0547b983d023f64c329f767e7711a56c40be4b1240b62f7d5d410b915f438",
-      "sha256": "6aa0547b983d023f64c329f767e7711a56c40be4b1240b62f7d5d410b915f438",
-      "bytes": 28551681,
+      "id": "sha256:303cbe432aec5a6b90d0bba20e6e9c77138dc7c801d755dbe277b88a3fddd971",
+      "sha256": "303cbe432aec5a6b90d0bba20e6e9c77138dc7c801d755dbe277b88a3fddd971",
+      "bytes": 28577632,
       "dimensions": {
         "heightfield": [
           2049,

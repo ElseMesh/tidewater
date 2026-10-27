@@ -4,6 +4,10 @@
   "title": "Example Island",
   "experience": {
     "genre": "A coastal fishing adventure",
+    "behaviors": [
+      "elsemesh.fishing-game/1",
+      "elsemesh.shore-aware-boat/1"
+    ],
     "tagline": "Take the boat out, work the reef and deep water, and sell your catch to Joe before dark.",
     "loadingNote": "The first launch compiles shaders and can take a minute or two. Later visits load much faster.",
     "tips": [
@@ -12446,7 +12450,7 @@
       "type": "elsemesh.terrain-surface/1",
       "profile": "example-island-v1",
       "objectId": "elsemesh-object:island-terrain",
-      "dataAssetId": "sha256:6aa0547b983d023f64c329f767e7711a56c40be4b1240b62f7d5d410b915f438",
+      "dataAssetId": "sha256:303cbe432aec5a6b90d0bba20e6e9c77138dc7c801d755dbe277b88a3fddd971",
       "priority": "visible"
     },
     {
