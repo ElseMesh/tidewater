@@ -1,6 +1,6 @@
 {
-  "protocol": "tidewater.world-source/2",
-  "worldId": "tw-world:example-island",
+  "protocol": "elsemesh.world-source/3",
+  "worldId": "elsemesh-world:example-island",
   "title": "Example Island",
   "experience": {
     "genre": "A coastal fishing adventure",
@@ -47,41 +47,41 @@
     "spawnRadius": 8,
     "seaLevel": 0,
     "avatarComplexity": 20000,
-    "physicsProfile": "tidewater-default",
+    "physicsProfile": "elsemesh-default",
     "vehiclePolicy": {
       "enabled": true,
       "maxSpeed": 8,
       "maxCombinedComplexity": 100000
     },
     "requiredFeatures": [
-      "tidewater.static-glb/1",
-      "tidewater.static-glb-quaternion/1",
-      "tidewater.village-materials/1",
-      "tidewater.village-materials/2",
-      "tidewater.terrain-surface/1",
-      "tidewater.static-vegetation/1",
-      "tidewater.static-grass/1",
-      "tidewater.static-reef/1",
-      "tidewater.static-fish-props/1",
-      "tidewater.example-island-wildlife/1",
-      "tidewater.humpback-whale/1",
-      "tidewater.island-ocean/1",
-      "tidewater.downeast-boat/1",
-      "tidewater.ambient-audio/1",
-      "tidewater.portal-handoff/1",
-      "tidewater.portal-preview-static/1"
+      "elsemesh.static-glb/1",
+      "elsemesh.static-glb-quaternion/1",
+      "elsemesh.village-materials/1",
+      "elsemesh.village-materials/2",
+      "elsemesh.terrain-surface/1",
+      "elsemesh.static-vegetation/1",
+      "elsemesh.static-grass/1",
+      "elsemesh.static-reef/1",
+      "elsemesh.static-fish-props/1",
+      "elsemesh.example-island-wildlife/1",
+      "elsemesh.humpback-whale/1",
+      "elsemesh.island-ocean/1",
+      "elsemesh.downeast-boat/1",
+      "elsemesh.ambient-audio/1",
+      "elsemesh.portal-handoff/1",
+      "elsemesh.portal-preview-static/1"
     ],
     "maxPackageBytes": 134217728
   },
   "hosts": [],
   "objects": [
     {
-      "id": "tw-object:island-terrain",
+      "id": "elsemesh-object:island-terrain",
       "kind": "asset-instance",
       "label": "Procedural island terrain",
       "assetId": "sha256:d3cec3194167eaf7018f401cabcecb337ab989cd6141b45fc8c43f5aa4d8a3cf",
       "priority": "visible",
-      "replacesObjectId": "tw-object:island-terrain-preview",
+      "replacesObjectId": "elsemesh-object:island-terrain-preview",
       "streamingBounds": {
         "center": [
           0,
@@ -113,7 +113,7 @@
       }
     },
     {
-      "id": "tw-object:island-terrain-preview",
+      "id": "elsemesh-object:island-terrain-preview",
       "kind": "asset-instance",
       "label": "Portal preview terrain",
       "assetId": "sha256:3ee6e7b8591964e1c494c91e1b04ef65e1380332650d38db5a89e2c1a3c68fc5",
@@ -145,7 +145,7 @@
       }
     },
     {
-      "id": "tw-object:island-village",
+      "id": "elsemesh-object:island-village",
       "kind": "asset-instance",
       "label": "Procedural village, pier and harbor",
       "assetId": "sha256:050668dd943a37eb0fb9d4117f45371e644d581d22837da25fdfe1b512b1dd1f",
@@ -6161,7 +6161,7 @@
       }
     },
     {
-      "id": "tw-object:moored-lobster-boat",
+      "id": "elsemesh-object:moored-lobster-boat",
       "kind": "asset-instance",
       "label": "Moored lobster boat (static preview)",
       "assetId": "sha256:a9f0ba1bc43cf4a25aed9ad7c6f4e1c9271d166e9fae06f57d03d64af195b8db",
@@ -6199,7 +6199,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-0",
+      "id": "elsemesh-object:scanned-debris-0",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -6243,7 +6243,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-1",
+      "id": "elsemesh-object:scanned-debris-1",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -6287,7 +6287,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-2",
+      "id": "elsemesh-object:scanned-debris-2",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -6331,7 +6331,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-3",
+      "id": "elsemesh-object:scanned-debris-3",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -6375,7 +6375,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-4",
+      "id": "elsemesh-object:scanned-debris-4",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -6419,7 +6419,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-5",
+      "id": "elsemesh-object:scanned-debris-5",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -6463,7 +6463,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-6",
+      "id": "elsemesh-object:scanned-debris-6",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -6507,7 +6507,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-7",
+      "id": "elsemesh-object:scanned-debris-7",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -6551,7 +6551,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-8",
+      "id": "elsemesh-object:scanned-debris-8",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -6595,7 +6595,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-9",
+      "id": "elsemesh-object:scanned-debris-9",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -6639,7 +6639,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-10",
+      "id": "elsemesh-object:scanned-debris-10",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -6683,7 +6683,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-11",
+      "id": "elsemesh-object:scanned-debris-11",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -6727,7 +6727,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-12",
+      "id": "elsemesh-object:scanned-debris-12",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -6771,7 +6771,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-13",
+      "id": "elsemesh-object:scanned-debris-13",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -6815,7 +6815,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-14",
+      "id": "elsemesh-object:scanned-debris-14",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -6859,7 +6859,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-15",
+      "id": "elsemesh-object:scanned-debris-15",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -6903,7 +6903,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-16",
+      "id": "elsemesh-object:scanned-debris-16",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -6947,7 +6947,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-17",
+      "id": "elsemesh-object:scanned-debris-17",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -6991,7 +6991,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-18",
+      "id": "elsemesh-object:scanned-debris-18",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -7035,7 +7035,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-19",
+      "id": "elsemesh-object:scanned-debris-19",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -7079,7 +7079,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-20",
+      "id": "elsemesh-object:scanned-debris-20",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -7123,7 +7123,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-21",
+      "id": "elsemesh-object:scanned-debris-21",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -7167,7 +7167,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-22",
+      "id": "elsemesh-object:scanned-debris-22",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -7211,7 +7211,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-23",
+      "id": "elsemesh-object:scanned-debris-23",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -7255,7 +7255,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-24",
+      "id": "elsemesh-object:scanned-debris-24",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -7299,7 +7299,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-25",
+      "id": "elsemesh-object:scanned-debris-25",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -7343,7 +7343,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-26",
+      "id": "elsemesh-object:scanned-debris-26",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -7387,7 +7387,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-27",
+      "id": "elsemesh-object:scanned-debris-27",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -7431,7 +7431,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-28",
+      "id": "elsemesh-object:scanned-debris-28",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -7475,7 +7475,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-29",
+      "id": "elsemesh-object:scanned-debris-29",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -7519,7 +7519,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-30",
+      "id": "elsemesh-object:scanned-debris-30",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -7563,7 +7563,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-31",
+      "id": "elsemesh-object:scanned-debris-31",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -7607,7 +7607,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-32",
+      "id": "elsemesh-object:scanned-debris-32",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -7651,7 +7651,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-33",
+      "id": "elsemesh-object:scanned-debris-33",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -7695,7 +7695,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-34",
+      "id": "elsemesh-object:scanned-debris-34",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -7739,7 +7739,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-35",
+      "id": "elsemesh-object:scanned-debris-35",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -7783,7 +7783,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-36",
+      "id": "elsemesh-object:scanned-debris-36",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -7827,7 +7827,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-37",
+      "id": "elsemesh-object:scanned-debris-37",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -7871,7 +7871,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-38",
+      "id": "elsemesh-object:scanned-debris-38",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -7915,7 +7915,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-39",
+      "id": "elsemesh-object:scanned-debris-39",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -7959,7 +7959,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-40",
+      "id": "elsemesh-object:scanned-debris-40",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -8003,7 +8003,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-41",
+      "id": "elsemesh-object:scanned-debris-41",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -8047,7 +8047,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-42",
+      "id": "elsemesh-object:scanned-debris-42",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -8091,7 +8091,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-43",
+      "id": "elsemesh-object:scanned-debris-43",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -8135,7 +8135,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-44",
+      "id": "elsemesh-object:scanned-debris-44",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -8179,7 +8179,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-45",
+      "id": "elsemesh-object:scanned-debris-45",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -8223,7 +8223,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-46",
+      "id": "elsemesh-object:scanned-debris-46",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -8267,7 +8267,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-47",
+      "id": "elsemesh-object:scanned-debris-47",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -8311,7 +8311,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-48",
+      "id": "elsemesh-object:scanned-debris-48",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -8355,7 +8355,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-49",
+      "id": "elsemesh-object:scanned-debris-49",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -8399,7 +8399,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-50",
+      "id": "elsemesh-object:scanned-debris-50",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -8443,7 +8443,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-51",
+      "id": "elsemesh-object:scanned-debris-51",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -8487,7 +8487,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-52",
+      "id": "elsemesh-object:scanned-debris-52",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -8531,7 +8531,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-53",
+      "id": "elsemesh-object:scanned-debris-53",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -8575,7 +8575,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-54",
+      "id": "elsemesh-object:scanned-debris-54",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -8619,7 +8619,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-55",
+      "id": "elsemesh-object:scanned-debris-55",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -8663,7 +8663,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-56",
+      "id": "elsemesh-object:scanned-debris-56",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -8707,7 +8707,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-57",
+      "id": "elsemesh-object:scanned-debris-57",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -8751,7 +8751,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-58",
+      "id": "elsemesh-object:scanned-debris-58",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -8795,7 +8795,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-59",
+      "id": "elsemesh-object:scanned-debris-59",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -8839,7 +8839,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-60",
+      "id": "elsemesh-object:scanned-debris-60",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
       "assetId": "sha256:1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064",
@@ -8883,7 +8883,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-61",
+      "id": "elsemesh-object:scanned-debris-61",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -8927,7 +8927,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-62",
+      "id": "elsemesh-object:scanned-debris-62",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -8971,7 +8971,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-63",
+      "id": "elsemesh-object:scanned-debris-63",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -9015,7 +9015,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-64",
+      "id": "elsemesh-object:scanned-debris-64",
       "kind": "asset-instance",
       "label": "lambis shell",
       "assetId": "sha256:0ee07523352578110d78347d93a4536673f67c2d01a0aee6b334882bad80b717",
@@ -9059,7 +9059,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-65",
+      "id": "elsemesh-object:scanned-debris-65",
       "kind": "asset-instance",
       "label": "lambis shell",
       "assetId": "sha256:0ee07523352578110d78347d93a4536673f67c2d01a0aee6b334882bad80b717",
@@ -9103,7 +9103,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-66",
+      "id": "elsemesh-object:scanned-debris-66",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -9147,7 +9147,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-67",
+      "id": "elsemesh-object:scanned-debris-67",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -9191,7 +9191,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-68",
+      "id": "elsemesh-object:scanned-debris-68",
       "kind": "asset-instance",
       "label": "lambis shell",
       "assetId": "sha256:0ee07523352578110d78347d93a4536673f67c2d01a0aee6b334882bad80b717",
@@ -9235,7 +9235,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-69",
+      "id": "elsemesh-object:scanned-debris-69",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -9279,7 +9279,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-70",
+      "id": "elsemesh-object:scanned-debris-70",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -9323,7 +9323,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-71",
+      "id": "elsemesh-object:scanned-debris-71",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -9367,7 +9367,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-72",
+      "id": "elsemesh-object:scanned-debris-72",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -9411,7 +9411,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-73",
+      "id": "elsemesh-object:scanned-debris-73",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -9455,7 +9455,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-74",
+      "id": "elsemesh-object:scanned-debris-74",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -9499,7 +9499,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-75",
+      "id": "elsemesh-object:scanned-debris-75",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -9543,7 +9543,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-76",
+      "id": "elsemesh-object:scanned-debris-76",
       "kind": "asset-instance",
       "label": "lambis shell",
       "assetId": "sha256:0ee07523352578110d78347d93a4536673f67c2d01a0aee6b334882bad80b717",
@@ -9587,7 +9587,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-77",
+      "id": "elsemesh-object:scanned-debris-77",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -9631,7 +9631,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-78",
+      "id": "elsemesh-object:scanned-debris-78",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -9675,7 +9675,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-79",
+      "id": "elsemesh-object:scanned-debris-79",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -9719,7 +9719,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-80",
+      "id": "elsemesh-object:scanned-debris-80",
       "kind": "asset-instance",
       "label": "lambis shell",
       "assetId": "sha256:0ee07523352578110d78347d93a4536673f67c2d01a0aee6b334882bad80b717",
@@ -9763,7 +9763,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-81",
+      "id": "elsemesh-object:scanned-debris-81",
       "kind": "asset-instance",
       "label": "lambis shell",
       "assetId": "sha256:0ee07523352578110d78347d93a4536673f67c2d01a0aee6b334882bad80b717",
@@ -9807,7 +9807,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-82",
+      "id": "elsemesh-object:scanned-debris-82",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -9851,7 +9851,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-83",
+      "id": "elsemesh-object:scanned-debris-83",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -9895,7 +9895,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-84",
+      "id": "elsemesh-object:scanned-debris-84",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -9939,7 +9939,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-85",
+      "id": "elsemesh-object:scanned-debris-85",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -9983,7 +9983,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-86",
+      "id": "elsemesh-object:scanned-debris-86",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -10027,7 +10027,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-87",
+      "id": "elsemesh-object:scanned-debris-87",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -10071,7 +10071,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-88",
+      "id": "elsemesh-object:scanned-debris-88",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -10115,7 +10115,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-89",
+      "id": "elsemesh-object:scanned-debris-89",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -10159,7 +10159,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-90",
+      "id": "elsemesh-object:scanned-debris-90",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -10203,7 +10203,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-91",
+      "id": "elsemesh-object:scanned-debris-91",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -10247,7 +10247,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-92",
+      "id": "elsemesh-object:scanned-debris-92",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -10291,7 +10291,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-93",
+      "id": "elsemesh-object:scanned-debris-93",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -10335,7 +10335,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-94",
+      "id": "elsemesh-object:scanned-debris-94",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -10379,7 +10379,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-95",
+      "id": "elsemesh-object:scanned-debris-95",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -10423,7 +10423,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-96",
+      "id": "elsemesh-object:scanned-debris-96",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -10467,7 +10467,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-97",
+      "id": "elsemesh-object:scanned-debris-97",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -10511,7 +10511,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-98",
+      "id": "elsemesh-object:scanned-debris-98",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -10555,7 +10555,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-99",
+      "id": "elsemesh-object:scanned-debris-99",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -10599,7 +10599,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-100",
+      "id": "elsemesh-object:scanned-debris-100",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -10643,7 +10643,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-101",
+      "id": "elsemesh-object:scanned-debris-101",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -10687,7 +10687,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-102",
+      "id": "elsemesh-object:scanned-debris-102",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -10731,7 +10731,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-103",
+      "id": "elsemesh-object:scanned-debris-103",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -10775,7 +10775,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-104",
+      "id": "elsemesh-object:scanned-debris-104",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -10819,7 +10819,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-105",
+      "id": "elsemesh-object:scanned-debris-105",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -10863,7 +10863,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-106",
+      "id": "elsemesh-object:scanned-debris-106",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -10907,7 +10907,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-107",
+      "id": "elsemesh-object:scanned-debris-107",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -10951,7 +10951,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-108",
+      "id": "elsemesh-object:scanned-debris-108",
       "kind": "asset-instance",
       "label": "lambis shell",
       "assetId": "sha256:0ee07523352578110d78347d93a4536673f67c2d01a0aee6b334882bad80b717",
@@ -10995,7 +10995,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-109",
+      "id": "elsemesh-object:scanned-debris-109",
       "kind": "asset-instance",
       "label": "lambis shell",
       "assetId": "sha256:0ee07523352578110d78347d93a4536673f67c2d01a0aee6b334882bad80b717",
@@ -11039,7 +11039,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-110",
+      "id": "elsemesh-object:scanned-debris-110",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -11083,7 +11083,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-111",
+      "id": "elsemesh-object:scanned-debris-111",
       "kind": "asset-instance",
       "label": "lambis shell",
       "assetId": "sha256:0ee07523352578110d78347d93a4536673f67c2d01a0aee6b334882bad80b717",
@@ -11127,7 +11127,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-112",
+      "id": "elsemesh-object:scanned-debris-112",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -11171,7 +11171,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-113",
+      "id": "elsemesh-object:scanned-debris-113",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -11215,7 +11215,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-114",
+      "id": "elsemesh-object:scanned-debris-114",
       "kind": "asset-instance",
       "label": "lambis shell",
       "assetId": "sha256:0ee07523352578110d78347d93a4536673f67c2d01a0aee6b334882bad80b717",
@@ -11259,7 +11259,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-115",
+      "id": "elsemesh-object:scanned-debris-115",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -11303,7 +11303,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-116",
+      "id": "elsemesh-object:scanned-debris-116",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -11347,7 +11347,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-117",
+      "id": "elsemesh-object:scanned-debris-117",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -11391,7 +11391,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-118",
+      "id": "elsemesh-object:scanned-debris-118",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -11435,7 +11435,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-119",
+      "id": "elsemesh-object:scanned-debris-119",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -11479,7 +11479,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-120",
+      "id": "elsemesh-object:scanned-debris-120",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -11523,7 +11523,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-121",
+      "id": "elsemesh-object:scanned-debris-121",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -11567,7 +11567,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-122",
+      "id": "elsemesh-object:scanned-debris-122",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -11611,7 +11611,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-123",
+      "id": "elsemesh-object:scanned-debris-123",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -11655,7 +11655,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-124",
+      "id": "elsemesh-object:scanned-debris-124",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -11699,7 +11699,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-125",
+      "id": "elsemesh-object:scanned-debris-125",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -11743,7 +11743,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-126",
+      "id": "elsemesh-object:scanned-debris-126",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -11787,7 +11787,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-127",
+      "id": "elsemesh-object:scanned-debris-127",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -11831,7 +11831,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-128",
+      "id": "elsemesh-object:scanned-debris-128",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -11875,7 +11875,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-129",
+      "id": "elsemesh-object:scanned-debris-129",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -11919,7 +11919,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-130",
+      "id": "elsemesh-object:scanned-debris-130",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -11963,7 +11963,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-131",
+      "id": "elsemesh-object:scanned-debris-131",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -12007,7 +12007,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-132",
+      "id": "elsemesh-object:scanned-debris-132",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -12051,7 +12051,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-133",
+      "id": "elsemesh-object:scanned-debris-133",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -12095,7 +12095,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-134",
+      "id": "elsemesh-object:scanned-debris-134",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -12139,7 +12139,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-135",
+      "id": "elsemesh-object:scanned-debris-135",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -12183,7 +12183,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-136",
+      "id": "elsemesh-object:scanned-debris-136",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -12227,7 +12227,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-137",
+      "id": "elsemesh-object:scanned-debris-137",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -12271,7 +12271,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-138",
+      "id": "elsemesh-object:scanned-debris-138",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -12315,7 +12315,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-139",
+      "id": "elsemesh-object:scanned-debris-139",
       "kind": "asset-instance",
       "label": "dead quiver branch 01",
       "assetId": "sha256:4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b",
@@ -12359,7 +12359,7 @@
       }
     },
     {
-      "id": "tw-object:scanned-debris-140",
+      "id": "elsemesh-object:scanned-debris-140",
       "kind": "asset-instance",
       "label": "dead quiver branch 02",
       "assetId": "sha256:7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382",
@@ -12405,11 +12405,11 @@
   ],
   "components": [
     {
-      "id": "tw-component:island-village-materials",
-      "type": "tidewater.village-materials/2",
-      "profile": "original-tidewater-village-v1",
+      "id": "elsemesh-component:island-village-materials",
+      "type": "elsemesh.village-materials/2",
+      "profile": "original-elsemesh-village-v1",
       "dataAssetId": "sha256:60d14e77d041465d0d71b499a7e695ea5f12da696d5be4a616b0bde1d332bde6",
-      "objectId": "tw-object:island-village",
+      "objectId": "elsemesh-object:island-village",
       "priority": "visible",
       "streamingBounds": {
         "center": [
@@ -12421,17 +12421,17 @@
       }
     },
     {
-      "id": "tw-component:island-vegetation",
-      "type": "tidewater.static-vegetation/1",
+      "id": "elsemesh-component:island-vegetation",
+      "type": "elsemesh.static-vegetation/1",
       "priority": "portal-preview",
       "placementAssetId": "sha256:e9ead2780768e0dabea07317da0c020497137472e6adc1cb3f166611fb0fbae6",
       "grassMaskAssetId": "sha256:36507b8de08a52423c0eb3d5bf7cba6c373dbbec931aa1e1969e09abac9df8c2"
     },
     {
-      "id": "tw-component:island-fish-props",
-      "type": "tidewater.static-fish-props/1",
+      "id": "elsemesh-component:island-fish-props",
+      "type": "elsemesh.static-fish-props/1",
       "priority": "visible",
-      "placementAssetId": "sha256:6b9db587b80d1eae35fa062fd0308416bbe6bbba2842477971410403c16dd78c",
+      "placementAssetId": "sha256:11f5ea7d9ccaf1a3d7931bfc46a34d71f133e0df23225e8b86904c47137f0fcf",
       "streamingBounds": {
         "center": [
           66.64174159012683,
@@ -12442,16 +12442,16 @@
       }
     },
     {
-      "id": "tw-component:island-terrain",
-      "type": "tidewater.terrain-surface/1",
+      "id": "elsemesh-component:island-terrain",
+      "type": "elsemesh.terrain-surface/1",
       "profile": "example-island-v1",
-      "objectId": "tw-object:island-terrain",
+      "objectId": "elsemesh-object:island-terrain",
       "dataAssetId": "sha256:6aa0547b983d023f64c329f767e7711a56c40be4b1240b62f7d5d410b915f438",
       "priority": "visible"
     },
     {
-      "id": "tw-component:island-wildlife",
-      "type": "tidewater.example-island-wildlife/1",
+      "id": "elsemesh-component:island-wildlife",
+      "type": "elsemesh.example-island-wildlife/1",
       "profile": "example-island-wildlife-v1",
       "seed": 5,
       "priority": "visible",
@@ -12644,8 +12644,8 @@
       ]
     },
     {
-      "id": "tw-component:island-humpback",
-      "type": "tidewater.humpback-whale/1",
+      "id": "elsemesh-component:island-humpback",
+      "type": "elsemesh.humpback-whale/1",
       "profile": "example-island-humpback-v1",
       "priority": "visible",
       "streamingBounds": {
@@ -12704,8 +12704,8 @@
       "surfaceSpeed": 1.5
     },
     {
-      "id": "tw-component:reef-tile--3--1",
-      "type": "tidewater.static-reef/1",
+      "id": "elsemesh-component:reef-tile--3--1",
+      "type": "elsemesh.static-reef/1",
       "priority": "visible",
       "placementAssetId": "sha256:ba43c618854cc2f1055f5f7d3e09154bef8dae6b3822afd48c3c92b3409de144",
       "streamingBounds": {
@@ -12718,8 +12718,8 @@
       }
     },
     {
-      "id": "tw-component:reef-tile--2--1",
-      "type": "tidewater.static-reef/1",
+      "id": "elsemesh-component:reef-tile--2--1",
+      "type": "elsemesh.static-reef/1",
       "priority": "visible",
       "placementAssetId": "sha256:c86011a9d6427f6577ddebbce24bd5436aacac038774951c1450f03b538cdf34",
       "streamingBounds": {
@@ -12732,8 +12732,8 @@
       }
     },
     {
-      "id": "tw-component:reef-tile--1--1",
-      "type": "tidewater.static-reef/1",
+      "id": "elsemesh-component:reef-tile--1--1",
+      "type": "elsemesh.static-reef/1",
       "priority": "visible",
       "placementAssetId": "sha256:92cdd6f611d76139891a1440cd2deeb4ae88159a899989593127eb0630b28ae4",
       "streamingBounds": {
@@ -12746,8 +12746,8 @@
       }
     },
     {
-      "id": "tw-component:reef-tile-0--1",
-      "type": "tidewater.static-reef/1",
+      "id": "elsemesh-component:reef-tile-0--1",
+      "type": "elsemesh.static-reef/1",
       "priority": "visible",
       "placementAssetId": "sha256:1a8c7863673e686dce0cb700445aa2794ab497fc9271d49b2902eb2207f25708",
       "streamingBounds": {
@@ -12760,8 +12760,8 @@
       }
     },
     {
-      "id": "tw-component:reef-tile-1--1",
-      "type": "tidewater.static-reef/1",
+      "id": "elsemesh-component:reef-tile-1--1",
+      "type": "elsemesh.static-reef/1",
       "priority": "visible",
       "placementAssetId": "sha256:e13f70baba76b98878edf6e17bd8d5d4673e0036d18cfd110b3f8acdbdb50d70",
       "streamingBounds": {
@@ -12774,8 +12774,8 @@
       }
     },
     {
-      "id": "tw-component:reef-tile-2--1",
-      "type": "tidewater.static-reef/1",
+      "id": "elsemesh-component:reef-tile-2--1",
+      "type": "elsemesh.static-reef/1",
       "priority": "visible",
       "placementAssetId": "sha256:cc0df7d87d245c8c7dab51eb2a29f0e5ffb03b3fa06b83b07ccde6c993b61c12",
       "streamingBounds": {
@@ -12788,8 +12788,8 @@
       }
     },
     {
-      "id": "tw-component:reef-tile--3-0",
-      "type": "tidewater.static-reef/1",
+      "id": "elsemesh-component:reef-tile--3-0",
+      "type": "elsemesh.static-reef/1",
       "priority": "visible",
       "placementAssetId": "sha256:346b801cf6eb4300bb00e59a0abfb6876d34285464154f80dc2a3efaa5ae15ef",
       "streamingBounds": {
@@ -12802,8 +12802,8 @@
       }
     },
     {
-      "id": "tw-component:reef-tile--2-0",
-      "type": "tidewater.static-reef/1",
+      "id": "elsemesh-component:reef-tile--2-0",
+      "type": "elsemesh.static-reef/1",
       "priority": "visible",
       "placementAssetId": "sha256:defd2926880ce19a837e7895ae14b38fe09940b4b87960ee60be6686ff8d798f",
       "streamingBounds": {
@@ -12816,8 +12816,8 @@
       }
     },
     {
-      "id": "tw-component:reef-tile--1-0",
-      "type": "tidewater.static-reef/1",
+      "id": "elsemesh-component:reef-tile--1-0",
+      "type": "elsemesh.static-reef/1",
       "priority": "visible",
       "placementAssetId": "sha256:a57e9503967a8bb1e21ea64964cf0d4945c4656948ae76bc0ff19af83cfb5cdf",
       "streamingBounds": {
@@ -12830,8 +12830,8 @@
       }
     },
     {
-      "id": "tw-component:reef-tile-0-0",
-      "type": "tidewater.static-reef/1",
+      "id": "elsemesh-component:reef-tile-0-0",
+      "type": "elsemesh.static-reef/1",
       "priority": "visible",
       "placementAssetId": "sha256:773bcb401d4971f2b841fedb7b0ffbb4e92cbb52aace26fc29422c1bb1aa4303",
       "streamingBounds": {
@@ -12844,8 +12844,8 @@
       }
     },
     {
-      "id": "tw-component:reef-tile-1-0",
-      "type": "tidewater.static-reef/1",
+      "id": "elsemesh-component:reef-tile-1-0",
+      "type": "elsemesh.static-reef/1",
       "priority": "visible",
       "placementAssetId": "sha256:7185467fad9a6ea3a00efac62755739dbca7cfd5d533eb189080cd8ba963a43b",
       "streamingBounds": {
@@ -12858,8 +12858,8 @@
       }
     },
     {
-      "id": "tw-component:reef-tile-2-0",
-      "type": "tidewater.static-reef/1",
+      "id": "elsemesh-component:reef-tile-2-0",
+      "type": "elsemesh.static-reef/1",
       "priority": "visible",
       "placementAssetId": "sha256:aff37b865ada64170a1d23e8cb790c57f1d160875089efe2abb6813cc2cbfe08",
       "streamingBounds": {
@@ -12872,8 +12872,8 @@
       }
     },
     {
-      "id": "tw-component:reef-tile--3-1",
-      "type": "tidewater.static-reef/1",
+      "id": "elsemesh-component:reef-tile--3-1",
+      "type": "elsemesh.static-reef/1",
       "priority": "visible",
       "placementAssetId": "sha256:219d199fd3bbe7401276f72ea1e5c4e5cf0b4d3c5a9ce371e4e236c94338d0f5",
       "streamingBounds": {
@@ -12886,8 +12886,8 @@
       }
     },
     {
-      "id": "tw-component:reef-tile--2-1",
-      "type": "tidewater.static-reef/1",
+      "id": "elsemesh-component:reef-tile--2-1",
+      "type": "elsemesh.static-reef/1",
       "priority": "visible",
       "placementAssetId": "sha256:a9b8bc0971279ec4d8dab4324705c3a65d629e599681a6bd61b6624b6cc3a1a6",
       "streamingBounds": {
@@ -12900,8 +12900,8 @@
       }
     },
     {
-      "id": "tw-component:reef-tile--1-1",
-      "type": "tidewater.static-reef/1",
+      "id": "elsemesh-component:reef-tile--1-1",
+      "type": "elsemesh.static-reef/1",
       "priority": "visible",
       "placementAssetId": "sha256:e1ecc47d9a7140c15398464ffa06201d24b0aa6f585803d7abdffb4ca987553d",
       "streamingBounds": {
@@ -12914,8 +12914,8 @@
       }
     },
     {
-      "id": "tw-component:reef-tile-0-1",
-      "type": "tidewater.static-reef/1",
+      "id": "elsemesh-component:reef-tile-0-1",
+      "type": "elsemesh.static-reef/1",
       "priority": "visible",
       "placementAssetId": "sha256:163164d9f22321dba99a7e2a428d24733e61e98a2086da66f0c24a428f6164c4",
       "streamingBounds": {
@@ -12928,8 +12928,8 @@
       }
     },
     {
-      "id": "tw-component:reef-tile-1-1",
-      "type": "tidewater.static-reef/1",
+      "id": "elsemesh-component:reef-tile-1-1",
+      "type": "elsemesh.static-reef/1",
       "priority": "visible",
       "placementAssetId": "sha256:cc15ff66701be8812ccbddd991b73f9d06401cb49db687bafb1531babab914e3",
       "streamingBounds": {
@@ -12942,8 +12942,8 @@
       }
     },
     {
-      "id": "tw-component:reef-tile-2-1",
-      "type": "tidewater.static-reef/1",
+      "id": "elsemesh-component:reef-tile-2-1",
+      "type": "elsemesh.static-reef/1",
       "priority": "visible",
       "placementAssetId": "sha256:5aa859968dcde2074dd8ff465c7cdf14df34ae0756b07aba659b253444212de9",
       "streamingBounds": {
@@ -12956,8 +12956,8 @@
       }
     },
     {
-      "id": "tw-component:reef-tile--4-2",
-      "type": "tidewater.static-reef/1",
+      "id": "elsemesh-component:reef-tile--4-2",
+      "type": "elsemesh.static-reef/1",
       "priority": "visible",
       "placementAssetId": "sha256:a554f32e4b3a6202daa8d09ae3783cf4adb7ecf0100bd497e7c744b9d30b061a",
       "streamingBounds": {
@@ -12970,8 +12970,8 @@
       }
     },
     {
-      "id": "tw-component:reef-tile--3-2",
-      "type": "tidewater.static-reef/1",
+      "id": "elsemesh-component:reef-tile--3-2",
+      "type": "elsemesh.static-reef/1",
       "priority": "visible",
       "placementAssetId": "sha256:64aca198e94b45f918c403ddf795a5fe8889beed9f0e3c7bb31ec1ba4d08e52c",
       "streamingBounds": {
@@ -12984,8 +12984,8 @@
       }
     },
     {
-      "id": "tw-component:reef-tile--2-2",
-      "type": "tidewater.static-reef/1",
+      "id": "elsemesh-component:reef-tile--2-2",
+      "type": "elsemesh.static-reef/1",
       "priority": "visible",
       "placementAssetId": "sha256:87fd006add6e78ffc58b44d8c0dcc0f388cb199951f98689413a0da8bbcda17d",
       "streamingBounds": {
@@ -12998,8 +12998,8 @@
       }
     },
     {
-      "id": "tw-component:reef-tile--1-2",
-      "type": "tidewater.static-reef/1",
+      "id": "elsemesh-component:reef-tile--1-2",
+      "type": "elsemesh.static-reef/1",
       "priority": "visible",
       "placementAssetId": "sha256:af604d8e0a9e8b1a53c341413a959dc21c225e6c5356328e9b01ea86f64b892c",
       "streamingBounds": {
@@ -13012,8 +13012,8 @@
       }
     },
     {
-      "id": "tw-component:reef-tile-0-2",
-      "type": "tidewater.static-reef/1",
+      "id": "elsemesh-component:reef-tile-0-2",
+      "type": "elsemesh.static-reef/1",
       "priority": "visible",
       "placementAssetId": "sha256:66bb8f0dff1bd01607b666f52a916a08bad9f46ae67139ed2d8a1448bbe405b2",
       "streamingBounds": {
@@ -13026,8 +13026,8 @@
       }
     },
     {
-      "id": "tw-component:reef-tile-1-2",
-      "type": "tidewater.static-reef/1",
+      "id": "elsemesh-component:reef-tile-1-2",
+      "type": "elsemesh.static-reef/1",
       "priority": "visible",
       "placementAssetId": "sha256:45d39e5f33a8521fb955b0c25e70776d0bc01bbb54e08d583c3158ae5af8ea61",
       "streamingBounds": {
@@ -13040,8 +13040,8 @@
       }
     },
     {
-      "id": "tw-component:reef-tile-2-2",
-      "type": "tidewater.static-reef/1",
+      "id": "elsemesh-component:reef-tile-2-2",
+      "type": "elsemesh.static-reef/1",
       "priority": "visible",
       "placementAssetId": "sha256:915b9b99134d08eeb0d6e42945f162758960432bcb20b3944cd3ce0d01a1addb",
       "streamingBounds": {
@@ -13054,8 +13054,8 @@
       }
     },
     {
-      "id": "tw-component:reef-tile--3-3",
-      "type": "tidewater.static-reef/1",
+      "id": "elsemesh-component:reef-tile--3-3",
+      "type": "elsemesh.static-reef/1",
       "priority": "visible",
       "placementAssetId": "sha256:3fb717c7e0e600723de4b87d94855a5e31bb64785318bd8747a005e80727e025",
       "streamingBounds": {
@@ -13068,8 +13068,8 @@
       }
     },
     {
-      "id": "tw-component:reef-tile--2-3",
-      "type": "tidewater.static-reef/1",
+      "id": "elsemesh-component:reef-tile--2-3",
+      "type": "elsemesh.static-reef/1",
       "priority": "visible",
       "placementAssetId": "sha256:d6a3b46ff6710a3c3f241e9af098f3fdbacdeab3366dae9b7de7d3f74330558c",
       "streamingBounds": {
@@ -13082,8 +13082,8 @@
       }
     },
     {
-      "id": "tw-component:reef-tile-1-3",
-      "type": "tidewater.static-reef/1",
+      "id": "elsemesh-component:reef-tile-1-3",
+      "type": "elsemesh.static-reef/1",
       "priority": "visible",
       "placementAssetId": "sha256:1e6d46e7be708e382f2b8018c1224daf13671020087ffc2505adcfbe49f016fe",
       "streamingBounds": {
@@ -13096,8 +13096,8 @@
       }
     },
     {
-      "id": "tw-component:reef-tile-2-3",
-      "type": "tidewater.static-reef/1",
+      "id": "elsemesh-component:reef-tile-2-3",
+      "type": "elsemesh.static-reef/1",
       "priority": "visible",
       "placementAssetId": "sha256:f9dfbd9eab64e24254837c585f1ed8ceddce1392aeaea477e1aaea03d36e0143",
       "streamingBounds": {
@@ -13110,19 +13110,19 @@
       }
     },
     {
-      "id": "tw-component:island-ocean",
-      "type": "tidewater.island-ocean/1",
+      "id": "elsemesh-component:island-ocean",
+      "type": "elsemesh.island-ocean/1",
       "priority": "portal-preview"
     },
     {
-      "id": "tw-component:island-lobster-boat",
-      "type": "tidewater.downeast-boat/1",
-      "objectId": "tw-object:moored-lobster-boat",
+      "id": "elsemesh-component:island-lobster-boat",
+      "type": "elsemesh.downeast-boat/1",
+      "objectId": "elsemesh-object:moored-lobster-boat",
       "priority": "portal-preview"
     },
     {
-      "id": "tw-component:island-ambience",
-      "type": "tidewater.ambient-audio/1",
+      "id": "elsemesh-component:island-ambience",
+      "type": "elsemesh.ambient-audio/1",
       "priority": "portal-preview",
       "beds": [
         {
@@ -13184,8 +13184,8 @@
   ],
   "portals": [
     {
-      "id": "tw-portal:loz-underneath",
-      "destinationWorldId": "tw-world:loz-underneath",
+      "id": "elsemesh-portal:loz-underneath",
+      "destinationWorldId": "elsemesh-world:loz-underneath",
       "entry": {
         "position": [
           -340,

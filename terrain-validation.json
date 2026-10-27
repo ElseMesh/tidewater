@@ -1,6 +1,6 @@
 {
   "format": "elsemesh.terrain-validation/1",
-  "worldId": "tw-world:example-island",
+  "worldId": "elsemesh-world:example-island",
   "assets": [
     {
       "role": "visual-surface",
@@ -26,7 +26,7 @@
         ]
       },
       "encoding": "EMTERR1/DEFLATE; ETRNSF1; f32le heights; rgba8unorm normal/rock/AO and masks; rgba8unorm detail texture",
-      "rendererContract": "original-tidewater-terrain-v1"
+      "rendererContract": "original-elsemesh-terrain-v1"
     },
     {
       "role": "full-terrain-collision-and-visual-fallback",
