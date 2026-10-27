@@ -16,18 +16,18 @@
       "Press I to open your cooler and fish log. Deck lights let you fish after dark."
     ],
     "stages": {
-      "gpu": "Starting WebGPU…",
-      "atmosphere": "Setting the coastal sky…",
-      "terrain": "Preparing the island terrain…",
-      "village": "Building the harbour village…",
-      "vegetation": "Growing the island vegetation…",
-      "ocean": "Preparing the sea…",
-      "reef": "Growing the reef…",
-      "simulation": "Starting ocean simulation…",
-      "shaders": "Preparing the island renderer…",
-      "world": "Connecting to this ThruHold…",
-      "compile": "Compiling shaders…",
-      "warmup": "Warming up the world…"
+      "gpu": "Starting WebGPU\u2026",
+      "atmosphere": "Setting the coastal sky\u2026",
+      "terrain": "Preparing the island terrain\u2026",
+      "village": "Building the harbour village\u2026",
+      "vegetation": "Growing the island vegetation\u2026",
+      "ocean": "Preparing the sea\u2026",
+      "reef": "Growing the reef\u2026",
+      "simulation": "Starting ocean simulation\u2026",
+      "shaders": "Preparing the island renderer\u2026",
+      "world": "Connecting to this ThruHold\u2026",
+      "compile": "Compiling shaders\u2026",
+      "warmup": "Warming up the world\u2026"
     }
   },
   "spawn": {
@@ -10496,7 +10496,7 @@
         "rotation": [
           0.07890634602882417,
           0.20955596292266318,
-          0.00006019730273089732,
+          6.019730273089732e-05,
           0.9746076561038394
         ]
       },
@@ -13182,30 +13182,6 @@
       ]
     }
   ],
-  "portals": [
-    {
-      "id": "elsemesh-portal:loz-underneath",
-      "destinationWorldId": "elsemesh-world:loz-underneath",
-      "entry": {
-        "position": [
-          -340,
-          4.2,
-          80
-        ],
-        "yaw": 1.5707963267948966
-      },
-      "exit": {
-        "position": [
-          0,
-          4.2,
-          8
-        ],
-        "yaw": 1.5707963267948966
-      },
-      "visual": "timber",
-      "openView": true,
-      "enabled": true
-    }
-  ],
+  "portals": [],
   "updatedAt": "2026-10-01T00:00:00Z"
 }
