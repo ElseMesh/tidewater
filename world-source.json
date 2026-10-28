@@ -1,6 +1,6 @@
 {
   "protocol": "elsemesh.world-source/3",
-  "worldId": "elsemesh-world:example-island",
+  "worldId": "elsemesh:example-island",
   "title": "Example Island",
   "experience": {
     "genre": "A coastal fishing adventure",
@@ -8,6 +8,10 @@
       "elsemesh.fishing-game/1",
       "elsemesh.shore-aware-boat/1"
     ],
+    "fishing": {
+      "fishStand": { "position": [49.9, -74.6], "yaw": 1.45, "interactionRadius": 3.2 },
+      "chandlery": { "position": [85.5, -60.5], "yaw": -1.9, "interactionRadius": 3.0 }
+    },
     "tagline": "Take the boat out, work the reef and deep water, and sell your catch to Joe before dark.",
     "loadingNote": "The first launch compiles shaders and can take a minute or two. Later visits load much faster.",
     "tips": [
@@ -20,18 +24,18 @@
       "Press I to open your cooler and fish log. Deck lights let you fish after dark."
     ],
     "stages": {
-      "gpu": "Starting WebGPU\u2026",
-      "atmosphere": "Setting the coastal sky\u2026",
-      "terrain": "Preparing the island terrain\u2026",
-      "village": "Building the harbour village\u2026",
-      "vegetation": "Growing the island vegetation\u2026",
-      "ocean": "Preparing the sea\u2026",
-      "reef": "Growing the reef\u2026",
-      "simulation": "Starting ocean simulation\u2026",
-      "shaders": "Preparing the island renderer\u2026",
-      "world": "Connecting to this ThruHold\u2026",
-      "compile": "Compiling shaders\u2026",
-      "warmup": "Warming up the world\u2026"
+      "gpu": "Starting WebGPU…",
+      "atmosphere": "Setting the coastal sky…",
+      "terrain": "Preparing the island terrain…",
+      "village": "Building the harbour village…",
+      "vegetation": "Growing the island vegetation…",
+      "ocean": "Preparing the sea…",
+      "reef": "Growing the reef…",
+      "simulation": "Starting ocean simulation…",
+      "shaders": "Preparing the island renderer…",
+      "world": "Connecting to this ThruHold…",
+      "compile": "Compiling shaders…",
+      "warmup": "Warming up the world…"
     }
   },
   "spawn": {
@@ -73,11 +77,24 @@
       "elsemesh.downeast-boat/1",
       "elsemesh.ambient-audio/1",
       "elsemesh.portal-handoff/1",
-      "elsemesh.portal-preview-static/1"
+      "elsemesh.portal-preview-static/1",
+      "elsemesh.world-extension/1"
     ],
     "maxPackageBytes": 134217728
   },
   "hosts": [],
+  "extensions": [
+    {
+      "id": "elsemesh-extension:fishing-rhythm",
+      "protocol": "elsemesh.world-extension/1",
+      "assetId": "sha256:4694279a3d9dc782378b3ec1112b044d09d3cf8803430181c271cc0fdccf56ba",
+      "memoryPages": 4,
+      "capabilities": [
+        "fishing.rules"
+      ],
+      "behaviorId": "elsemesh.fishing-game/1"
+    }
+  ],
   "objects": [
     {
       "id": "elsemesh-object:island-terrain",
@@ -152,10 +169,10 @@
       "id": "elsemesh-object:island-village",
       "kind": "asset-instance",
       "label": "Procedural village, pier and harbor",
-      "assetId": "sha256:050668dd943a37eb0fb9d4117f45371e644d581d22837da25fdfe1b512b1dd1f",
+      "assetId": "sha256:d9b79e3c55fa4dc1f7838b8981991a60cf5acbd2a8af8a4eae41532aee751f65",
       "lods": [
         {
-          "assetId": "sha256:816da761737b18e4a3f397c36cb91979f47ab409df7113f25c9e83e462da7b5f",
+          "assetId": "sha256:4d67066d8b9439d4e9636a6dbc6acb82a5a40b556df8e7e138752be132ac7f8b",
           "maxScreenFraction": 0.45
         }
       ],
@@ -10500,7 +10517,7 @@
         "rotation": [
           0.07890634602882417,
           0.20955596292266318,
-          6.019730273089732e-05,
+          0.00006019730273089732,
           0.9746076561038394
         ]
       },
@@ -12412,7 +12429,7 @@
       "id": "elsemesh-component:island-village-materials",
       "type": "elsemesh.village-materials/2",
       "profile": "original-elsemesh-village-v1",
-      "dataAssetId": "sha256:60d14e77d041465d0d71b499a7e695ea5f12da696d5be4a616b0bde1d332bde6",
+      "dataAssetId": "sha256:58c5317f614c767686efe99b996ed908dee8e21024acccf3e746f2fbbb88534d",
       "objectId": "elsemesh-object:island-village",
       "priority": "visible",
       "streamingBounds": {
@@ -12450,7 +12467,7 @@
       "type": "elsemesh.terrain-surface/1",
       "profile": "example-island-v1",
       "objectId": "elsemesh-object:island-terrain",
-      "dataAssetId": "sha256:303cbe432aec5a6b90d0bba20e6e9c77138dc7c801d755dbe277b88a3fddd971",
+      "dataAssetId": "sha256:0d22d7f65330eaf827604de10d3d1e77af7c43ad08b1991dca31781129dc037a",
       "priority": "visible"
     },
     {

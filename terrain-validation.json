@@ -1,12 +1,12 @@
 {
   "format": "elsemesh.terrain-validation/1",
-  "worldId": "elsemesh-world:example-island",
+  "worldId": "elsemesh:example-island",
   "assets": [
     {
       "role": "visual-surface",
-      "id": "sha256:303cbe432aec5a6b90d0bba20e6e9c77138dc7c801d755dbe277b88a3fddd971",
-      "sha256": "303cbe432aec5a6b90d0bba20e6e9c77138dc7c801d755dbe277b88a3fddd971",
-      "bytes": 28577632,
+      "id": "sha256:0d22d7f65330eaf827604de10d3d1e77af7c43ad08b1991dca31781129dc037a",
+      "sha256": "0d22d7f65330eaf827604de10d3d1e77af7c43ad08b1991dca31781129dc037a",
+      "bytes": 28551681,
       "dimensions": {
         "heightfield": [
           2049,

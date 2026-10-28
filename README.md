@@ -24,6 +24,10 @@ ElseMesh imports it at `worlds/tidewater`, validates its
   during export.
 - `terrain-validation.json` records hashes, dimensions, encodings, and renderer
   roles for the exported terrain package.
+- `source/wasm/fishing-rhythm.c` is the source for the signed fishing-rule
+  extension. Build its bounded browser module with
+  `node worlds/tidewater/tools/build-fishing-rhythm-wasm.mjs`; update the hash
+  in `world-source.json` and regenerate `ASSET-INDEX.md` after source changes.
 
 The asset catalogue is generated, not hand-edited. Exporter and format
 validators live in ElseMesh. Run `npm run export:island` from an ElseMesh

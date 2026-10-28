@@ -1,6 +1,6 @@
 # Example Island asset index
 
-Generated from [world-source.json](world-source.json) (60 verified content-addressed assets).
+Generated from [world-source.json](world-source.json) (61 verified content-addressed assets).
 Each filename is the SHA-256 of the exact packaged bytes. Keep these names immutable; use the descriptions and use sites below to identify the assets.
 
 | Description / use | Format | Size | SHA-256 asset |
@@ -24,14 +24,15 @@ Each filename is the SHA-256 of the exact packaged bytes. Keep these names immut
 | Editable source: source/models/whale/humpback.bin<br>Humpback-whale asset — model geometry | Binary (elsemesh.humpback-whale/1) | 3.31 MiB | [`b3a31801a393489331bc3dd4fd5be64cbad32ac4e159f5180e0eb028d489a92d`](assets/b3a31801a393489331bc3dd4fd5be64cbad32ac4e159f5180e0eb028d489a92d) |
 | Editable source: source/models/whale/humpback.json<br>Humpback-whale asset — model metadata | JSON | 4.0 KiB | [`c47390c365da1c8c6fa73bea4996bf51073a973770c1942e8993f545e283a354`](assets/c47390c365da1c8c6fa73bea4996bf51073a973770c1942e8993f545e283a354) |
 | Fish-prop placement data — placement data | JSON | 25.2 KiB | [`11f5ea7d9ccaf1a3d7931bfc46a34d71f133e0df23225e8b86904c47137f0fcf`](assets/11f5ea7d9ccaf1a3d7931bfc46a34d71f133e0df23225e8b86904c47137f0fcf) |
+| fishing rhythm extension — WebAssembly module | WebAssembly module | 0.8 KiB | [`4694279a3d9dc782378b3ec1112b044d09d3cf8803430181c271cc0fdccf56ba`](assets/4694279a3d9dc782378b3ec1112b044d09d3cf8803430181c271cc0fdccf56ba) |
 | lambis shell — LOD mesh | glTF binary (GLB) | 772.7 KiB | [`6348fabfc00e8ae4efb50b1b2987567bb116e0bf05b63402c187a3e2236ac056`](assets/6348fabfc00e8ae4efb50b1b2987567bb116e0bf05b63402c187a3e2236ac056) |
 | lambis shell — mesh | glTF binary (GLB) | 781.0 KiB | [`0ee07523352578110d78347d93a4536673f67c2d01a0aee6b334882bad80b717`](assets/0ee07523352578110d78347d93a4536673f67c2d01a0aee6b334882bad80b717) |
 | Moored lobster boat (static preview) — LOD mesh | glTF binary (GLB) | 1.20 MiB | [`eed66ccd07cb5e3a6583e12fbba397b17650c224c15d8b60cc53ce83366aac74`](assets/eed66ccd07cb5e3a6583e12fbba397b17650c224c15d8b60cc53ce83366aac74) |
 | Moored lobster boat (static preview) — mesh | glTF binary (GLB) | 2.44 MiB | [`a9f0ba1bc43cf4a25aed9ad7c6f4e1c9271d166e9fae06f57d03d64af195b8db`](assets/a9f0ba1bc43cf4a25aed9ad7c6f4e1c9271d166e9fae06f57d03d64af195b8db) |
 | Portal preview terrain — mesh | glTF binary (GLB) | 823.9 KiB | [`3ee6e7b8591964e1c494c91e1b04ef65e1380332650d38db5a89e2c1a3c68fc5`](assets/3ee6e7b8591964e1c494c91e1b04ef65e1380332650d38db5a89e2c1a3c68fc5) |
 | Procedural island terrain — mesh | glTF binary (GLB) | 12.78 MiB | [`d3cec3194167eaf7018f401cabcecb337ab989cd6141b45fc8c43f5aa4d8a3cf`](assets/d3cec3194167eaf7018f401cabcecb337ab989cd6141b45fc8c43f5aa4d8a3cf) |
-| Procedural village, pier and harbor — LOD mesh | glTF binary (GLB) | 7.11 MiB | [`816da761737b18e4a3f397c36cb91979f47ab409df7113f25c9e83e462da7b5f`](assets/816da761737b18e4a3f397c36cb91979f47ab409df7113f25c9e83e462da7b5f) |
-| Procedural village, pier and harbor — mesh | glTF binary (GLB) | 13.90 MiB | [`050668dd943a37eb0fb9d4117f45371e644d581d22837da25fdfe1b512b1dd1f`](assets/050668dd943a37eb0fb9d4117f45371e644d581d22837da25fdfe1b512b1dd1f) |
+| Procedural village, pier and harbor — LOD mesh | glTF binary (GLB) | 7.11 MiB | [`4d67066d8b9439d4e9636a6dbc6acb82a5a40b556df8e7e138752be132ac7f8b`](assets/4d67066d8b9439d4e9636a6dbc6acb82a5a40b556df8e7e138752be132ac7f8b) |
+| Procedural village, pier and harbor — mesh | glTF binary (GLB) | 13.90 MiB | [`d9b79e3c55fa4dc1f7838b8981991a60cf5acbd2a8af8a4eae41532aee751f65`](assets/d9b79e3c55fa4dc1f7838b8981991a60cf5acbd2a8af8a4eae41532aee751f65) |
 | Reef placement tile -1--1 — placement data | Binary (elsemesh.static-reef/1) | 40.4 KiB | [`92cdd6f611d76139891a1440cd2deeb4ae88159a899989593127eb0630b28ae4`](assets/92cdd6f611d76139891a1440cd2deeb4ae88159a899989593127eb0630b28ae4) |
 | Reef placement tile -1-0 — placement data | Binary (elsemesh.static-reef/1) | 700.6 KiB | [`a57e9503967a8bb1e21ea64964cf0d4945c4656948ae76bc0ff19af83cfb5cdf`](assets/a57e9503967a8bb1e21ea64964cf0d4945c4656948ae76bc0ff19af83cfb5cdf) |
 | Reef placement tile -1-1 — placement data | Binary (elsemesh.static-reef/1) | 1011.5 KiB | [`e1ecc47d9a7140c15398464ffa06201d24b0aa6f585803d7abdffb4ca987553d`](assets/e1ecc47d9a7140c15398464ffa06201d24b0aa6f585803d7abdffb4ca987553d) |
@@ -61,9 +62,9 @@ Each filename is the SHA-256 of the exact packaged bytes. Keep these names immut
 | Reef placement tile 2-1 — placement data | Binary (elsemesh.static-reef/1) | 7.7 KiB | [`5aa859968dcde2074dd8ff465c7cdf14df34ae0756b07aba659b253444212de9`](assets/5aa859968dcde2074dd8ff465c7cdf14df34ae0756b07aba659b253444212de9) |
 | Reef placement tile 2-2 — placement data | Binary (elsemesh.static-reef/1) | 9.0 KiB | [`915b9b99134d08eeb0d6e42945f162758960432bcb20b3944cd3ce0d01a1addb`](assets/915b9b99134d08eeb0d6e42945f162758960432bcb20b3944cd3ce0d01a1addb) |
 | Reef placement tile 2-3 — placement data | Binary (elsemesh.static-reef/1) | 0.3 KiB | [`f9dfbd9eab64e24254837c585f1ed8ceddce1392aeaea477e1aaea03d36e0143`](assets/f9dfbd9eab64e24254837c585f1ed8ceddce1392aeaea477e1aaea03d36e0143) |
-| Terrain visual-surface data — component data | Binary (elsemesh.terrain-surface/1) | 27.25 MiB | [`303cbe432aec5a6b90d0bba20e6e9c77138dc7c801d755dbe277b88a3fddd971`](assets/303cbe432aec5a6b90d0bba20e6e9c77138dc7c801d755dbe277b88a3fddd971) |
+| Terrain visual-surface data — component data | Binary (elsemesh.terrain-surface/1) | 27.23 MiB | [`0d22d7f65330eaf827604de10d3d1e77af7c43ad08b1991dca31781129dc037a`](assets/0d22d7f65330eaf827604de10d3d1e77af7c43ad08b1991dca31781129dc037a) |
 | Vegetation placement data — grass density mask | Binary (elsemesh.static-vegetation/1) | 4.00 MiB | [`36507b8de08a52423c0eb3d5bf7cba6c373dbbec931aa1e1969e09abac9df8c2`](assets/36507b8de08a52423c0eb3d5bf7cba6c373dbbec931aa1e1969e09abac9df8c2) |
 | Vegetation placement data — placement data | Binary (elsemesh.static-vegetation/1) | 2.56 MiB | [`e9ead2780768e0dabea07317da0c020497137472e6adc1cb3f166611fb0fbae6`](assets/e9ead2780768e0dabea07317da0c020497137472e6adc1cb3f166611fb0fbae6) |
-| Village PBR material package — component data | Binary (elsemesh.village-materials/2) | 18.30 MiB | [`60d14e77d041465d0d71b499a7e695ea5f12da696d5be4a616b0bde1d332bde6`](assets/60d14e77d041465d0d71b499a7e695ea5f12da696d5be4a616b0bde1d332bde6) |
+| Village PBR material package — component data | Binary (elsemesh.village-materials/2) | 18.30 MiB | [`58c5317f614c767686efe99b996ed908dee8e21024acccf3e746f2fbbb88534d`](assets/58c5317f614c767686efe99b996ed908dee8e21024acccf3e746f2fbbb88534d) |
 
 Regenerate with the ElseMesh exporter for this world. The exporter verifies every hash and fails if package files do not match the manifest.
