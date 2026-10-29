@@ -8,5 +8,15 @@ the Tidewater submodule path when it launches these checks, keeping imports in
 the external build tree when testing there.
 
 `fishing-rules.mjs` checks the authored behavior data. The other checks cover
-the packaged Reef assets, terrain, vegetation, geometry LOD, village material
-maps, whale assets, and vendor stand models in WebGPU and WebGL.
+the exported package and its Reef assets, terrain, vegetation, geometry LOD,
+village material maps, whale assets, authored pier collision, and vendor stand
+models in WebGPU and WebGL. These remain in the engine's `npm test` sequence
+because they exercise the package through the ElseMesh runtime.
+
+The optional Blender authoring checks use the Tidewater package as their source
+fixture:
+
+```sh
+python3 worlds/tidewater/test/blender-world-actions.py
+BLENDER_EXECUTABLE=/path/to/blender python3 worlds/tidewater/test/blender-world-actions-runtime.py
+```
