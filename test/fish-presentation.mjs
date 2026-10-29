@@ -3,6 +3,7 @@ import * as presentation from '../FishPresentation.js';
 import source from '../world-source.json' with { type: 'json' };
 import { isFishCatalog } from '../FishTable.js';
 import { createPropMaterial, createSwimMaterial } from '../../../src/world/fish/FishMaterial.js';
+import { section } from '../../../src/world/fish/FishGeometry.js';
 
 const { PATTERN, SPECIES, SKIN } = presentation;
 const names = Object.keys( PATTERN ).sort( ( a, b ) => PATTERN[ a ] - PATTERN[ b ] );
@@ -13,6 +14,17 @@ for ( const name of names ) {
 	assert.equal( SPECIES[ name ].pattern, PATTERN[ name ], `${name} anatomy selects its stable shader pattern` );
 	assert( Number.isFinite( SPECIES[ name ].body ) && SPECIES[ name ].body > 0 && SPECIES[ name ].body <= 1, `${name} has normalized body anatomy` );
 	assert( Number.isInteger( SKIN[ name ].back ) && Number.isFinite( SKIN[ name ].rough ), `${name} has authored skin values` );
+}
+
+for ( const name of names ) {
+	const model = SPECIES[ name ];
+	if ( model.wid ) {
+		let width = 0;
+		for ( let u = 0.1; u < 0.9; u += 0.05 ) width = Math.max( width, section( model, u ).W );
+		assert.equal( presentation.PLACEMENT.restHeight( name, 0.4, presentation ), width * 0.4 * 0.85, `${name} rest height preserves the renderer's original formula` );
+	}
+	assert.deepEqual( presentation.PLACEMENT.tailAnchor( name, presentation ), [ 0, 0, 0.5 - model.body * 0.985 ], `${name} tail hook anchor follows authored body length` );
+	assert.deepEqual( presentation.PLACEMENT.gillAnchor( name, presentation ), [ 0, model.mouth.y * 0.5, 0.5 - model.body * ( model.mouth.corner + 0.03 ) ], `${name} gill hook anchor follows authored mouth anatomy` );
 }
 
 const catalog = source.experience.behaviors[ 'elsemesh.fishing-game/1' ].fishCatalog;

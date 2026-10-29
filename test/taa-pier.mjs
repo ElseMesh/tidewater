@@ -20,6 +20,7 @@ import { setFrameCamera, FrameUniforms } from '../../../src/engine/render/Frame.
 import { TemporalUpscale } from '../../../src/post/TemporalUpscale.js';
 import { AntiAlias } from '../../../src/post/AntiAlias.js';
 import { WORLD } from '../../../src/world/WorldLayout.js';
+import * as fishPresentation from '../FishPresentation.js';
 
 const OUT = process.argv[ 2 ] || '/var/tmp/taa-pier';
 const MODE = process.argv[ 3 ] || 'taa';
@@ -29,7 +30,7 @@ const Hs = await worldHarness( { width: W, height: H, sun: [ - 0.55, 0.45, 0.5 ]
 const { E, GPU, scene, camera, mr, shadows, rt } = Hs;
 
 const terrain = new TerrainData();
-const village = new Village( { scene, terrain, colliders: new Colliders() } );
+const village = new Village( { scene, terrain, colliders: new Colliders(), fishPresentation } );
 {
 
 	// water below the pier (flat), so the plank gaps show it

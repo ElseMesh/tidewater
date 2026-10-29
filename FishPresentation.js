@@ -371,3 +371,42 @@ export const SKIN = {
 	eagleRay: { back: 0x14181e, flank: 0x1c2028, belly: 0xe0e2e2, fin: 0x101418, edge: 0x2a2e36, rough: 0.35 },
 	turtle: { back: 0x3e3220, flank: 0x86683a, belly: 0xc8b884, fin: 0x4a4238, edge: 0x9a9280, rough: 0.45 },
 };
+
+// Tidewater fish anatomy placement rules. Kept with the authored species profile so the engine
+// renderer only consumes model-space anchors and does not define Tidewater body conventions.
+function profileAt( points, u ) {
+	if ( u <= points[ 0 ][ 0 ] ) return points[ 0 ][ 1 ];
+	for ( let i = 1; i < points.length; i ++ ) {
+		if ( u <= points[ i ][ 0 ] ) {
+			const a = points[ i - 1 ], b = points[ i ];
+			const t = ( u - a[ 0 ] ) / ( b[ 0 ] - a[ 0 ] );
+			const smooth = t * t * ( 3 - 2 * t );
+			return a[ 1 ] + ( b[ 1 ] - a[ 1 ] ) * ( 0.5 * t + 0.5 * smooth );
+		}
+	}
+	return points[ points.length - 1 ][ 1 ];
+}
+
+function speciesForPlacement( species, presentation ) {
+	const model = presentation?.SPECIES?.[ species ];
+	if ( ! model ) throw new Error( `Fish species is not present in the world fish-presentation profile: ${species}` );
+	return model;
+}
+
+export const PLACEMENT = Object.freeze( {
+	restHeight( species, length, presentation ) {
+		const model = speciesForPlacement( species, presentation );
+		if ( ! model.wid ) throw new Error( `Fish species has no body width profile for placement: ${species}` );
+		let width = 0;
+		for ( let u = 0.1; u < 0.9; u += 0.05 ) width = Math.max( width, profileAt( model.wid, u ) );
+		return width * length * 0.85;
+	},
+	tailAnchor( species, presentation ) {
+		const model = speciesForPlacement( species, presentation );
+		return [ 0, 0, 0.5 - model.body * 0.985 ];
+	},
+	gillAnchor( species, presentation ) {
+		const model = speciesForPlacement( species, presentation );
+		return [ 0, model.mouth.y * 0.5, 0.5 - model.body * ( model.mouth.corner + 0.03 ) ];
+	},
+} );

@@ -12,12 +12,13 @@ import { BoatModel } from '../../../src/world/BoatModel.js';
 import { computeShoreField } from '../../../src/world/ShoreField.js';
 import { WORLD } from '../../../src/world/WorldLayout.js';
 import { installGroundBounce } from '../../../src/materials/GroundBounce.js';
+import * as fishPresentation from '../FishPresentation.js';
 
 const out = process.argv[ 2 ] && ! process.argv[ 2 ].startsWith( '--' ) ? process.argv[ 2 ] : '/var/tmp';
 const H = await worldHarness( { sun: [ 0.5, 0.5, 0.45 ] } );
 const data = new TerrainData();
 const colliders = new Colliders();
-const village = new Village( { scene: H.scene, terrain: data, colliders } );
+const village = new Village( { scene: H.scene, terrain: data, colliders, fishPresentation } );
 const shore = computeShoreField( data, { res: 512, swellDir: [ WORLD.swellDir.x, WORLD.swellDir.y ] } );
 const gpu = new TerrainGPU( data, shore );
 const terrain = new Terrain( { scene: H.scene, terrainData: data, terrainGPU: gpu } );
