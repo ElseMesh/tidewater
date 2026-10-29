@@ -21,10 +21,7 @@ export async function createFishingTestExtension( behaviorData ) {
 
 export async function createFishingTestRuntime( runtime, behaviorData ) {
 	runtime.extensions = await createFishingTestExtension( behaviorData );
-	runtime.extensionReady = runtime.extensions.ready( 'elsemesh.fishing-game/1' ).then( result => {
-		runtime.setBiteRateMultipliers( result.biteRateMultipliers );
-		return runtime;
-	} );
+	runtime.extensionReady = runtime.extensions.ready( 'elsemesh.fishing-game/1' ).then( () => runtime );
 	await runtime.extensionReady;
 	return runtime;
 }

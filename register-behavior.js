@@ -15,10 +15,7 @@ registerWorldBehavior( 'elsemesh.fishing-game/1', {
 	createRuntime: options => {
 		const runtime = new FishingGameRuntime( options );
 		if ( options.extensions?.has?.( 'elsemesh.fishing-game/1' ) ) {
-			runtime.extensionReady = options.extensions.ready( 'elsemesh.fishing-game/1' ).then( result => {
-				runtime.setBiteRateMultipliers( result.biteRateMultipliers );
-				return runtime;
-			} );
+			runtime.extensionReady = options.extensions.ready( 'elsemesh.fishing-game/1' ).then( () => runtime );
 			runtime.extensionReady.catch( () => {} );
 		}
 		return runtime;

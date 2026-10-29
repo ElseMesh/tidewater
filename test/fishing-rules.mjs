@@ -16,18 +16,23 @@ assert.equal( source.rules.requiredFeatures.includes( 'elsemesh.world-extension/
 const fishingBehavior = worldBehaviorsFor( source.experience ).find( behavior => behavior.id === 'elsemesh.fishing-game/1' );
 assert.ok( fishingBehavior?.data.biteRateSchedule, 'Tidewater authors its bite schedule as behavior data' );
 
-const extensionManager = { has: () => true, ready: () => Promise.resolve( runFishingRulesExtension( { type: 'initialize', behaviorData: fishingBehavior.data } ) ) };
+const extensionManager = {
+	has: () => true,
+	ready: () => Promise.resolve( runFishingRulesExtension( { type: 'initialize', behaviorData: fishingBehavior.data } ) ),
+	run: ( _id, event ) => Promise.resolve( runFishingRulesExtension( event ) ),
+};
 const runtime = createWorldBehaviorRuntime( source.experience, 'elsemesh.fishing-game/1', { load: false, worldId: source.worldId, extensions: extensionManager } );
 await runtime.extensionReady;
 const initialized = await extensionManager.ready();
-assert.equal( initialized.biteRateMultipliers.length, 240, 'the Worker compiles a bounded day of tenth-hour rates' );
+assert.equal( initialized.initialized, true, 'the Worker compiles the authored schedule internally' );
 for ( const [ hour, expected ] of [
 	[ -1, 0.8 ], [ 0, 0.8 ], [ 4.999, 0.8 ], [ 5, 1.4 ], [ 8, 1.4 ], [ 8.1, 1 ],
 	[ 16.999, 1 ], [ 17, 1.4 ], [ 20, 1.4 ], [ 20.1, 1 ], [ 21.999, 1 ], [ 22, 0.8 ], [ 24, 0.8 ],
 ] ) {
-	runtime.bite = { phase: 'wait', t: 10 };
-	runtime.stepBite( 1, { habitat: () => ( { shallows: 1 } ), hour } );
-	assert.equal( runtime.bite.t, 10 - expected, `bite wait rate at ${hour} hours` );
+	await runtime.startBite( { shallows: 1 }, 12, 12345 );
+	const initialTime = runtime.bite.t;
+	await runtime.stepBite( 1, { habitat: () => ( { shallows: 1 } ), hour } );
+	assert.equal( runtime.bite.t, initialTime - expected, `bite wait rate at ${hour} hours` );
 }
 
 assert.throws( () => runFishingRulesExtension( { type: 'initialize', behaviorData: { fishCatalog: fishingBehavior.data.fishCatalog, biteRateSchedule: { defaultMultiplier: 1, windows: [ { startHour: 4, endHour: 6, multiplier: 1.2 }, { startHour: 5, endHour: 7, multiplier: 1.3 } ] } } } ), /invalid bite-rate schedule window/ );
@@ -40,8 +45,11 @@ assert.equal( fightStep.results.length, 2, 'the module advances ordered frame in
 assert.equal( fightStep.results[ 1 ].fight.time, 2 / 60, 'the worker returns deterministic serialized fight snapshots' );
 assert.deepEqual( runFishingRulesExtension( { type: 'cancel' } ), { cancelled: true }, 'cancellation clears module-owned fight state' );
 
-runtime.bite = { phase: 'take', t: 10 };
-runtime.stepBite( 1, { habitat: () => ( { shallows: 1 } ), hour: 6 });
-assert.equal( runtime.bite.t, 9, 'the schedule changes waiting time only; fish take timing stays unchanged' );
+await runtime.startBite( { shallows: 1 }, 12, 12345 );
+for ( let i = 0; runtime.bite.phase !== 'take' && i < 60; i ++ ) await runtime.stepBite( 1, { habitat: { shallows: 1 }, hour: 12 } );
+assert.equal( runtime.bite.phase, 'take', 'the Worker advances a waiting bite through nibble to take' );
+const takeTime = runtime.bite.t;
+await runtime.stepBite( 1, { habitat: { shallows: 1 }, hour: 6 } );
+assert.equal( runtime.bite.t, takeTime - 1, 'the authored schedule changes waiting time only' );
 
 console.log( 'Tidewater fishing rules: declarative schedule parity passed' );

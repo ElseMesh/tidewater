@@ -91,8 +91,10 @@ input.mouseDown = true;
 for ( let i = 0; i < 60 * 1.2; i ++ ) { query.update( dt ); gameplay.update( dt, player, input ); }
 input.mouseDown = false;
 let landed = false;
-rod.onLand = where => { landed = where === 'water'; gameplay._onBobberLanded( where ); };
+let biteStarted = Promise.resolve();
+rod.onLand = where => { landed = where === 'water'; biteStarted = gameplay._onBobberLanded( where ); };
 for ( let i = 0; i < 60 * 8 && ! landed; i ++ ) { query.update( dt ); gameplay.update( dt, player, input ); }
+await biteStarted;
 assert.equal( landed, true, 'WebGL casting uses the shared rod trajectory and reaches water' );
 assert.equal( rod.state, 'floating' );
 assert.ok( runtime.bite, 'a landed WebGL cast enters the common fish-bite state machine' );
@@ -144,14 +146,16 @@ const biteAudioStart = parityEvents.length;
 parityAdapter.rod.state = 'floating';
 parityAdapter.runtime = {
 	fight: null, bite: { phase: 'nibble' },
-	stepBite() { return { bite: this.bite, dip: 0.2, event: 'take' }; },
+	stepBite() { return Promise.resolve( { bite: this.bite, dip: 0.2, event: 'take' } ); },
 };
 parityAdapter.update( dt, { position: { x: 0, y: 0, z: 0 }, mode: 'walk' }, catchInput );
+await new Promise( resolve => setTimeout( resolve, 0 ) );
 assert.deepEqual( parityEvents.slice( biteAudioStart ), [ [ 'splash', 0.35 ] ], 'WebGL plays the same splash cue when a fish takes the bait' );
 const messages = [];
 parityAdapter.toast = message => messages.push( message );
-parityAdapter.runtime.stepBite = function() { return { bite: this.bite, dip: 0, event: 'escaped' }; };
+parityAdapter.runtime.stepBite = function() { return Promise.resolve( { bite: this.bite, dip: 0, event: 'escaped' } ); };
 parityAdapter.update( dt, { position: { x: 0, y: 0, z: 0 }, mode: 'walk' }, catchInput );
+await new Promise( resolve => setTimeout( resolve, 0 ) );
 assert.ok( messages.includes( 'It took the bait and ran' ), 'WebGL reports the shared missed-strike result' );
 parityAdapter.runtime.stepFight = () => ( { state: 'snapped', fight: { species: 'grunt', kg: 0.8, surge: 0 } } );
 await parityAdapter._stepFight( dt, true, 12 );

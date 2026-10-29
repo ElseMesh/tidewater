@@ -1,16 +1,17 @@
 // Plain-node tests of the fishing game logic (no GPU): bites, the catch fight, inventory, save.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { fishIds, fishValue, fishLengthCm } from '../../../src/game/FishTable.js';
-import { habitatAt, pickSpecies, rollWeight, biteDelay } from '../../../src/game/Bites.js';
-import { startFishingBite, stepFishingBite } from '../../../src/game/FishingBiteSimulation.js';
+import { fishValue, fishLengthCm } from '../../../src/game/FishTable.js';
+import { habitatAt } from '../../../src/game/Bites.js';
 import { FishingGameRuntime } from '../../../src/game/FishingGameRuntime.js';
 import { GameState } from '../../../src/game/GameState.js';
 import { gearStats, defaultUpgrades, UPGRADES } from '../../../src/game/Gear.js';
 import { createFishingTestRuntime } from './fishing-test-extension.mjs';
+import { run as runFishingRules } from '../extensions/fishing-game-rules.js';
 
 const FISH = JSON.parse( readFileSync( new URL( '../fishing.json', import.meta.url ), 'utf8' ) ).fishCatalog;
-const FISH_IDS = fishIds( FISH );
+const FISH_IDS = Object.keys( FISH );
+runFishingRules( { type: 'initialize', behaviorData: { fishCatalog: FISH } } );
 const makeState = ( storage, worldId = 'elsemesh:local' ) => new GameState( storage, worldId, FISH );
 
 let fails = 0;
@@ -20,7 +21,13 @@ const ok = ( c, msg ) => {
 
 };
 let seed = 12345;
-const rng = () => ( ( seed = ( seed * 1664525 + 1013904223 ) >>> 0 ) / 4294967296 );
+const sampleBite = ( habitat, hour = 12 ) => {
+	let bite = runFishingRules( { type: 'start-bite', habitat, hour, seed: seed ++ } ).bite;
+	for ( let frame = 0; bite?.phase === 'wait' && frame < 120; frame ++ ) {
+		bite = runFishingRules( { type: 'step-bite', steps: [ { dt: 1, habitat, hour } ] } ).results[ 0 ].bite;
+	}
+	return bite;
+};
 
 // ---- habitats and species
 const spots = {
@@ -36,24 +43,23 @@ for ( const [ name, s ] of Object.entries( spots ) ) {
 	const counts = {};
 	for ( let i = 0; i < 2000; i ++ ) {
 
-		const id = pickSpecies( FISH, h, 12, rng );
-		if ( id ) counts[ id ] = ( counts[ id ] || 0 ) + 1;
+		const bite = sampleBite( h );
+		if ( bite?.phase === 'nibble' ) counts[ bite.species ] = ( counts[ bite.species ] || 0 ) + 1;
 
 	}
 
 	const top = Object.entries( counts ).sort( ( a, b ) => b[ 1 ] - a[ 1 ] ).slice( 0, 5 ).map( ( [ k, v ] ) => `${ k } ${ ( v / 20 ).toFixed( 0 ) }%` ).join( ', ' );
-	console.log( `     ${ name }: delay ~${ biteDelay( h, 12, () => 0.5 ).toFixed( 1 ) } s; ${ top || 'nothing' }` );
+	console.log( `     ${ name }: ${ top || 'nothing' }` );
 
 }
-ok( pickSpecies( FISH, habitatAt( spots.sand ), 12, rng ) === null, 'nothing bites on dry sand' );
-ok( biteDelay( habitatAt( spots.sand ), 12, rng ) === Infinity, 'no bite delay on sand' );
+ok( sampleBite( habitatAt( spots.sand ) )?.t === null, 'no bite delay on dry sand' );
 {
 
 	let deepOnly = 0;
-	for ( let i = 0; i < 500; i ++ ) if ( [ 'tuna', 'mahi', 'redSnapper', 'grouper', 'barracuda' ].includes( pickSpecies( FISH, habitatAt( spots.deep ), 12, rng ) ) ) deepOnly ++;
+	for ( let i = 0; i < 500; i ++ ) if ( [ 'tuna', 'mahi', 'redSnapper', 'grouper', 'barracuda' ].includes( sampleBite( habitatAt( spots.deep ) )?.species ) ) deepOnly ++;
 	ok( deepOnly === 500, 'deep water gives offshore species only' );
 	let reefFish = 0;
-	for ( let i = 0; i < 500; i ++ ) if ( FISH[ pickSpecies( FISH, habitatAt( spots.reef ), 12, rng ) ].habitat.reef ) reefFish ++;
+	for ( let i = 0; i < 500; i ++ ) if ( FISH[ sampleBite( habitatAt( spots.reef ) )?.species ]?.habitat.reef ) reefFish ++;
 	ok( reefFish > 400, `the reef gives mostly reef fish (${ reefFish / 5 }%)` );
 
 }
@@ -62,34 +68,31 @@ ok( biteDelay( habitatAt( spots.sand ), 12, rng ) === Infinity, 'no bite delay o
 	let tarponNight = 0, tarponDay = 0;
 	for ( let i = 0; i < 4000; i ++ ) {
 
-		if ( pickSpecies( FISH, habitatAt( spots.pier ), 22, rng ) === 'tarpon' ) tarponNight ++;
-		if ( pickSpecies( FISH, habitatAt( spots.pier ), 12, rng ) === 'tarpon' ) tarponDay ++;
+		if ( sampleBite( habitatAt( spots.pier ), 22 )?.species === 'tarpon' ) tarponNight ++;
+		if ( sampleBite( habitatAt( spots.pier ), 12 )?.species === 'tarpon' ) tarponDay ++;
 
 	}
 
 	ok( tarponNight > tarponDay * 2, `tarpon bite at night (${ tarponNight } vs ${ tarponDay } by day)` );
 
 }
-for ( const id of FISH_IDS ) {
-
-	const w = rollWeight( FISH, id, rng );
-	if ( w < FISH[ id ].kg[ 0 ] || w > FISH[ id ].kg[ 1 ] ) ok( false, `weight in range for ${ id }` );
-
-}
+const rolled = sampleBite( habitatAt( spots.reef ) );
+ok( rolled.kg >= FISH[ rolled.species ].kg[ 0 ] && rolled.kg <= FISH[ rolled.species ].kg[ 1 ], 'Worker fish weight stays in the authored species range' );
 ok( fishValue( FISH, 'redSnapper', 5 ) > fishValue( FISH, 'redSnapper', 2 ), 'bigger fish is worth more' );
 
-// Renderer-neutral bite-state transitions used by WebGPU and WebGL presentations.
+// The signed Worker owns bite phases while the browser supplies environment samples.
 {
-	const rng = () => 0;
 	const habitat = () => ( { shallows: 1, reef: 0, pier: 0, bay: 0, deep: 0 } );
-	let bite = startFishingBite( habitat(), 12, rng );
-	let step = stepFishingBite( bite, 2.1, { fishCatalog: FISH, habitat, hour: 12, rng } );
-	bite = step.bite;
-	ok( bite.phase === 'nibble' && bite.species === 'silverside', 'shared bite simulation selects a fish from the supplied habitat' );
-	step = stepFishingBite( bite, 0.8, { fishCatalog: FISH, habitat, hour: 12, rng } );
-	bite = step.bite;
+	const runtime = new FishingGameRuntime( { state: makeState( null ), load: false, behaviorData: { fishCatalog: FISH } } );
+	await createFishingTestRuntime( runtime, { fishCatalog: FISH } );
+	await runtime.startBite( habitat(), 12, 0 );
+	let step;
+	for ( let i = 0; runtime.bite.phase === 'wait' && i < 10; i ++ ) step = await runtime.stepBite( 1, { habitat, hour: 12 } );
+	let bite = runtime.bite;
+	ok( bite.phase === 'nibble' && FISH[ bite.species ]?.habitat.shallows > 0, 'the signed Worker selects a fish from the supplied habitat' );
+	for ( let i = 0; bite.phase === 'nibble' && i < 10; i ++ ) { step = await runtime.stepBite( 0.8, { habitat, hour: 12 } ); bite = runtime.bite; }
 	ok( bite.phase === 'take' && step.event === 'take', 'shared bite simulation signals the hook window' );
-	step = stepFishingBite( bite, 2.5, { fishCatalog: FISH, habitat, hour: 12, rng, dip: 0 } );
+	for ( let i = 0; runtime.bite.phase === 'take' && i < 4; i ++ ) step = await runtime.stepBite( 1, { habitat, hour: 12 } );
 	ok( step.event === 'escaped' && step.bite.phase === 'wait', 'missed fish returns the shared bite simulation to waiting' );
 }
 
@@ -120,6 +123,15 @@ ok( fishValue( FISH, 'redSnapper', 5 ) > fishValue( FISH, 'redSnapper', 2 ), 'bi
 	runtime.cancel();
 	assert.deepEqual( await pendingStep, { state: null, fight: null }, 'late Worker replies cannot resurrect a cancelled fight' );
 	assert.equal( runtime.fight, null, 'cancelling clears the client fight snapshot immediately' );
+}
+
+{
+	const runtime = new FishingGameRuntime( { state: makeState( null ), load: false, behaviorData: { fishCatalog: FISH } } );
+	await createFishingTestRuntime( runtime, { fishCatalog: FISH } );
+	const pendingStart = runtime.startBite( { shallows: 1 }, 12, 7 );
+	runtime.cancel();
+	assert.equal( await pendingStart, null, 'a late Worker reply cannot resurrect a cancelled bite' );
+	assert.equal( runtime.bite, null, 'cancelling clears the client bite snapshot immediately' );
 }
 
 // ---- the fight: three players
