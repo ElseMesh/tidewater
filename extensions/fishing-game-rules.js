@@ -4,6 +4,7 @@ const SAMPLE_COUNT = SAMPLES_PER_HOUR * HOURS_PER_DAY;
 let fishCatalog = null;
 let fight = null;
 let bite = null;
+let boat = null;
 let biteRateMultipliers = Array( SAMPLE_COUNT ).fill( 1 );
 
 const HABITATS = [ 'shallows', 'reef', 'pier', 'bay', 'deep' ];
@@ -212,12 +213,72 @@ function stepFight( event ) {
 	return { results };
 }
 
+function configureBoat( event ) {
+	if ( ! [ event.maxThrust, event.pitchSpeed, event.speedMul, event.fuelTank ].every( Number.isFinite ) || event.maxThrust < 0 || event.pitchSpeed < 0 || event.speedMul < 0 || event.fuelTank <= 0 || typeof event.finder !== 'boolean' ) throw new Error( 'invalid boat configuration' );
+	if ( event.fuelL !== undefined && ( ! Number.isFinite( event.fuelL ) || event.fuelL < 0 || event.fuelL > event.fuelTank ) ) throw new Error( 'invalid boat fuel state' );
+	if ( ! boat ) {
+		if ( event.fuelL === undefined ) throw new Error( 'boat configuration requires initial fuel' );
+		boat = { fuelL: event.fuelL, fuelTank: event.fuelTank, speedMul: event.speedMul, finder: event.finder, maxThrust: event.maxThrust, pitchSpeed: event.pitchSpeed, sonarTimer: 0, sonar: null, wasDriven: false, fuelOut: false };
+	} else {
+		if ( event.fuelTank !== boat.fuelTank ) {
+			if ( event.fuelL === undefined ) throw new Error( 'fuel tank upgrade requires updated fuel state' );
+			boat.fuelL = event.fuelL;
+		}
+		boat.fuelTank = event.fuelTank;
+		boat.speedMul = event.speedMul;
+		boat.finder = event.finder;
+		boat.maxThrust = event.maxThrust;
+		boat.pitchSpeed = event.pitchSpeed;
+	}
+	return { maxThrust: boat.maxThrust * boat.speedMul ** 2, pitchSpeed: boat.pitchSpeed * boat.speedMul };
+}
+
+function validSonarHabitat( habitat ) {
+	return habitat && typeof habitat === 'object' && ! Array.isArray( habitat ) && Object.keys( habitat ).length <= 8 && Object.values( habitat ).every( value => Number.isFinite( value ) && value >= 0 && value <= 1 );
+}
+
+function stepBoatOne( step ) {
+	if ( ! boat || ! Number.isFinite( step.dt ) || step.dt < 0 || step.dt > 1 || typeof step.driven !== 'boolean' || ! Number.isFinite( step.rpm ) || step.rpm < 0 || step.rpm > 1 || ! [ 'walk', 'boat', 'deck', 'swim' ].includes( step.mode ) ) throw new Error( 'invalid boat gameplay step' );
+	let fuelBurned = 0, fuelOut = false, saveFuel = false, throttle = null;
+	if ( step.driven ) {
+		fuelBurned = Math.min( boat.fuelL, ( 0.0025 + 0.024 * step.rpm * step.rpm ) * step.dt );
+		boat.fuelL = Math.max( 0, boat.fuelL - fuelBurned );
+		if ( boat.fuelL <= 0 ) {
+			throttle = 0;
+			if ( ! boat.fuelOut ) fuelOut = true;
+			boat.fuelOut = true;
+		}
+	} else if ( boat.wasDriven ) saveFuel = true;
+	boat.wasDriven = step.driven;
+
+	const aboard = step.mode === 'boat' || step.mode === 'deck';
+	if ( aboard && boat.finder && step.sonarSample ) {
+		boat.sonarTimer -= step.dt;
+		if ( boat.sonarTimer <= 0 ) {
+			boat.sonarTimer = 0.5;
+			const { height, habitat } = step.sonarSample;
+			if ( Number.isFinite( height ) && validSonarHabitat( habitat ) ) {
+				const depth = Math.max( 0, - height );
+				const richness = Object.values( habitat ).reduce( ( sum, value ) => sum + value, 0 );
+				boat.sonar = { depth, fish: Math.min( 1, richness / 1.4 ) };
+			}
+		}
+	}
+	return { fuelL: boat.fuelL, fuelTank: boat.fuelTank, fuelBurned, fuelOut, saveFuel, throttle, sonar: aboard && boat.finder ? boat.sonar : null };
+}
+
+function stepBoat( event ) {
+	if ( ! Array.isArray( event.steps ) || event.steps.length < 1 || event.steps.length > 32 ) throw new Error( 'invalid boat gameplay steps' );
+	return { results: event.steps.map( stepBoatOne ) };
+}
+
 export function run( event ) {
 	if ( event?.type === 'initialize' ) {
 		if ( ! event.behaviorData || typeof event.behaviorData !== 'object' || Array.isArray( event.behaviorData ) || ! event.behaviorData.fishCatalog || typeof event.behaviorData.fishCatalog !== 'object' ) throw new Error( 'invalid fishing behavior initialization' );
 		fishCatalog = event.behaviorData.fishCatalog;
 		fight = null;
 		bite = null;
+		boat = null;
 		biteRateMultipliers = compileBiteRateSchedule( event.behaviorData.biteRateSchedule );
 		return { initialized: true };
 	}
@@ -225,6 +286,14 @@ export function run( event ) {
 	if ( event?.type === 'step-bite' ) return stepBite( event );
 	if ( event?.type === 'start-fight' ) return { fight: startFight( event ) };
 	if ( event?.type === 'step-fight' ) return stepFight( event );
+	if ( event?.type === 'configure-boat' ) return configureBoat( event );
+	if ( event?.type === 'step-boat' ) return stepBoat( event );
+	if ( event?.type === 'refuel-boat' ) {
+		if ( ! boat || ! Number.isFinite( event.fuelL ) || event.fuelL < 0 || event.fuelL > boat.fuelTank ) throw new Error( 'invalid boat refuel state' );
+		boat.fuelL = event.fuelL;
+		boat.fuelOut = false;
+		return { fuelL: boat.fuelL };
+	}
 	if ( event?.type === 'cancel' ) { bite = null; fight = null; return { cancelled: true }; }
 	throw new Error( 'invalid fishing behavior event' );
 }

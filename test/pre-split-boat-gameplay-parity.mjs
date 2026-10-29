@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { BoatGameplayRuntime } from '../BoatGameplayRuntime.js';
-import { fuelBurn } from '../Gear.js';
 import { GameState } from '../GameState.js';
+import { run as runBoatRules } from '../extensions/fishing-game-rules.js';
+
+runBoatRules( { type: 'initialize', behaviorData: { fishCatalog: {} } } );
 
 // Reference the boat rules inline from Game.updateBoat/applyGear at pre-split
 // commit 23c30bf. Compare those rules frame by frame with the shared runtime.
@@ -9,6 +11,7 @@ const makeStorage = () => {
 	const writes = [];
 	return { writes, setItem: ( key, value ) => writes.push( [ key, value ] ), getItem: () => null };
 };
+const historicalFuelBurn = rpm => 0.0025 + 0.024 * rpm * rpm;
 const oldStorage = makeStorage(), newStorage = makeStorage();
 const oldState = new GameState( oldStorage ), newState = new GameState( newStorage );
 oldState.money = newState.money = 1000;
@@ -23,12 +26,14 @@ const runtime = new BoatGameplayRuntime( {
 	state: newState,
 	controller: newBoat,
 	terrain: { heightAt: () => -12 },
+	runExtension: event => Promise.resolve( runBoatRules( event ) ),
 	habitatAt: () => ( { reef: 0.7, pier: 0.2 } ),
 	onFuelOut: () => { newFuelOut ++; },
 } );
 let oldFuelOut = 0, newFuelOut = 0;
 oldState.onChange( oldApplyGear );
-newState.onChange( () => runtime.applyGear() );
+let gearReady = runtime.applyGear();
+newState.onChange( () => { gearReady = runtime.applyGear(); } );
 oldApplyGear();
 
 for ( const state of [ oldState, newState ] ) {
@@ -37,11 +42,13 @@ for ( const state of [ oldState, newState ] ) {
 	state.fuel = 0.01;
 }
 oldApplyGear();
+await gearReady;
+await runtime.refueled();
 
 let oldSonarTimer = 0, oldSonar = null, oldWasDriven = false, oldFuelOutShown = false;
 function historicalUpdateBoat( dt, mode ) {
 	if ( oldBoat.driven ) {
-		if ( oldState.burn( fuelBurn( oldBoat.rpm ) * dt ) <= 0 ) {
+		if ( oldState.burn( historicalFuelBurn( oldBoat.rpm ) * dt ) <= 0 ) {
 			oldBoat.throttle = 0;
 			if ( ! oldFuelOutShown ) oldFuelOut ++;
 			oldFuelOutShown = true;
@@ -79,8 +86,18 @@ const frames = [
 for ( const [ frame, input ] of frames.entries() ) {
 	oldBoat.driven = newBoat.driven = input.driven;
 	const expected = historicalUpdateBoat( input.dt, input.mode );
-	const actual = runtime.step( input.dt, input.mode );
-	assert.deepEqual( actual, expected, `HUD state matches pre-split behavior at frame ${frame}` );
+	const actual = await runtime.stepQueued( {
+		dt: input.dt,
+		mode: input.mode,
+		driven: newBoat.driven,
+		rpm: newBoat.rpm,
+		sonarSample: input.mode === 'boat' || input.mode === 'deck' ? { height: -12, habitat: { reef: 0.7, pier: 0.2 } } : null,
+	} );
+	const actualHUD = {
+		fuel: input.mode === 'boat' || input.mode === 'deck' ? { litres: newState.fuelL, tank: newState.stats.fuelL } : null,
+		sonar: input.mode === 'boat' || input.mode === 'deck' ? actual.sonar : null,
+	};
+	assert.deepEqual( actualHUD, expected, `HUD state matches pre-split behavior at frame ${frame}` );
 	assert.deepEqual( newState.toJSON(), oldState.toJSON(), `saved gameplay state matches at frame ${frame}` );
 	assert.equal( newBoat.maxThrust, oldBoat.maxThrust, `engine thrust matches at frame ${frame}` );
 	assert.equal( newBoat.pitchSpeed, oldBoat.pitchSpeed, `engine pitch response matches at frame ${frame}` );

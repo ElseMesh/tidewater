@@ -84,7 +84,7 @@ try {
 	const terrainReportSecond = await readFile( terrainReportPath );
 	const source = validateWorldSource( JSON.parse( sourceBytes ) );
 	const manifestPath = path.join( output, 'manifest.json' );
-	execFileSync( process.execPath, [ 'tools/world-source-to-manifest.mjs', '--source', sourcePath, '--owner', 'a'.repeat( 40 ), '--assets', path.join( output, 'assets' ), '--out', manifestPath ], { cwd: repositoryRoot, encoding: 'utf8' } );
+	execFileSync( process.execPath, [ '--import', './worlds/tidewater/register-behavior.js', 'tools/world-source-to-manifest.mjs', '--source', sourcePath, '--owner', 'a'.repeat( 40 ), '--assets', path.join( output, 'assets' ), '--out', manifestPath ], { cwd: repositoryRoot, encoding: 'utf8' } );
 	const manifest = JSON.parse( await readFile( manifestPath, 'utf8' ) );
 	for ( const extension of source.experience.extensions || [] ) {
 		const asset = manifest.assets.find( reference => reference.id === extension.assetId );

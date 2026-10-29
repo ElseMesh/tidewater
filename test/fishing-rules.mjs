@@ -12,6 +12,7 @@ assert.equal( source.experience.extensions.length, 1, 'Tidewater packages its si
 assert.equal( source.experience.extensions[ 0 ].behaviorId, 'elsemesh.fishing-game/1' );
 const extensionBytes = await readFile( new URL( `../assets/${source.experience.extensions[ 0 ].assetId.slice( 'sha256:'.length )}`, import.meta.url ) );
 assert.equal( `sha256:${createHash( 'sha256' ).update( extensionBytes ).digest( 'hex' )}`, source.experience.extensions[ 0 ].assetId, 'the Worker module bytes match their content-addressed package reference' );
+assert.deepEqual( extensionBytes, await readFile( new URL( '../extensions/fishing-game-rules.js', import.meta.url ) ), 'the signed Worker asset matches Tidewater source' );
 assert.equal( source.rules.requiredFeatures.includes( 'elsemesh.world-extension/1' ), false );
 const fishingBehavior = worldBehaviorsFor( source.experience ).find( behavior => behavior.id === 'elsemesh.fishing-game/1' );
 assert.ok( fishingBehavior?.data.biteRateSchedule, 'Tidewater authors its bite schedule as behavior data' );
@@ -21,8 +22,18 @@ const extensionManager = {
 	ready: () => Promise.resolve( runFishingRulesExtension( { type: 'initialize', behaviorData: fishingBehavior.data } ) ),
 	run: ( _id, event ) => Promise.resolve( runFishingRulesExtension( event ) ),
 };
-const runtime = createWorldBehaviorRuntime( source.experience, 'elsemesh.fishing-game/1', { load: false, worldId: source.worldId, extensions: extensionManager } );
+const boatController = { maxThrust: 10, pitchSpeed: 2, rpm: 0, driven: false, throttle: 0, position: { x: 4, z: 8 } };
+const runtime = createWorldBehaviorRuntime( source.experience, 'elsemesh.fishing-game/1', {
+	load: false, worldId: source.worldId, extensions: extensionManager, controller: boatController,
+	terrain: { heightAt: () => -12 }, habitatAt: () => ( { reef: 0.7, pier: 0.2 } ),
+} );
 await runtime.extensionReady;
+await runtime.boatGameplay.applyGear();
+assert.equal( boatController.maxThrust, 10, 'the registered Tidewater runtime configures its boat through the signed Worker' );
+runtime.state.money = 1000;
+assert.equal( runtime.buyUpgrade( 'engine' ).speedMul, 1.15, 'upgrade purchasing stays inside the world runtime' );
+await runtime.boatGameplay.applyGear();
+assert.ok( Math.abs( boatController.maxThrust - 10 * 1.15 ** 2 ) < 1e-12, 'the signed Worker applies upgrades purchased through the world runtime' );
 const initialized = await extensionManager.ready();
 assert.equal( initialized.initialized, true, 'the Worker compiles the authored schedule internally' );
 const isolatedA = createWorldBehaviorRuntime( source.experience, 'elsemesh.fishing-game/1', { load: false, worldId: 'elsemesh:fishing-runtime-a' } );
@@ -50,6 +61,24 @@ const fightStep = runFishingRulesExtension( { type: 'step-fight', steps: [ { dt:
 assert.equal( fightStep.results.length, 2, 'the module advances ordered frame inputs in a bounded batch' );
 assert.equal( fightStep.results[ 1 ].fight.time, 2 / 60, 'the worker returns deterministic serialized fight snapshots' );
 assert.deepEqual( runFishingRulesExtension( { type: 'cancel' } ), { cancelled: true }, 'cancellation clears module-owned fight state' );
+
+const boatGear = runFishingRulesExtension( { type: 'configure-boat', maxThrust: 10, pitchSpeed: 2, speedMul: 1.15, fuelTank: 40, finder: true, fuelL: 40 } );
+assert.deepEqual( boatGear, { maxThrust: 10 * 1.15 ** 2, pitchSpeed: 2 * 1.15 }, 'the signed Worker applies Tidewater engine upgrades' );
+const boatFrames = runFishingRulesExtension( { type: 'step-boat', steps: [
+	{ dt: 0.25, mode: 'boat', driven: true, rpm: 0.9, sonarSample: { height: -12, habitat: { reef: 0.7, pier: 0.2 } } },
+	{ dt: 0.25, mode: 'boat', driven: true, rpm: 0.9, sonarSample: { height: -12, habitat: { reef: 0.7, pier: 0.2 } } },
+] } ).results;
+assert.equal( boatFrames.length, 2, 'the boat Worker advances a bounded ordered batch' );
+assert.ok( boatFrames[ 1 ].fuelL < boatFrames[ 0 ].fuelL, 'the Worker owns engine fuel burn' );
+assert.equal( boatFrames[ 0 ].sonar.depth, 12, 'the Worker samples fish-finder depth' );
+assert.ok( Math.abs( boatFrames[ 0 ].sonar.fish - 0.9 / 1.4 ) < 1e-12, 'the Worker samples habitat richness' );
+assert.equal( boatFrames[ 1 ].sonar.depth, 12, 'the Worker retains sonar readings between sampling intervals' );
+runFishingRulesExtension( { type: 'refuel-boat', fuelL: 0.01 } );
+const fuelOut = runFishingRulesExtension( { type: 'step-boat', steps: [ { dt: 1, mode: 'walk', driven: true, rpm: 1, sonarSample: null }, { dt: 1, mode: 'walk', driven: true, rpm: 1, sonarSample: null }, { dt: 1 / 60, mode: 'walk', driven: false, rpm: 0, sonarSample: null } ] } ).results;
+assert.equal( fuelOut[ 0 ].fuelOut, true, 'fuel depletion emits one out-of-fuel transition' );
+assert.equal( fuelOut[ 0 ].throttle, 0, 'fuel depletion cuts throttle' );
+assert.equal( fuelOut[ 1 ].fuelOut, false, 'continued depletion does not repeat the notification' );
+assert.equal( fuelOut[ 2 ].saveFuel, true, 'stopping the boat marks fuel state for persistence' );
 
 await runtime.startBite( { shallows: 1 }, 12, 12345 );
 for ( let i = 0; runtime.bite.phase !== 'take' && i < 60; i ++ ) await runtime.stepBite( 1, { habitat: { shallows: 1 }, hour: 12 } );

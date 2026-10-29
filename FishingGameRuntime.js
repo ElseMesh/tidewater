@@ -1,12 +1,14 @@
 import { GameState } from './GameState.js';
 import { isFishCatalog } from './FishTable.js';
+import { UPGRADES } from './Gear.js';
+import { BoatGameplayRuntime } from './BoatGameplayRuntime.js';
 
 // Browser-side adapter shared by renderer backends. The signed world Worker
-// owns fishing simulation; this adapter queues bounded state snapshots while
-// browser systems retain world queries, input, visuals, audio and persistence.
+// owns fishing and boat simulation; this adapter queues bounded state snapshots
+// while browser systems retain world queries, input, visuals, audio and saves.
 export class FishingGameRuntime {
 
-	constructor( { state, load = true, worldId = 'elsemesh:local', behaviorData = {}, extensions = null } = {} ) {
+	constructor( { state, load = true, worldId = 'elsemesh:local', behaviorData = {}, extensions = null, controller = null, terrain = null, habitatAt = () => ( {} ) } = {} ) {
 
 		this.fishCatalog = behaviorData.fishCatalog || state?.fishCatalog;
 		if ( ! isFishCatalog( this.fishCatalog ) ) throw new Error( 'World fishing behavior requires a valid authored fish catalog' );
@@ -15,6 +17,14 @@ export class FishingGameRuntime {
 		this.bite = null;
 		this.fight = null;
 		this.extensions = extensions;
+		this.boatGameplay = new BoatGameplayRuntime( {
+			state: this.state,
+			controller,
+			terrain,
+			habitatAt,
+			runExtension: event => this.runWorldExtension( event ),
+		} );
+		this.state.onChange( () => this.boatGameplay.applyGear() );
 		this.biteGeneration = 0;
 		this.biteReady = Promise.resolve();
 		this.biteQueue = [];
@@ -22,6 +32,21 @@ export class FishingGameRuntime {
 		this.fightGeneration = 0;
 		this.fightQueue = [];
 		this.fightRunning = false;
+
+	}
+
+	buyUpgrade( key ) {
+
+		const level = this.state.buy( key );
+		return level ? { ...level, name: UPGRADES[ key ].name } : null;
+
+	}
+
+	refuel() {
+
+		const litres = this.state.refuel();
+		if ( litres > 0 ) this.boatGameplay.refueled();
+		return litres;
 
 	}
 
@@ -121,6 +146,10 @@ export class FishingGameRuntime {
 		if ( ! this.extensions?.has?.( 'elsemesh.fishing-game/1' ) ) throw new Error( 'Fishing behavior requires its signed JavaScript extension' );
 		await this.extensionReady;
 		return this.extensions.run( 'elsemesh.fishing-game/1', event );
+	}
+
+	runWorldExtension( event ) {
+		return this._runExtension( event );
 	}
 
 	async _pumpFightQueue() {

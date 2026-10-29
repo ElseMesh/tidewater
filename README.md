@@ -26,9 +26,11 @@ ElseMesh imports it at `worlds/tidewater`, validates its
   catalog validation/calculations, upgrade economy, inventory, fuel, and
   browser-local per-ThruHold save state. `test/game-hud.html` is the standalone
   HUD review page for this package.
-- `BoatGameplayRuntime.js` owns Tidewater's engine upgrades, fuel burn and
-  persistence, and fish-finder sampling shared by the WebGPU and WebGL
-  presentations. Frame-by-frame historical parity is checked in
+- `BoatGameplayRuntime.js` adapts Tidewater's signed JavaScript Worker to the
+  WebGPU and WebGL presentations. The Worker owns engine upgrades, fuel burn,
+  persistence transitions, and fish-finder sampling; the client supplies
+  bounded terrain/habitat samples and applies fuel/save/UI results.
+  Frame-by-frame historical parity is checked in
   `test/pre-split-boat-gameplay-parity.mjs`.
 - `assets/<sha256>` contains exact runtime package bytes. Filenames are SHA-256
   digests without extensions; use the [human-readable asset index](ASSET-INDEX.md)
