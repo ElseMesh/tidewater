@@ -4,6 +4,7 @@ import { Vector3 } from '../../../src/engine/math/Vector3.js';
 import { WebGLWaterQuery } from '../../../src/fallback/WebGLWaterQuery.js';
 import { BoatController } from '../../../src/player/BoatController.js';
 import { BoatDesign } from '../../../src/world/boat/BoatDesign.js';
+import { ISLAND_DEFINITION } from '../../../src/world/IslandDefinition.js';
 import { IslandWorldState } from '../../../src/world/IslandWorldState.js';
 import { computeShoreField } from '../../../src/world/ShoreField.js';
 import '../register-behavior.js';
@@ -24,7 +25,7 @@ baseQuery.update( 0, 3.25 );
 assert.ok( Math.abs( query._height( 64.5, 36.5 ) - baseQuery._height( 64.5, 36.5 ) ) > 0.2, 'WebGL gameplay query includes depth-aware shore displacement at the default berth' );
 assert.ok( Math.abs( query._height( 64.5, 36.5 ) - ( - 0.9816116677228413 ) ) < 1e-6, 'the dock query matches the rendered shore-wave height at a fixed simulation time' );
 query.time = 0;
-const boat = new BoatController( { design: new BoatDesign(), query, terrain: world.terrain, colliders: world.colliders } );
+const boat = new BoatController( { design: new BoatDesign(), query, terrain: world.terrain, colliders: world.colliders, initialPosition: new Vector3( ...ISLAND_DEFINITION.boatDock.position ), initialHeading: ISLAND_DEFINITION.boatDock.heading } );
 
 let maximumTilt = 0;
 let maximumSpeed = 0;

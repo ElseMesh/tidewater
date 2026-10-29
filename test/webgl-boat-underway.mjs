@@ -4,6 +4,7 @@ import { Vector3 } from '../../../src/engine/math/Vector3.js';
 import { WebGLWaterQuery } from '../../../src/fallback/WebGLWaterQuery.js';
 import { BoatController } from '../../../src/player/BoatController.js';
 import { BoatDesign } from '../../../src/world/boat/BoatDesign.js';
+import { ISLAND_DEFINITION } from '../../../src/world/IslandDefinition.js';
 import { IslandWorldState } from '../../../src/world/IslandWorldState.js';
 import { computeShoreField } from '../../../src/world/ShoreField.js';
 import '../register-behavior.js';
@@ -18,7 +19,7 @@ dispatchWorldBehaviorHooks( { behaviors: { 'elsemesh.shore-aware-boat/1': {} } }
 	fallback: { waterQuery: query, terrain: world.terrain, shoreField, worldSeaLevel: seaLevel }, mode: 'builtin',
 } );
 
-const boat = new BoatController( { design: new BoatDesign(), query, terrain: world.terrain, colliders: world.colliders } );
+const boat = new BoatController( { design: new BoatDesign(), query, terrain: world.terrain, colliders: world.colliders, initialPosition: new Vector3( ...ISLAND_DEFINITION.boatDock.position ), initialHeading: ISLAND_DEFINITION.boatDock.heading } );
 const start = boat.position.clone();
 boat.driven = true;
 boat.moored = false;

@@ -5,7 +5,7 @@ import { ISLAND_DEFINITION } from '../../../src/world/IslandDefinition.js';
 import { Vector3 as EngineVector3 } from '../../../src/engine/index.js';
 
 const scene = new THREE.Scene();
-const adapter = new WebGLBoatAdapter( THREE, scene );
+const adapter = new WebGLBoatAdapter( THREE, scene, { initialPosition: new EngineVector3( ...ISLAND_DEFINITION.boatDock.position ), initialHeading: ISLAND_DEFINITION.boatDock.heading } );
 const meshes = [];
 adapter.group.traverse( ( object ) => { if ( object.isMesh ) meshes.push( object ); } );
 

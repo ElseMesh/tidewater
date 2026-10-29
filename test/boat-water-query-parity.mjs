@@ -13,7 +13,20 @@ const BASELINE_CONTROLLER_SHA256 = 'c96e7243b2858144845897eebf571ad5d894a7fa1520
 const BASELINE_DESIGN_SHA256 = '7b29270c6eb6defcd8a600ce49d4dadf0ae53e5a28c443d682850af4c6c18aa6';
 const controllerSource = await readFile( new URL( '../../../src/player/BoatController.js', import.meta.url ) );
 const designSource = await readFile( new URL( '../../../src/world/boat/BoatDesign.js', import.meta.url ) );
-assert.equal( createHash( 'sha256' ).update( controllerSource ).digest( 'hex' ), BASELINE_CONTROLLER_SHA256, 'the boat integrator matches pre-split source 23c30bf' );
+// Reconstruct the pre-split source around the intentionally world-agnostic
+// constructor change. This keeps the physics implementation pinned byte for
+// byte while allowing each world to supply its own berth.
+const comparableControllerSource = controllerSource.toString()
+	.replace(
+		"import { MathUtils, Quaternion, Vector3 } from '../engine/math/index.js';\n",
+		"import { MathUtils, Quaternion, Vector3 } from '../engine/math/index.js';\nimport { ISLAND_DEFINITION } from '../world/IslandDefinition.js';\n",
+	)
+	.replace(
+		"\tconstructor( { design, query, terrain, colliders, initialPosition, initialHeading = 0 } ) {\n\t\tif ( ! initialPosition || ! [ initialPosition.x, initialPosition.y, initialPosition.z ].every( Number.isFinite ) ) throw new Error( 'BoatController requires an explicit initialPosition from its world caller' );\n",
+		"\tconstructor( { design, query, terrain, colliders, initialPosition = new Vector3( ...ISLAND_DEFINITION.boatDock.position ), initialHeading = ISLAND_DEFINITION.boatDock.heading } ) {\n",
+	)
+	.replace( '// The world supplies its berth; this reusable physics model has no default location.', '// Each world supplies its own berth. Defaults preserve the built-in island placement.' );
+assert.equal( createHash( 'sha256' ).update( comparableControllerSource ).digest( 'hex' ), BASELINE_CONTROLLER_SHA256, 'the boat physics implementation matches pre-split source 23c30bf after excluding the world berth constructor' );
 assert.equal( createHash( 'sha256' ).update( designSource ).digest( 'hex' ), BASELINE_DESIGN_SHA256, 'the boat design matches pre-split source 23c30bf' );
 
 const world = JSON.parse( await readFile( new URL( '../world-source.json', import.meta.url ), 'utf8' ) );

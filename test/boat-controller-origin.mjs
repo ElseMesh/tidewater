@@ -6,7 +6,8 @@ import { ISLAND_DEFINITION } from '../../../src/world/IslandDefinition.js';
 
 const query = { allocate: () => 1 };
 const design = new BoatDesign();
-const defaultBoat = new BoatController( { design, query } );
+assert.throws( () => new BoatController( { design, query } ), /explicit initialPosition/, 'boat physics has no world-specific default berth' );
+const defaultBoat = new BoatController( { design, query, initialPosition: new Vector3( ...ISLAND_DEFINITION.boatDock.position ), initialHeading: ISLAND_DEFINITION.boatDock.heading } );
 assert.deepEqual( defaultBoat.position.toArray(), ISLAND_DEFINITION.boatDock.position );
 assert.deepEqual( defaultBoat.mooring.anchor.toArray(), ISLAND_DEFINITION.boatDock.position );
 assert.equal( defaultBoat.homeHeading, ISLAND_DEFINITION.boatDock.heading );

@@ -8,6 +8,7 @@ import { TerrainData } from '../../../src/world/TerrainData.js';
 import { WORLD } from '../../../src/world/WorldLayout.js';
 import { Player } from '../../../src/player/Player.js';
 import { BoatController } from '../../../src/player/BoatController.js';
+import { ISLAND_DEFINITION } from '../../../src/world/IslandDefinition.js';
 import { FlyCamera } from '../../../src/player/FlyCamera.js';
 
 let fails = 0;
@@ -118,7 +119,7 @@ class InputStub {
 
 const input = new InputStub();
 const camera = new E.PerspectiveCamera( 60, 2, 0.1, 5000 );
-const boat = new BoatController( { design: model, query, terrain, colliders } );
+const boat = new BoatController( { design: model, query, terrain, colliders, initialPosition: new E.Vector3( ...ISLAND_DEFINITION.boatDock.position ), initialHeading: ISLAND_DEFINITION.boatDock.heading } );
 boat.model = model;
 const player = new Player( { camera, input, terrain, colliders, query, boat } );
 
