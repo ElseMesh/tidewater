@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fishValue, fishLengthCm } from '../FishTable.js';
-import { habitatAt } from '../../../src/game/Bites.js';
+import { habitatAt } from '../game/Bites.js';
 import { FishingGameRuntime } from '../FishingGameRuntime.js';
 import { GameState } from '../GameState.js';
 import { gearStats, defaultUpgrades, UPGRADES } from '../Gear.js';

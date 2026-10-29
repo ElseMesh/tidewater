@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { Game } from '../../../src/game/Game.js';
+import { Game } from '../game/Game.js';
 
 const joe = { x: 123, y: 4, z: -456 };
 const marta = { x: 222, y: 5, z: -333 };

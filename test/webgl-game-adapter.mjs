@@ -2,10 +2,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { GameState } from '../GameState.js';
 import { FishingGameRuntime } from '../FishingGameRuntime.js';
-import { FishingRod } from '../../../src/game/FishingRod.js';
+import { FishingRod } from '../game/FishingRod.js';
 import { PerspectiveCamera } from '../../../src/engine/index.js';
 import { WebGLWaterQuery } from '../../../src/fallback/WebGLWaterQuery.js';
-import { WebGLGameAdapter, createDeckFloodlights } from '../../../src/fallback/WebGLGameAdapter.js';
+import { WebGLGameAdapter, createDeckFloodlights } from '../webgl/WebGLGameAdapter.js';
 import * as THREE from 'three';
 import { createFishingTestRuntime } from './fishing-test-extension.mjs';
 

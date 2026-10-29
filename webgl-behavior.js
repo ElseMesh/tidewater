@@ -1,6 +1,7 @@
-import { WebGLFishStandAdapter } from '../../src/fallback/WebGLFishStandAdapter.js';
-import { WebGLChandleryAdapter } from '../../src/fallback/WebGLChandleryAdapter.js';
-import { WebGLGameAdapter } from '../../src/fallback/WebGLGameAdapter.js';
+import { WebGLFishStandAdapter } from './webgl/WebGLFishStandAdapter.js';
+import { WebGLChandleryAdapter } from './webgl/WebGLChandleryAdapter.js';
+import { WebGLGameAdapter } from './webgl/WebGLGameAdapter.js';
+import { fishStandColliderVolumes } from './game/FishStandContent.js';
 
 export const webglBehaviorImplementations = Object.freeze( {
 	fishingGame: Object.freeze( {
@@ -23,6 +24,14 @@ export const webglBehaviorImplementations = Object.freeze( {
 			THREE, scene: fallback.scene, camera: fallback.camera, query: fallback.waterQuery, extensions: fallback.activeWorldExtensions,
 			terrain, boatController: fallback.boat?.controller || null, boatRoot: fallback.boat?.group || null, audio: fallback.app.audio,
 		} );
+		if ( builtIn ) {
+			const stand = data.fishStand;
+			const y = terrain.heightAt( stand.position[ 0 ], stand.position[ 1 ] );
+			for ( const box of fishStandColliderVolumes( y, stand ) ) fallback.blockers.push( {
+				centerX: box.center[ 0 ], centerZ: box.center[ 2 ], halfX: box.half[ 0 ], halfZ: box.half[ 2 ], yaw: box.yaw,
+				minY: box.center[ 1 ] - box.half[ 1 ], maxY: box.center[ 1 ] + box.half[ 1 ],
+			} );
+		}
 	},
 	onWebGLKeyDown( { active, fallback, event } ) {
 		return !! active && !! fallback.gameAdapter?.handleKey( event.code );

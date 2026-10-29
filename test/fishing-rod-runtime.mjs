@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { PerspectiveCamera } from '../../../src/engine/index.js';
-import { FishingRod } from '../../../src/game/FishingRod.js';
+import { FishingRod } from '../game/FishingRod.js';
 import { WebGLWaterQuery } from '../../../src/fallback/WebGLWaterQuery.js';
 
 const terrain = { heightAt: () => - 8 };

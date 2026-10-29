@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { Game } from '../../../src/game/Game.js';
+import { Game } from '../game/Game.js';
 import { GameState } from '../GameState.js';
 import { FishingGameRuntime } from '../FishingGameRuntime.js';
-import { WebGLGameAdapter } from '../../../src/fallback/WebGLGameAdapter.js';
+import { WebGLGameAdapter } from '../webgl/WebGLGameAdapter.js';
 import { createFishingTestRuntime } from './fishing-test-extension.mjs';
 
 const experience = JSON.parse( readFileSync( new URL( '../world-source.json', import.meta.url ), 'utf8' ) ).experience;

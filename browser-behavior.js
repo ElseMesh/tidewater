@@ -1,4 +1,4 @@
-import { Game } from '../../src/game/Game.js';
+import { Game } from './game/Game.js';
 import { ShoreWaves } from '../../src/ocean/ShoreWaves.js';
 
 export const browserBehaviorImplementations = Object.freeze( {

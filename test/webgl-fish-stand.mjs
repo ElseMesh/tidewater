@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import * as THREE from 'three';
 import { Colliders } from '../../../src/world/Colliders.js';
-import { STAND, FISH_STAND_VENDOR, fishStandColliderVolumes } from '../../../src/game/FishStandContent.js';
-import { WebGLFishStandAdapter } from '../../../src/fallback/WebGLFishStandAdapter.js';
+import { STAND, FISH_STAND_VENDOR, fishStandColliderVolumes } from '../game/FishStandContent.js';
+import { WebGLFishStandAdapter } from '../webgl/WebGLFishStandAdapter.js';
 
 globalThis.__assetFile = async url => {
 	const file = await readFile( new URL( `../source/models/props/${url.split( '/' ).at( -1 )}`, import.meta.url ) );

@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import * as THREE from 'three';
 import { Colliders } from '../../../src/world/Colliders.js';
-import { CHANDLERY } from '../../../src/game/Chandlery.js';
-import { WebGLChandleryAdapter } from '../../../src/fallback/WebGLChandleryAdapter.js';
+import { CHANDLERY } from '../game/Chandlery.js';
+import { WebGLChandleryAdapter } from '../webgl/WebGLChandleryAdapter.js';
 
 globalThis.__assetFile = async url => {
 	const file = await readFile( new URL( `../source/models/props/${url.split( '/' ).at( -1 )}`, import.meta.url ) );
