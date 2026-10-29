@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { BoatGameplayRuntime } from '../../../src/game/BoatGameplayRuntime.js';
-import { fuelBurn } from '../../../src/game/Gear.js';
-import { GameState } from '../../../src/game/GameState.js';
+import { fuelBurn } from '../Gear.js';
+import { GameState } from '../GameState.js';
 
 // Reference the boat rules inline from Game.updateBoat/applyGear at pre-split
 // commit 23c30bf. Compare those rules frame by frame with the shared runtime.

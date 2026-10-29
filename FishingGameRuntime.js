@@ -1,5 +1,5 @@
-import { GameState } from '../../src/game/GameState.js';
-import { isFishCatalog } from '../../src/game/FishTable.js';
+import { GameState } from './GameState.js';
+import { isFishCatalog } from './FishTable.js';
 
 // Browser-side adapter shared by renderer backends. The signed world Worker
 // owns fishing simulation; this adapter queues bounded state snapshots while

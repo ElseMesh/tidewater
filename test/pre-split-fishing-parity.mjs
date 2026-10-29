@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { FishingGameRuntime } from '../FishingGameRuntime.js';
-import { GameState } from '../../../src/game/GameState.js';
+import { GameState } from '../GameState.js';
 import { createFishingTestRuntime } from './fishing-test-extension.mjs';
 
 // Golden trace captured from the pre-split WebGPU CatchMinigame at 23c30bf.

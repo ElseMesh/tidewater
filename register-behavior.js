@@ -1,5 +1,5 @@
 import { FishingGameRuntime } from './FishingGameRuntime.js';
-import { isFishCatalog } from '../../src/game/FishTable.js';
+import { isFishCatalog } from './FishTable.js';
 import { registerWorldBehavior } from '../../src/network/WorldBehaviorRegistry.js';
 
 registerWorldBehavior( 'elsemesh.fishing-game/1', {

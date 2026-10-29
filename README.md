@@ -22,6 +22,10 @@ ElseMesh imports it at `worlds/tidewater`, validates its
   bounded request queues, and Worker result handling. It is created through
   the registered behavior descriptor and is not part of the generic engine
   behavior registry.
+- `FishTable.js`, `Gear.js`, and `GameState.js` own Tidewater's authored fish
+  catalog validation/calculations, upgrade economy, inventory, fuel, and
+  browser-local per-ThruHold save state. `test/game-hud.html` is the standalone
+  HUD review page for this package.
 - `assets/<sha256>` contains exact runtime package bytes. Filenames are SHA-256
   digests without extensions; use the [human-readable asset index](ASSET-INDEX.md)
   to find an asset by purpose, format, size, or world object.

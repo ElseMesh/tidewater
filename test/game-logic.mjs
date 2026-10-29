@@ -1,11 +1,11 @@
 // Plain-node tests of the fishing game logic (no GPU): bites, the catch fight, inventory, save.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { fishValue, fishLengthCm } from '../../../src/game/FishTable.js';
+import { fishValue, fishLengthCm } from '../FishTable.js';
 import { habitatAt } from '../../../src/game/Bites.js';
 import { FishingGameRuntime } from '../FishingGameRuntime.js';
-import { GameState } from '../../../src/game/GameState.js';
-import { gearStats, defaultUpgrades, UPGRADES } from '../../../src/game/Gear.js';
+import { GameState } from '../GameState.js';
+import { gearStats, defaultUpgrades, UPGRADES } from '../Gear.js';
 import { createFishingTestRuntime } from './fishing-test-extension.mjs';
 import { run as runFishingRules } from '../extensions/fishing-game-rules.js';
 

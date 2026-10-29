@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { BoatGameplayRuntime } from '../../../src/game/BoatGameplayRuntime.js';
-import { GameState } from '../../../src/game/GameState.js';
+import { GameState } from '../GameState.js';
 
 const state = new GameState( { getItem: () => null, setItem: () => {} } );
 state.money = 1000;
