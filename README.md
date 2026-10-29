@@ -25,9 +25,10 @@ ElseMesh imports it at `worlds/tidewater`, validates its
 - `terrain-validation.json` records hashes, dimensions, encodings, and renderer
   roles for the exported terrain package.
 - `experience.behaviors["elsemesh.fishing-game/1"].biteRateSchedule` authors
-  bounded time-of-day multipliers for the shared browser fishing behavior.
-  See the [fishing bite schedule contract](docs/schemas/fishing-bite-schedule.md)
-  for bounds, matching precision, and Tidewater's values.
+  bounded time-of-day multipliers. Tidewater's signed
+  `extensions/fishing-game-rules.js` module validates them in its Worker and
+  compiles the table consumed by the shared browser fishing runtime. See the
+  [fishing bite schedule contract](docs/schemas/fishing-bite-schedule.md).
 
 The asset catalogue is generated, not hand-edited. Exporter and format
 validators live in ElseMesh. Run `npm run export:island` from an ElseMesh

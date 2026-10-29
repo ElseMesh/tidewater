@@ -3,6 +3,12 @@
   "worldId": "elsemesh:example-island",
   "title": "Example Island",
   "experience": {
+    "extensions": [
+      {
+        "behaviorId": "elsemesh.fishing-game/1",
+        "assetId": "sha256:1f977486e4952a52ad683755ec2a0604b66cad64d1a73619b99b22e95f8d2bed"
+      }
+    ],
     "genre": "A coastal fishing adventure",
     "behaviors": {
       "elsemesh.fishing-game/1": {

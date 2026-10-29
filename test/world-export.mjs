@@ -35,7 +35,7 @@ try {
 	const checkedInSourceBytes = await readFile( path.join( checkedInDir, 'world-source.json' ) );
 	const checkedInTerrainReportBytes = await readFile( path.join( checkedInDir, 'terrain-validation.json' ) );
 	const checkedInSource = validateWorldSource( JSON.parse( checkedInSourceBytes ) );
-	const referencedIDs = ( source ) => new Set( [ ...source.objects.flatMap( ( object ) => [ object.assetId, ...( object.lods || [] ).map( ( lod ) => lod.assetId ) ] ), ...source.components.flatMap( componentAssetRefs ) ] );
+	const referencedIDs = ( source ) => new Set( [ ...source.objects.flatMap( ( object ) => [ object.assetId, ...( object.lods || [] ).map( ( lod ) => lod.assetId ) ] ), ...source.components.flatMap( componentAssetRefs ), ...( source.experience?.extensions || [] ).map( extension => extension.assetId ) ] );
 	const checkedInIDs = referencedIDs( checkedInSource );
 	const checkedInFiles = ( await readdir( path.join( checkedInDir, 'assets' ) ) ).sort();
 	assert.deepEqual( checkedInFiles, [ ...checkedInIDs ].map( ( id ) => id.slice( 'sha256:'.length ) ).sort(), 'checked-in island package stores exactly its referenced assets' );
@@ -82,6 +82,14 @@ try {
 	const sourceBytes = await readFile( sourcePath );
 	const terrainReportSecond = await readFile( terrainReportPath );
 	const source = validateWorldSource( JSON.parse( sourceBytes ) );
+	const manifestPath = path.join( output, 'manifest.json' );
+	execFileSync( process.execPath, [ 'tools/world-source-to-manifest.mjs', '--source', sourcePath, '--owner', 'a'.repeat( 40 ), '--assets', path.join( output, 'assets' ), '--out', manifestPath ], { cwd: repositoryRoot, encoding: 'utf8' } );
+	const manifest = JSON.parse( await readFile( manifestPath, 'utf8' ) );
+	for ( const extension of source.experience.extensions || [] ) {
+		const asset = manifest.assets.find( reference => reference.id === extension.assetId );
+		assert.equal( asset?.kind, 'javascript/1', 'owner-authored worker modules publish as signed JavaScript assets' );
+		assert.equal( asset.priority, 'visible', 'behavior modules load at visible priority' );
+	}
 	const assetBytes = await readFile( path.join( output, 'assets', source.objects[ 0 ].assetId.slice( 'sha256:'.length ) ) );
 	assert.deepEqual( sourceBytes, sourceFirst, 'repeated source generation must be byte-identical' );
 	assert.deepEqual( JSON.parse( sourceBytes ), JSON.parse( checkedInSourceBytes ), 'checked-in world source data must match the clean deterministic export' );

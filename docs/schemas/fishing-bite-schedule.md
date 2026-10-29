@@ -1,9 +1,9 @@
 # Fishing bite schedule
 
 Tidewater authors its time-of-day bite rates in
-`experience.behaviors["elsemesh.fishing-game/1"].biteRateSchedule`. The client
-validates and applies this data through its registered fishing behavior; it is
-not executable world code.
+`experience.behaviors["elsemesh.fishing-game/1"].biteRateSchedule`. Its
+owner-signed JavaScript Worker module validates the schedule and compiles it
+to a bounded table that the shared browser fishing runtime consumes.
 
 The object contains `defaultMultiplier` and `windows`. The default and each
 window multiplier must be between 0.5 and 2. A schedule can contain up to 16
