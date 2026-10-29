@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { BoatGameplayRuntime } from '../../../src/game/BoatGameplayRuntime.js';
+import { BoatGameplayRuntime } from '../BoatGameplayRuntime.js';
 import { GameState } from '../GameState.js';
 
 const state = new GameState( { getItem: () => null, setItem: () => {} } );

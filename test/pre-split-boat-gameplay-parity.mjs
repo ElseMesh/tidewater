@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { BoatGameplayRuntime } from '../../../src/game/BoatGameplayRuntime.js';
+import { BoatGameplayRuntime } from '../BoatGameplayRuntime.js';
 import { fuelBurn } from '../Gear.js';
 import { GameState } from '../GameState.js';
 
