@@ -33,7 +33,9 @@ ElseMesh imports it at `worlds/tidewater`, validates its
 - `fishing.json` authors the bounded `biteRateSchedule` under
   `experience.behaviors["elsemesh.fishing-game/1"]`. Tidewater's signed
   `extensions/fishing-game-rules.js` module validates them in its Worker and
-  compiles the table consumed by the shared browser fishing runtime. See the
+  compiles the table consumed by the shared browser fishing runtime. It also
+  owns catch-fight initialization, ordered frame steps, and cancellation; the
+  client applies inventory changes and presents the returned state. See the
   [fishing bite schedule contract](docs/schemas/fishing-bite-schedule.md).
 - `fishing.json`'s `fishCatalog` owns species names, habitats, weights, catch
   values, fight parameters, length relations, and model keys. The engine

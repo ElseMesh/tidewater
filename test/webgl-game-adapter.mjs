@@ -7,6 +7,7 @@ import { PerspectiveCamera } from '../../../src/engine/index.js';
 import { WebGLWaterQuery } from '../../../src/fallback/WebGLWaterQuery.js';
 import { WebGLGameAdapter, createDeckFloodlights } from '../../../src/fallback/WebGLGameAdapter.js';
 import * as THREE from 'three';
+import { createFishingTestRuntime } from './fishing-test-extension.mjs';
 
 const experience = JSON.parse( readFileSync( new URL( '../world-source.json', import.meta.url ), 'utf8' ) ).experience;
 const fishCatalog = experience.behaviors[ 'elsemesh.fishing-game/1' ].fishCatalog;
@@ -71,6 +72,7 @@ const camera = new PerspectiveCamera( 62, 1, 0.1, 500 );
 camera.position.set( 0, 2, 0 );
 camera.updateMatrixWorld();
 const runtime = new FishingGameRuntime( { state: new GameState( storage, 'elsemesh:local', fishCatalog ), load: false, behaviorData: { fishCatalog } } );
+await createFishingTestRuntime( runtime, { fishCatalog } );
 const rod = new FishingRod( { camera, query, terrain, render: false } );
 const pressed = new Set( [ 'KeyR' ] );
 const input = { enabled: true, mouseDown: false, rightDown: false, hit: code => pressed.delete( code ) };
@@ -95,14 +97,14 @@ assert.equal( landed, true, 'WebGL casting uses the shared rod trajectory and re
 assert.equal( rod.state, 'floating' );
 assert.ok( runtime.bite, 'a landed WebGL cast enters the common fish-bite state machine' );
 runtime.bite = { phase: 'take', species: 'grunt', kg: 0.8 };
-gameplay._strike();
+await gameplay._strike();
 assert.ok( runtime.fight, 'WebGL hook input starts the shared catch fight' );
 assert.equal( rod.state, 'fighting' );
 assert.match( gameplay.ui.lastToast, /Fish on/, 'WebGL reports a successful hook like WebGPU' );
 runtime.cancel();
 rod.state = 'floating';
 runtime.bite = { phase: 'nibble', species: 'grunt', kg: 0.8 };
-gameplay._strike();
+await gameplay._strike();
 assert.match( gameplay.ui.lastToast, /wait for it to pull under/, 'WebGL gives the shared early-strike hint during a nibble' );
 console.log( 'webgl game adapter runs shared casting, bite and fight simulation' );
 
@@ -120,7 +122,7 @@ Object.assign( parityAdapter, {
 	hud: { catchOpen: false, showCatch( info, ms ) { this.catchOpen = true; this.info = info; this.ms = ms; }, hideCatch() { this.catchOpen = false; } },
 	toast() {},
 } );
-parityAdapter._stepFight( dt, true, 12 );
+await parityAdapter._stepFight( dt, true, 12 );
 assert.deepEqual( parityEvents.slice( - 2 ), [ [ 'splash', 0.8 ], [ 'flop' ] ], 'WebGL plays the same catch splash and fish flop cues' );
 assert.equal( parityAdapter.landing.card.species, 'grunt', 'WebGL retains the shared catch-card data' );
 const catchInput = { enabled: true, mouseDown: false, rightDown: false, hit: () => false };
@@ -152,7 +154,7 @@ parityAdapter.runtime.stepBite = function() { return { bite: this.bite, dip: 0, 
 parityAdapter.update( dt, { position: { x: 0, y: 0, z: 0 }, mode: 'walk' }, catchInput );
 assert.ok( messages.includes( 'It took the bait and ran' ), 'WebGL reports the shared missed-strike result' );
 parityAdapter.runtime.stepFight = () => ( { state: 'snapped', fight: { species: 'grunt', kg: 0.8, surge: 0 } } );
-parityAdapter._stepFight( dt, true, 12 );
+await parityAdapter._stepFight( dt, true, 12 );
 assert.ok( parityEvents.some( event => event[ 0 ] === 'snap' ), 'WebGL plays the shared snapped-line cue' );
 console.log( 'webgl catch presentation and audio match the shared browser gameplay' );
 

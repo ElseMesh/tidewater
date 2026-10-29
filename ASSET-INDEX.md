@@ -65,6 +65,6 @@ Each filename is the SHA-256 of the exact packaged bytes. Keep these names immut
 | Vegetation placement data — grass density mask | Binary (elsemesh.static-vegetation/1) | 4.00 MiB | [`36507b8de08a52423c0eb3d5bf7cba6c373dbbec931aa1e1969e09abac9df8c2`](assets/36507b8de08a52423c0eb3d5bf7cba6c373dbbec931aa1e1969e09abac9df8c2) |
 | Vegetation placement data — placement data | Binary (elsemesh.static-vegetation/1) | 2.56 MiB | [`e9ead2780768e0dabea07317da0c020497137472e6adc1cb3f166611fb0fbae6`](assets/e9ead2780768e0dabea07317da0c020497137472e6adc1cb3f166611fb0fbae6) |
 | Village PBR material package — component data | Binary (elsemesh.village-materials/2) | 18.30 MiB | [`58c5317f614c767686efe99b996ed908dee8e21024acccf3e746f2fbbb88534d`](assets/58c5317f614c767686efe99b996ed908dee8e21024acccf3e746f2fbbb88534d) |
-| World asset — world behavior module | JavaScript module | 2.0 KiB | [`1f977486e4952a52ad683755ec2a0604b66cad64d1a73619b99b22e95f8d2bed`](assets/1f977486e4952a52ad683755ec2a0604b66cad64d1a73619b99b22e95f8d2bed) |
+| World asset — world behavior module | JavaScript module | 6.0 KiB | [`4ec7d3b69cbfbb579af81909a169ae5828fe99970f29f2cc2c0ce496ea31aaed`](assets/4ec7d3b69cbfbb579af81909a169ae5828fe99970f29f2cc2c0ce496ea31aaed) |
 
 Regenerate with the ElseMesh exporter for this world. The exporter verifies every hash and fails if package files do not match the manifest.

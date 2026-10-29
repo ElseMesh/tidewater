@@ -4,6 +4,7 @@ import { Game } from '../../../src/game/Game.js';
 import { GameState } from '../../../src/game/GameState.js';
 import { FishingGameRuntime } from '../../../src/game/FishingGameRuntime.js';
 import { WebGLGameAdapter } from '../../../src/fallback/WebGLGameAdapter.js';
+import { createFishingTestRuntime } from './fishing-test-extension.mjs';
 
 const experience = JSON.parse( readFileSync( new URL( '../world-source.json', import.meta.url ), 'utf8' ) ).experience;
 const fishCatalog = experience.behaviors[ 'elsemesh.fishing-game/1' ].fishCatalog;
@@ -32,6 +33,8 @@ const webgpuRuntime = new FishingGameRuntime( {
 const webglRuntime = new FishingGameRuntime( {
 	state: new GameState( storage, 'elsemesh:local', fishCatalog ), load: false, behaviorData: { fishCatalog },
 } );
+await createFishingTestRuntime( webgpuRuntime, { fishCatalog } );
+await createFishingTestRuntime( webglRuntime, { fishCatalog } );
 const webgpuAudio = createAudio(), webglAudio = createAudio();
 const webgpuRod = {
 	bobber: {}, dip: 0, lineOut: 18, state: 'floating',
@@ -56,8 +59,8 @@ for ( const [ runtime, game, seed ] of [ [ webgpuRuntime, webgpu, 0x71de ], [ we
 	runtime.bite = { phase: 'take', species: 'grunt', kg: 0.8 };
 	const previousRandom = Math.random;
 	Math.random = seededRandom( seed );
-	if ( game === webgpu ) game.strike();
-	else game._strike();
+	if ( game === webgpu ) await game.strike();
+	else await game._strike();
 	Math.random = previousRandom;
 }
 assert.equal( webgpuRod.state, webglRod.state, 'WebGPU and WebGL hook the same take' );
@@ -67,8 +70,8 @@ assert.deepEqual( fightSnapshot( webgpuRuntime ), fightSnapshot( webglRuntime ),
 let frames = 0;
 while ( webgpuRuntime.fight && webglRuntime.fight && frames < 60 * 180 ) {
 	const reeling = webgpuRuntime.fight.tension < 0.68 && webgpuRuntime.fight.surge < 0.6;
-	webgpu.updateFight( 1 / 60, reeling );
-	webgl._stepFight( 1 / 60, reeling, 12 );
+	await webgpu.updateFight( 1 / 60, reeling );
+	await webgl._stepFight( 1 / 60, reeling, 12 );
 	assert.equal( webgpuRuntime.fight?.state, webglRuntime.fight?.state, `fight outcome agrees at frame ${frames}` );
 	assert.deepEqual( fightSnapshot( webgpuRuntime ), fightSnapshot( webglRuntime ), `fight simulation agrees at frame ${frames}` );
 	frames ++;

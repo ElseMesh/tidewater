@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fishIds, fishValue, fishLengthCm } from '../../../src/game/FishTable.js';
 import { habitatAt, pickSpecies, rollWeight, biteDelay } from '../../../src/game/Bites.js';
-import { CatchMinigame } from '../../../src/game/CatchMinigame.js';
 import { startFishingBite, stepFishingBite } from '../../../src/game/FishingBiteSimulation.js';
 import { FishingGameRuntime } from '../../../src/game/FishingGameRuntime.js';
 import { GameState } from '../../../src/game/GameState.js';
 import { gearStats, defaultUpgrades, UPGRADES } from '../../../src/game/Gear.js';
+import { createFishingTestRuntime } from './fishing-test-extension.mjs';
 
 const FISH = JSON.parse( readFileSync( new URL( '../fishing.json', import.meta.url ), 'utf8' ) ).fishCatalog;
 const FISH_IDS = fishIds( FISH );
@@ -98,15 +98,28 @@ ok( fishValue( FISH, 'redSnapper', 5 ) > fishValue( FISH, 'redSnapper', 2 ), 'bi
 	const memory = new Map();
 	const state = makeState( { getItem: key => memory.get( key ) ?? null, setItem: ( key, value ) => memory.set( key, value ) } );
 	const runtime = new FishingGameRuntime( { state, load: false, behaviorData: { fishCatalog: FISH } } );
+	await createFishingTestRuntime( runtime, { fishCatalog: FISH } );
 	runtime.bite = { phase: 'take', species: 'grunt', kg: 0.8 };
-	const fight = runtime.strike( { lineKg: 7, reelSpeed: 1.1, distance: 3 } );
+	let fight = await runtime.strike( { lineKg: 7, reelSpeed: 1.1, distance: 3 } );
 	ok( fight?.state === 'fighting' && runtime.bite === null, 'shared browser runtime starts a catch fight from the bite state' );
 	let result;
 	for ( let i = 0; i < 60 * 30; i ++ ) {
-		result = runtime.stepFight( 1 / 60, fight.tension < 0.68 && fight.surge < 0.6, 12 );
+		result = await runtime.stepFight( 1 / 60, fight.tension < 0.68 && fight.surge < 0.6, 12 );
 		if ( result.state !== 'fighting' ) break;
+		fight = runtime.fight;
 	}
 	ok( result?.state === 'caught' && result.entry && result.catchInfo === state.lastCatch && state.inventory.length === 1, 'shared browser runtime records a landed fish in the player state' );
+}
+
+{
+	const runtime = new FishingGameRuntime( { state: makeState( null ), load: false, behaviorData: { fishCatalog: FISH } } );
+	await createFishingTestRuntime( runtime, { fishCatalog: FISH } );
+	runtime.bite = { phase: 'take', species: 'grunt', kg: 0.8 };
+	await runtime.strike( { lineKg: 7, reelSpeed: 1.1, distance: 3, seed: 7 } );
+	const pendingStep = runtime.stepFight( 1 / 60, true, 12 );
+	runtime.cancel();
+	assert.deepEqual( await pendingStep, { state: null, fight: null }, 'late Worker replies cannot resurrect a cancelled fight' );
+	assert.equal( runtime.fight, null, 'cancelling clears the client fight snapshot immediately' );
 }
 
 // ---- the fight: three players
@@ -115,11 +128,17 @@ const policies = {
 	mash: () => true,
 	idle: () => false,
 };
-const fight = ( species, kg, policy, lineKg = 7, reelSpeed = 1.1 ) => {
-
-	const g = new CatchMinigame( { species, kg, fishCatalog: FISH, lineKg, reelSpeed, distance: 18, rng } );
+const fight = async ( species, kg, policy, lineKg = 7, reelSpeed = 1.1 ) => {
+	const runtime = new FishingGameRuntime( { state: makeState( null ), load: false, behaviorData: { fishCatalog: FISH } } );
+	await createFishingTestRuntime( runtime, { fishCatalog: FISH } );
+	runtime.bite = { phase: 'take', species, kg };
+	let g = await runtime.strike( { lineKg, reelSpeed, distance: 18, seed: 12345 } );
 	let st = 'fighting';
-	for ( let i = 0; i < 60 * 180 && st === 'fighting'; i ++ ) st = g.update( 1 / 60, policy( g ) );
+	for ( let i = 0; i < 60 * 180 && st === 'fighting'; i ++ ) {
+		const result = await runtime.stepFight( 1 / 60, policy( g ), 12 );
+		st = result.state;
+		if ( result.fight ) g = result.fight;
+	}
 	return { st, t: g.time };
 
 };
@@ -128,7 +147,7 @@ for ( const [ species, kg ] of [ [ 'grunt', 0.8 ], [ 'yellowtail', 1.2 ], [ 'jac
 
 	for ( const p of Object.keys( policies ) ) {
 
-		const r = fight( species, kg, policies[ p ] );
+		const r = await fight( species, kg, policies[ p ] );
 		table[ `${ species }/${ p }` ] = r;
 		console.log( `     ${ species } ${ kg } kg, ${ p }: ${ r.st } after ${ r.t.toFixed( 1 ) } s` );
 
@@ -138,10 +157,10 @@ for ( const [ species, kg ] of [ [ 'grunt', 0.8 ], [ 'yellowtail', 1.2 ], [ 'jac
 ok( table[ 'grunt/careful' ].st === 'caught' && table[ 'yellowtail/careful' ].st === 'caught', 'careful reeling lands small fish' );
 ok( table[ 'jack/careful' ].st === 'caught', 'careful reeling lands a 6 kg jack on the starter line' );
 ok( table[ 'tuna/mash' ].st === 'snapped' && table[ 'tarpon/mash' ].st === 'snapped', 'holding reel on a big fish snaps the line' );
-ok( table[ 'tuna/careful' ].st !== 'caught' && fight( 'tuna', 13, policies.careful, 26, 1.6 ).st === 'caught', 'a 13 kg tuna needs the 30 lb line' );
+ok( table[ 'tuna/careful' ].st !== 'caught' && ( await fight( 'tuna', 13, policies.careful, 26, 1.6 ) ).st === 'caught', 'a 13 kg tuna needs the 30 lb line' );
 ok( [ 'escaped' ].includes( table[ 'grunt/idle' ].st ), 'never reeling loses the fish' );
-ok( fight( 'tarpon', 35, policies.careful ).st !== 'caught', 'a 35 kg tarpon beats the starter line' );
-ok( fight( 'tarpon', 35, policies.careful, 50, 2.2 ).st === 'caught', 'the top line and reel land it' );
+ok( ( await fight( 'tarpon', 35, policies.careful ) ).st !== 'caught', 'a 35 kg tarpon beats the starter line' );
+ok( ( await fight( 'tarpon', 35, policies.careful, 50, 2.2 ) ).st === 'caught', 'the top line and reel land it' );
 
 // ---- inventory, wallet, save round trip
 const mem = new Map();

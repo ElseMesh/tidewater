@@ -30,8 +30,15 @@ for ( const [ hour, expected ] of [
 	assert.equal( runtime.bite.t, 10 - expected, `bite wait rate at ${hour} hours` );
 }
 
-assert.throws( () => runFishingRulesExtension( { type: 'initialize', behaviorData: { biteRateSchedule: { defaultMultiplier: 1, windows: [ { startHour: 4, endHour: 6, multiplier: 1.2 }, { startHour: 5, endHour: 7, multiplier: 1.3 } ] } } } ), /invalid bite-rate schedule window/ );
-assert.throws( () => runFishingRulesExtension( { type: 'initialize', behaviorData: { biteRateSchedule: { defaultMultiplier: 1, windows: [ { startHour: 5.05, endHour: 6, multiplier: 1 } ] } } } ), /invalid bite-rate schedule window/ );
+assert.throws( () => runFishingRulesExtension( { type: 'initialize', behaviorData: { fishCatalog: fishingBehavior.data.fishCatalog, biteRateSchedule: { defaultMultiplier: 1, windows: [ { startHour: 4, endHour: 6, multiplier: 1.2 }, { startHour: 5, endHour: 7, multiplier: 1.3 } ] } } } ), /invalid bite-rate schedule window/ );
+assert.throws( () => runFishingRulesExtension( { type: 'initialize', behaviorData: { fishCatalog: fishingBehavior.data.fishCatalog, biteRateSchedule: { defaultMultiplier: 1, windows: [ { startHour: 5.05, endHour: 6, multiplier: 1 } ] } } } ), /invalid bite-rate schedule window/ );
+
+const startedFight = runFishingRulesExtension( { type: 'start-fight', species: 'grunt', kg: 0.8, lineKg: 7, reelSpeed: 1.1, distance: 3, seed: 12345 } );
+assert.equal( startedFight.fight.state, 'fighting', 'the signed module owns fight initialization and state' );
+const fightStep = runFishingRulesExtension( { type: 'step-fight', steps: [ { dt: 1 / 60, reeling: true }, { dt: 1 / 60, reeling: false } ] } );
+assert.equal( fightStep.results.length, 2, 'the module advances ordered frame inputs in a bounded batch' );
+assert.equal( fightStep.results[ 1 ].fight.time, 2 / 60, 'the worker returns deterministic serialized fight snapshots' );
+assert.deepEqual( runFishingRulesExtension( { type: 'cancel' } ), { cancelled: true }, 'cancellation clears module-owned fight state' );
 
 runtime.bite = { phase: 'take', t: 10 };
 runtime.stepBite( 1, { habitat: () => ( { shallows: 1 } ), hour: 6 });
