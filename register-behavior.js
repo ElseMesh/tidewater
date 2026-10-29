@@ -2,6 +2,8 @@ import { FishingGameRuntime } from './FishingGameRuntime.js';
 import { isFishCatalog } from './FishTable.js';
 import { createWebGLShoreSurfaceOffset } from './webgl-shore-surface.js';
 import { registerWorldBehavior, registerWorldBehaviorImplementation } from '../../src/network/WorldBehaviorRegistry.js';
+import { browserBehaviorImplementations } from './browser-behavior.js';
+import { webglBehaviorImplementations } from './webgl-behavior.js';
 
 registerWorldBehavior( 'elsemesh.fishing-game/1', {
 	validateExperienceData: ( data, hasExtension ) => {
@@ -38,3 +40,7 @@ registerWorldBehaviorImplementation( 'elsemesh.shore-aware-boat/1', {
 		} ) );
 	},
 } );
+
+registerWorldBehaviorImplementation( 'elsemesh.shore-aware-boat/1', browserBehaviorImplementations.shoreAwareBoat );
+registerWorldBehaviorImplementation( 'elsemesh.fishing-game/1', browserBehaviorImplementations.fishingGame );
+registerWorldBehaviorImplementation( 'elsemesh.fishing-game/1', webglBehaviorImplementations.fishingGame );
