@@ -15,7 +15,7 @@ import { Colliders } from '../../../src/world/Colliders.js';
 import { standard } from '../../../src/materials/Materials.js';
 import { decodeVegetationPlacements } from '../../../src/network/VegetationPlacements.js';
 import { decodeReefPlacements } from '../../../src/network/ReefPlacements.js';
-import { decodeFishPropPlacements } from '../../../src/network/FishPropPlacements.js';
+import { decodeFishPropPlacements } from '../FishPropPlacements.js';
 import { decodeTerrainSurfaceAsset } from '../../../src/network/TerrainSurfaceAsset.js';
 import { decodeGrassDensityAsset } from '../../../src/network/GrassDensityAsset.js';
 import { decodeVillageMaterialAsset, VILLAGE_MATERIAL_MAPS, VILLAGE_MATERIAL_RENDERER_PROFILE } from '../../../src/network/VillageMaterialAsset.js';

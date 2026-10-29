@@ -1,5 +1,10 @@
 import { registerWorldComponent } from '../../src/network/WorldComponentRegistry.js';
+import { registerWorldComponentAssetDecoder } from '../../src/network/WorldComponentAssetCodecRegistry.js';
 import { tidewaterComponentInstaller } from './component-installers.js';
+import { decodeFishPropPlacements, FISH_PROP_PLACEMENT_ASSET_KIND } from './FishPropPlacements.js';
+import * as fishPresentation from './FishPresentation.js';
+
+registerWorldComponentAssetDecoder( FISH_PROP_PLACEMENT_ASSET_KIND, bytes => decodeFishPropPlacements( bytes, fishPresentation ) );
 
 for ( const [ type, traits ] of [
 	[ 'elsemesh.static-grass/1', {} ],

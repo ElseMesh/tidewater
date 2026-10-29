@@ -8,7 +8,7 @@ import path from 'node:path';
 import { gravityAcceleration, movementParameters, validateWorldRequirements, worldHasWater, worldSeaLevel } from '../../../src/network/WorldRules.js';
 import { validateWorldEntryPoints, validateWorldSource, validateWorldSpawn, worldSpawnPose, WORLD_SOURCE_PROTOCOL } from '../../../src/network/WorldSource.js';
 import { encodeVegetationPlacements, VEGETATION_PLACEMENT_KINDS } from '../../../src/network/VegetationPlacements.js';
-import { encodeFishPropPlacements } from '../../../src/network/FishPropPlacements.js';
+import { encodeFishPropPlacements } from '../FishPropPlacements.js';
 import { encodeGrassDensityAsset } from '../../../src/network/GrassDensityAsset.js';
 import { validateWorldComponents } from '../../../src/network/WorldConnector.js';
 

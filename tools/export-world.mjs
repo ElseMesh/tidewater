@@ -24,7 +24,7 @@ import { encodeVegetationPlacements } from '../../../src/network/VegetationPlace
 import { encodeGrassDensityAsset } from '../../../src/network/GrassDensityAsset.js';
 import { Reef } from '../../../src/world/Reef.js';
 import { encodeReefPlacements } from '../../../src/network/ReefPlacements.js';
-import { encodeFishPropPlacements, MAX_FISH_PROP_PLACEMENT_BYTES } from '../../../src/network/FishPropPlacements.js';
+import { encodeFishPropPlacements, MAX_FISH_PROP_PLACEMENT_BYTES } from '../FishPropPlacements.js';
 import { BANK } from '../../../src/audio/soundBank.js';
 import { MIX } from '../../../src/audio/SoundScape.js';
 import { bakeTerrainMaps } from '../../../src/world/terrain/TerrainBake.js';
