@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import { FishingGameRuntime } from '../../../src/game/FishingGameRuntime.js';
+import { FishingGameRuntime } from '../FishingGameRuntime.js';
 import { GameState } from '../../../src/game/GameState.js';
 import { createFishingTestRuntime } from './fishing-test-extension.mjs';
 

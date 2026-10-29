@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { GameState } from '../../../src/game/GameState.js';
-import { FishingGameRuntime } from '../../../src/game/FishingGameRuntime.js';
+import { FishingGameRuntime } from '../FishingGameRuntime.js';
 import { FishingRod } from '../../../src/game/FishingRod.js';
 import { PerspectiveCamera } from '../../../src/engine/index.js';
 import { WebGLWaterQuery } from '../../../src/fallback/WebGLWaterQuery.js';

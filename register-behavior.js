@@ -1,4 +1,4 @@
-import { FishingGameRuntime } from '../../src/game/FishingGameRuntime.js';
+import { FishingGameRuntime } from './FishingGameRuntime.js';
 import { isFishCatalog } from '../../src/game/FishTable.js';
 import { registerWorldBehavior } from '../../src/network/WorldBehaviorRegistry.js';
 

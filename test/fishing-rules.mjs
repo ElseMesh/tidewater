@@ -25,6 +25,12 @@ const runtime = createWorldBehaviorRuntime( source.experience, 'elsemesh.fishing
 await runtime.extensionReady;
 const initialized = await extensionManager.ready();
 assert.equal( initialized.initialized, true, 'the Worker compiles the authored schedule internally' );
+const isolatedA = createWorldBehaviorRuntime( source.experience, 'elsemesh.fishing-game/1', { load: false, worldId: 'elsemesh:fishing-runtime-a' } );
+const isolatedB = createWorldBehaviorRuntime( source.experience, 'elsemesh.fishing-game/1', { load: false, worldId: 'elsemesh:fishing-runtime-b' } );
+assert.notEqual( isolatedA.state, isolatedB.state, 'Tidewater creates one browser gameplay state per thruhold' );
+assert.notEqual( isolatedA.state.storageKey, isolatedB.state.storageKey, 'Tidewater browser saves are isolated by thruhold identity' );
+assert.equal( isolatedA.state.storageKey, 'elsemesh.save.v1:elsemesh%3Afishing-runtime-a' );
+await assert.rejects( isolatedA.startBite( { shallows: 1 }, 12 ), /signed JavaScript extension/, 'simulation still requires the signed Tidewater Worker' );
 for ( const [ hour, expected ] of [
 	[ -1, 0.8 ], [ 0, 0.8 ], [ 4.999, 0.8 ], [ 5, 1.4 ], [ 8, 1.4 ], [ 8.1, 1 ],
 	[ 16.999, 1 ], [ 17, 1.4 ], [ 20, 1.4 ], [ 20.1, 1 ], [ 21.999, 1 ], [ 22, 0.8 ], [ 24, 0.8 ],

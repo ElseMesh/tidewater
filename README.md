@@ -18,6 +18,10 @@ ElseMesh imports it at `worlds/tidewater`, validates its
 - `register-behavior.js` owns Tidewater's behavior registrations and
   world-authored experience validation. The built-in package bootstrap loads
   it into ElseMesh's generic behavior registry.
+- `FishingGameRuntime.js` owns Tidewater's browser-side fishing event protocol,
+  bounded request queues, and Worker result handling. It is created through
+  the registered behavior descriptor and is not part of the generic engine
+  behavior registry.
 - `assets/<sha256>` contains exact runtime package bytes. Filenames are SHA-256
   digests without extensions; use the [human-readable asset index](ASSET-INDEX.md)
   to find an asset by purpose, format, size, or world object.
