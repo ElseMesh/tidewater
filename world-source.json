@@ -28,6 +28,23 @@
           "yaw": -1.9,
           "interactionRadius": 3
         },
+        "fishingAreas": {
+          "pier": {
+            "x": 55,
+            "zStart": -64,
+            "zEnd": 40,
+            "width": 2.6,
+            "headWidth": 14,
+            "headDepth": 7
+          },
+          "reef": {
+            "center": [
+              -78,
+              58
+            ],
+            "radius": 58
+          }
+        },
         "biteRateSchedule": {
           "defaultMultiplier": 1,
           "windows": [

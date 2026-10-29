@@ -1,6 +1,5 @@
 import { Vector3, Color } from '../../../src/engine/index.js';
-import { WORLD } from '../../../src/world/WorldLayout.js';
-import { habitatAt } from './Bites.js';
+import { fishingHabitatAt } from './Bites.js';
 import { createWorldBehaviorRuntime, worldBehaviorData } from '../../../src/network/WorldBehaviorRegistry.js';
 import { FishingRod } from './FishingRod.js';
 import { FishStand } from './FishStand.js';
@@ -38,9 +37,10 @@ export class Game {
 		this.boatGameplay.onFuelOut = () => this.toast( 'Out of fuel · buy diesel at the chandlery by the boathouse', 4000 );
 		this.fishCatalog = this.runtime.fishCatalog;
 		this.fishPresentation = worldFishPresentationFor( experience );
+		const fishingData = worldBehaviorData( experience, 'elsemesh.fishing-game/1' );
+		this.fishingAreas = fishingData.fishingAreas;
 		this.rod = new FishingRod( { scene: app.scene, camera: app.camera, query, terrain, audio: app.audio } );
 		this.rod.onLand = ( where ) => this.onBobberLanded( where );
-		const fishingData = worldBehaviorData( experience, 'elsemesh.fishing-game/1' );
 		this.stand = new FishStand( { scene: app.scene, terrain, colliders, placement: fishingData?.fishStand, fishCatalog: this.fishCatalog, fishPresentation: this.fishPresentation } );
 		this.display = new CatchDisplay( { scene: app.scene, stall: this.stand.iceFish(), fishCatalog: this.fishCatalog, fishPresentation: this.fishPresentation } );
 		this.landing = null; // { species, kg } while the caught fish swings in view
@@ -57,7 +57,6 @@ export class Game {
 		this._lmb = false;
 		this._rmb = false;
 		this._hookedSpecies = null;
-		this._pier = WORLD.pier;
 		this._tmp = new Vector3();
 		this.applyGear();
 		this.state.onChange( () => this.applyGear() );
@@ -412,14 +411,7 @@ export class Game {
 
 	habitatAtPoint( x, z, depth ) {
 
-		const b = { x, z };
-		const reef = WORLD.reef;
-		const reefDist = Math.hypot( b.x - reef.center.x, b.z - reef.center.z ) - reef.radius;
-		const P = this._pier;
-		const rect = ( x0, x1, z0, z1 ) => Math.hypot( Math.max( x0 - b.x, 0, b.x - x1 ), Math.max( z0 - b.z, 0, b.z - z1 ) );
-		const walk = rect( P.x - P.width / 2, P.x + P.width / 2, P.zStart, P.zEnd );
-		const head = rect( P.x - P.headWidth / 2, P.x + P.headWidth / 2, P.zEnd - P.headDepth, P.zEnd );
-		return habitatAt( { depth, reefDist, pierDist: Math.min( walk, head ) } );
+		return fishingHabitatAt( { x, z, depth, areas: this.fishingAreas } );
 
 	}
 

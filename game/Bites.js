@@ -17,6 +17,18 @@ export function habitatAt( { depth, reefDist, pierDist } ) {
 
 }
 
+export function fishingHabitatAt( { x, z, depth, areas } ) {
+
+	const reef = areas.reef;
+	const reefDist = Math.hypot( x - reef.center[ 0 ], z - reef.center[ 1 ] ) - reef.radius;
+	const pier = areas.pier;
+	const rect = ( x0, x1, z0, z1 ) => Math.hypot( Math.max( x0 - x, 0, x - x1 ), Math.max( z0 - z, 0, z - z1 ) );
+	const walk = rect( pier.x - pier.width / 2, pier.x + pier.width / 2, pier.zStart, pier.zEnd );
+	const head = rect( pier.x - pier.headWidth / 2, pier.x + pier.headWidth / 2, pier.zEnd - pier.headDepth, pier.zEnd );
+	return habitatAt( { depth, reefDist, pierDist: Math.min( walk, head ) } );
+
+}
+
 function smooth( e0, e1, x ) {
 
 	const t = Math.min( 1, Math.max( 0, ( x - e0 ) / ( e1 - e0 ) ) );

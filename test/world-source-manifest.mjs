@@ -83,7 +83,7 @@ try {
 		protocol: 'elsemesh.world-source/3',
 		worldId: 'elsemesh:manifest-test',
 		title: 'Manifest test',
-		experience: { genre: 'Fishing', tagline: 'Explore', loadingNote: 'Loading', tips: [ 'Cast a line' ], stages: {}, behaviors: { 'elsemesh.fishing-game/1': { fishStand: { position: [ 12, -8 ], yaw: 1.2, interactionRadius: 4 }, chandlery: { position: [ 30, 5 ], yaw: -0.5, interactionRadius: 3 }, fishCatalog: testFishCatalog } }, extensions: [ { behaviorId: 'elsemesh.fishing-game/1', assetId: javascriptAssetID } ] },
+		experience: { genre: 'Fishing', tagline: 'Explore', loadingNote: 'Loading', tips: [ 'Cast a line' ], stages: {}, behaviors: { 'elsemesh.fishing-game/1': { fishStand: { position: [ 12, -8 ], yaw: 1.2, interactionRadius: 4 }, chandlery: { position: [ 30, 5 ], yaw: -0.5, interactionRadius: 3 }, fishingAreas: { pier: { x: 20, zStart: -10, zEnd: 30, width: 3, headWidth: 12, headDepth: 6 }, reef: { center: [ -40, 60 ], radius: 50 } }, fishCatalog: testFishCatalog } }, extensions: [ { behaviorId: 'elsemesh.fishing-game/1', assetId: javascriptAssetID } ] },
 		spawn: { position: [ 53.6, 4.447713719743241, -77 ], yaw: Math.PI, pitch: -0.05 },
 		coordinateSystem: 'right-handed-y-up-meters',
 		styleGuide: '',
@@ -110,7 +110,7 @@ try {
 	assert.deepEqual( first, second, 'same source must produce byte-identical manifests' );
 	const manifest = JSON.parse( first );
 	assert.deepEqual( manifest.spawn, { position: [ 53.6, 4.447713719743241, -77 ], yaw: Math.PI, pitch: -0.05 }, 'authored spawn survives signed-manifest conversion' );
-	assert.deepEqual( manifest.experience.behaviors[ 'elsemesh.fishing-game/1' ], { fishStand: { position: [ 12, -8 ], yaw: 1.2, interactionRadius: 4 }, chandlery: { position: [ 30, 5 ], yaw: -0.5, interactionRadius: 3 }, fishCatalog: testFishCatalog }, 'world-authored fishing data survives signed-manifest conversion' );
+	assert.deepEqual( manifest.experience.behaviors[ 'elsemesh.fishing-game/1' ], { fishStand: { position: [ 12, -8 ], yaw: 1.2, interactionRadius: 4 }, chandlery: { position: [ 30, 5 ], yaw: -0.5, interactionRadius: 3 }, fishingAreas: { pier: { x: 20, zStart: -10, zEnd: 30, width: 3, headWidth: 12, headDepth: 6 }, reef: { center: [ -40, 60 ], radius: 50 } }, fishCatalog: testFishCatalog }, 'world-authored fishing data survives signed-manifest conversion' );
 	assert.deepEqual( manifest.experience.extensions, [ { behaviorId: 'elsemesh.fishing-game/1', assetId: javascriptAssetID } ], 'signed manifest retains the behavior-bound JavaScript extension reference' );
 	assert.deepEqual( worldSpawnPose( manifest ), manifest.spawn );
 	assert.deepEqual( worldSpawnPose( {} ), { position: [ 0, 3, 8 ], yaw: Math.PI, pitch: -0.1 }, 'legacy cave entrance remains compatible' );

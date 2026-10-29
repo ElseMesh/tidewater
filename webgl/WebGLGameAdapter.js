@@ -1,8 +1,7 @@
 import { GameHUD } from '../game/GameHUD.js';
-import { createWorldBehaviorRuntime } from '../../../src/network/WorldBehaviorRegistry.js';
+import { createWorldBehaviorRuntime, worldBehaviorData } from '../../../src/network/WorldBehaviorRegistry.js';
 import { FishingRod } from '../game/FishingRod.js';
-import { habitatAt } from '../game/Bites.js';
-import { WORLD } from '../../../src/world/WorldLayout.js';
+import { fishingHabitatAt } from '../game/Bites.js';
 import { WebGLFishingRodPresentation } from './WebGLFishingRodPresentation.js';
 
 const CATCH_CARD_MS = 9000;
@@ -55,6 +54,7 @@ export class WebGLGameAdapter {
 
 	constructor( vendor, { vendors = [ vendor ], experience, worldId = 'elsemesh:local', extensions = null, THREE, scene, camera, query, terrain, boatController = null, boatRoot = null, audio = null } = {} ) {
 
+		this.fishingAreas = worldBehaviorData( experience, 'elsemesh.fishing-game/1' ).fishingAreas;
 		this.runtime = createWorldBehaviorRuntime( experience, 'elsemesh.fishing-game/1', {
 			worldId, extensions, controller: boatController, terrain,
 			habitatAt: ( x, z, depth ) => this._habitatAtPoint( x, z, depth ),
@@ -181,12 +181,7 @@ export class WebGLGameAdapter {
 
 	_habitatAtPoint( x, z, depth ) {
 
-		const reef = WORLD.reef, pier = WORLD.pier;
-		const reefDist = Math.hypot( x - reef.center.x, z - reef.center.z ) - reef.radius;
-		const rect = ( x0, x1, z0, z1 ) => Math.hypot( Math.max( x0 - x, 0, x - x1 ), Math.max( z0 - z, 0, z - z1 ) );
-		const walk = rect( pier.x - pier.width / 2, pier.x + pier.width / 2, pier.zStart, pier.zEnd );
-		const head = rect( pier.x - pier.headWidth / 2, pier.x + pier.headWidth / 2, pier.zEnd - pier.headDepth, pier.zEnd );
-		return habitatAt( { depth, reefDist, pierDist: Math.min( walk, head ) } );
+		return fishingHabitatAt( { x, z, depth, areas: this.fishingAreas } );
 
 	}
 

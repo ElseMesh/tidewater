@@ -1,4 +1,3 @@
-import { WORLD } from '../../../src/world/WorldLayout.js';
 import { Vector3 } from '../../../src/engine/math/index.js';
 
 // Minimap, lower right: the island baked once from the terrain data into a 2D canvas (depth-tinted
@@ -289,7 +288,7 @@ export class Minimap {
 		}
 
 		// the pier and its head
-		const W = WORLD.pier;
+		const W = this.game.fishingAreas.pier;
 		ctx.fillStyle = '#d9c7a0';
 		ctx.strokeStyle = 'rgba(40, 30, 20, 0.55)';
 		ctx.lineWidth = 0.6;

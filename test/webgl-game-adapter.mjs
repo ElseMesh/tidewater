@@ -78,7 +78,7 @@ const pressed = new Set( [ 'KeyR' ] );
 const input = { enabled: true, mouseDown: false, rightDown: false, hit: code => pressed.delete( code ) };
 const gameplay = Object.create( WebGLGameAdapter.prototype );
 Object.assign( gameplay, {
-	runtime, state: runtime.state, rod, rodPresentation: null, vendor: { name: 'Joe · Fish buyer', inRange: () => false }, vendors: [ { name: 'Joe · Fish buyer', inRange: () => false } ],
+	runtime, state: runtime.state, rod, rodPresentation: null, fishingAreas: experience.behaviors[ 'elsemesh.fishing-game/1' ].fishingAreas, vendor: { name: 'Joe · Fish buyer', inRange: () => false }, vendors: [ { name: 'Joe · Fish buyer', inRange: () => false } ],
 	ui: { promptKey: { textContent: '' }, promptText: { textContent: '' }, prompt: { classList: { toggle() {} } }, toast( message ) { this.lastToast = message; } },
 	hud: { standOpen: false, invOpen: false, update() {} }, _lmb: false, _rmb: false,
 } );
@@ -129,7 +129,7 @@ assert.deepEqual( parityEvents.slice( - 2 ), [ [ 'splash', 0.8 ], [ 'flop' ] ], 
 assert.equal( parityAdapter.landing.card.species, 'grunt', 'WebGL retains the shared catch-card data' );
 const catchInput = { enabled: true, mouseDown: false, rightDown: false, hit: () => false };
 Object.assign( parityAdapter, {
-	state: new GameState( storage, 'elsemesh:local', fishCatalog ), vendors: [], vendor: { name: 'Joe · Fish buyer' }, nearVendor: false, activeVendor: null,
+	state: new GameState( storage, 'elsemesh:local', fishCatalog ), fishingAreas: experience.behaviors[ 'elsemesh.fishing-game/1' ].fishingAreas, vendors: [], vendor: { name: 'Joe · Fish buyer' }, nearVendor: false, activeVendor: null,
 	boatGameplay: { step: () => ( { fuel: null, sonar: null } ) },
 	ui: { promptKey: { textContent: '' }, promptText: { textContent: '' }, prompt: { classList: { toggle() {} } } },
 	hud: { catchOpen: false, standOpen: false, invOpen: false, showCatch( info, ms ) { this.catchOpen = true; this.info = info; this.ms = ms; }, hideCatch() { this.catchOpen = false; }, update() {} },
