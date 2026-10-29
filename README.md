@@ -25,11 +25,9 @@ ElseMesh imports it at `worlds/tidewater`, validates its
 - `terrain-validation.json` records hashes, dimensions, encodings, and renderer
   roles for the exported terrain package.
 - `experience.behaviors["elsemesh.fishing-game/1"].biteRateSchedule` authors
-  bounded time-of-day multipliers for the shared browser fishing behavior. Its
-  windows use 0.1-hour precision and include their start but exclude their end.
-  Tidewater uses 1.4 from 05:00 through 08:00 and 17:00 through 20:00, 0.8
-  before 05:00 and from 22:00 onward, and 1.0 at other times, preserving the
-  previous behavior's 0.1-hour boundary precision.
+  bounded time-of-day multipliers for the shared browser fishing behavior.
+  See the [fishing bite schedule contract](docs/schemas/fishing-bite-schedule.md)
+  for bounds, matching precision, and Tidewater's values.
 
 The asset catalogue is generated, not hand-edited. Exporter and format
 validators live in ElseMesh. Run `npm run export:island` from an ElseMesh

@@ -7,6 +7,7 @@ proposal schemas remain in the engine repository under `docs/schemas/`.
 - [Downeast boat](downeast-boat.md)
 - [Example Island wildlife](example-island-wildlife.md)
 - [Fish-prop placements](fish-props-placement.md)
+- [Fishing bite schedule](fishing-bite-schedule.md)
 - [Grass density](grass-density.md)
 - [Humpback whale](humpback-whale.md)
 - [Island ocean](island-ocean.md)
