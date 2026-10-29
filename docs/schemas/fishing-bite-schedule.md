@@ -1,7 +1,7 @@
 # Fishing bite schedule
 
-Tidewater authors its time-of-day bite rates in
-`experience.behaviors["elsemesh.fishing-game/1"].biteRateSchedule`. Its
+Tidewater authors its time-of-day bite rates in `fishing.json`, which the
+exporter places at `experience.behaviors["elsemesh.fishing-game/1"].biteRateSchedule`. Its
 owner-signed JavaScript Worker module validates the schedule and compiles it
 to a bounded table that the shared browser fishing runtime consumes.
 

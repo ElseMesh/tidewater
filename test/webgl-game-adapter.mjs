@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { GameState } from '../../../src/game/GameState.js';
 import { FishingGameRuntime } from '../../../src/game/FishingGameRuntime.js';
 import { FishingRod } from '../../../src/game/FishingRod.js';
@@ -7,8 +8,11 @@ import { WebGLWaterQuery } from '../../../src/fallback/WebGLWaterQuery.js';
 import { WebGLGameAdapter, createDeckFloodlights } from '../../../src/fallback/WebGLGameAdapter.js';
 import * as THREE from 'three';
 
+const experience = JSON.parse( readFileSync( new URL( '../world-source.json', import.meta.url ), 'utf8' ) ).experience;
+const fishCatalog = experience.behaviors[ 'elsemesh.fishing-game/1' ].fishCatalog;
+
 const storage = { getItem: () => null, setItem: () => {} };
-const state = new GameState( storage );
+const state = new GameState( storage, 'elsemesh:local', fishCatalog );
 state.addFish( 'grunt', 0.8 );
 let inRange = true, shopInRange = false;
 const vendor = { name: 'Joe · Fish buyer', kind: 'buyer', inRange: () => inRange };
@@ -66,7 +70,7 @@ const query = new WebGLWaterQuery( terrain );
 const camera = new PerspectiveCamera( 62, 1, 0.1, 500 );
 camera.position.set( 0, 2, 0 );
 camera.updateMatrixWorld();
-const runtime = new FishingGameRuntime( { state: new GameState( storage ), load: false } );
+const runtime = new FishingGameRuntime( { state: new GameState( storage, 'elsemesh:local', fishCatalog ), load: false, behaviorData: { fishCatalog } } );
 const rod = new FishingRod( { camera, query, terrain, render: false } );
 const pressed = new Set( [ 'KeyR' ] );
 const input = { enabled: true, mouseDown: false, rightDown: false, hit: code => pressed.delete( code ) };
@@ -121,7 +125,7 @@ assert.deepEqual( parityEvents.slice( - 2 ), [ [ 'splash', 0.8 ], [ 'flop' ] ], 
 assert.equal( parityAdapter.landing.card.species, 'grunt', 'WebGL retains the shared catch-card data' );
 const catchInput = { enabled: true, mouseDown: false, rightDown: false, hit: () => false };
 Object.assign( parityAdapter, {
-	state: new GameState( storage ), vendors: [], vendor: { name: 'Joe · Fish buyer' }, nearVendor: false, activeVendor: null,
+	state: new GameState( storage, 'elsemesh:local', fishCatalog ), vendors: [], vendor: { name: 'Joe · Fish buyer' }, nearVendor: false, activeVendor: null,
 	boatGameplay: { step: () => ( { fuel: null, sonar: null } ) },
 	ui: { promptKey: { textContent: '' }, promptText: { textContent: '' }, prompt: { classList: { toggle() {} } } },
 	hud: { catchOpen: false, standOpen: false, invOpen: false, showCatch( info, ms ) { this.catchOpen = true; this.info = info; this.ms = ms; }, hideCatch() { this.catchOpen = false; }, update() {} },
@@ -157,7 +161,7 @@ const floodlights = createDeckFloodlights( THREE, boatRoot );
 assert.equal( floodlights.length, 2, 'WebGL creates the same pair of local deck floodlights as WebGPU' );
 assert.equal( boatRoot.children.length, 4, 'floodlights and their targets follow the boat root' );
 assert.ok( floodlights.every( light => ! light.visible ), 'deck floodlights begin switched off' );
-const lightState = new GameState( storage );
+const lightState = new GameState( storage, 'elsemesh:local', fishCatalog );
 lightState.money = 1000;
 const lightAdapter = Object.create( WebGLGameAdapter.prototype );
 Object.assign( lightAdapter, { state: lightState, deckFloodlights: floodlights } );
