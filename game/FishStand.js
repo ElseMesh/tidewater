@@ -3,19 +3,19 @@ import { createPropMaterial } from './GameMaterials.js';
 import { Vendor } from './Vendor.js';
 import { loadStallAssets, KitBuilder, LAYER, ATLAS, place, Shapes } from './StallKit.js';
 import { PLACEMENT } from '../FishPresentation.js';
-import { STAND, FISH_STAND_FLOOR, FISH_STAND_ICE_TOP, FISH_STAND_VENDOR, buildFishStandGeometry, fishStandColliderVolumes } from './FishStandContent.js';
+import { FISH_STAND_FLOOR, FISH_STAND_ICE_TOP, FISH_STAND_VENDOR, buildFishStandGeometry, fishStandColliderVolumes } from './FishStandContent.js';
 
-// The fish buyer's stall on the beach by the pier: a weathered plank shack with a rusty tin roof,
+// The fish buyer's stall: a weathered plank shack with a rusty tin roof,
 // a wooden fish box of crushed ice on the counter, a hanging spring scale, floats, crates, a
 // chalkboard of prices and a hand-painted sign, and the buyer behind it. Built from photoscanned
 // surfaces and props (StallKit, Poly Haven CC0); the old procedural stall is the fallback if they
-// fail to load.
-export { STAND } from './FishStandContent.js';
+// fail to load. World placement comes from the registered fishing behavior.
 
 export class FishStand {
 
-	constructor( { scene, terrain, colliders, placement = STAND, fishCatalog, fishPresentation } ) {
+	constructor( { scene, terrain, colliders, placement, fishCatalog, fishPresentation } ) {
 
+		if ( ! placement ) throw new Error( 'Fish stand placement is required from world behavior data' );
 		this.fishCatalog = fishCatalog;
 		this.fishPresentation = fishPresentation;
 		this.placement = { x: placement.position?.[ 0 ] ?? placement.x, z: placement.position?.[ 1 ] ?? placement.z, yaw: placement.yaw };

@@ -1,11 +1,9 @@
-import { ISLAND_DEFINITION } from '../../../src/world/IslandDefinition.js';
 import { BoxGeometry, Vector3 } from '../../../src/engine/index.js';
 import { prepare, mergePrepared, box, cylinder, sphere, rod, mat4 } from '../../../src/world/boat/GeoKit.js';
 import { PAT } from './PropPatterns.js';
 
-// Canonical fish stand identity, placement, and interaction/collision dimensions. Renderer
-// adapters consume this descriptor and the shared geometry builder.
-export const STAND = ISLAND_DEFINITION.fishStand;
+// World-authored placement comes from the fishing-game behavior. This module owns the shared
+// geometry and local interaction/collision dimensions.
 export const FISH_STAND_FLOOR = 0.06;
 export const FISH_STAND_ICE_TOP = 1.27;
 export const FISH_STAND_VENDOR = Object.freeze( {
@@ -26,13 +24,16 @@ const COLLIDERS = [
 	{ center: [ 1.95, 0.42, 1.45 ], half: [ 0.35, 0.42, 0.25 ], tag: 'fishStandProps' },
 ];
 
-export function fishStandColliderVolumes( groundY, stand = STAND ) {
+export function fishStandColliderVolumes( groundY, stand ) {
 
+	if ( ! stand ) throw new Error( 'Fish stand placement is required from world behavior data' );
+	const sx = stand.position?.[ 0 ] ?? stand.x, sz = stand.position?.[ 1 ] ?? stand.z;
+	if ( ! Number.isFinite( sx ) || ! Number.isFinite( sz ) || ! Number.isFinite( stand.yaw ) ) throw new Error( 'Invalid fish stand placement' );
 	const c = Math.cos( stand.yaw ), s = Math.sin( stand.yaw );
 	return COLLIDERS.map( ( item ) => {
 		const [ x, y, z ] = item.center;
 		return {
-			center: [ stand.x + x * c + z * s, groundY + y, stand.z - x * s + z * c ],
+			center: [ sx + x * c + z * s, groundY + y, sz - x * s + z * c ],
 		half: item.half,
 			yaw: stand.yaw,
 			tag: item.tag,

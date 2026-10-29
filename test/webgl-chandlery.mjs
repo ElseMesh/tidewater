@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import * as THREE from 'three';
 import { Colliders } from '../../../src/world/Colliders.js';
-import { CHANDLERY } from '../game/Chandlery.js';
 import { WebGLChandleryAdapter } from '../webgl/WebGLChandleryAdapter.js';
 
 globalThis.__assetFile = async url => {
@@ -13,6 +12,7 @@ globalThis.__assetFile = async url => {
 const scene = new THREE.Scene();
 const colliders = new Colliders();
 const placement = { position: [ 13, -9 ], yaw: -0.75, interactionRadius: 5 };
+assert.throws( () => new WebGLChandleryAdapter( THREE, scene, { terrain: { heightAt: () => 3 }, colliders } ), /placement is required/, 'the renderer has no engine-owned Tidewater default placement' );
 const adapter = new WebGLChandleryAdapter( THREE, scene, { terrain: { heightAt: () => 3 }, colliders, placement } );
 await adapter.ready;
 

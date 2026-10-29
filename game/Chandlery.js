@@ -3,18 +3,16 @@ import { prepare, mergePrepared, box, cylinder, sphere, rod, torus, mat4 } from 
 import { createPropMaterial, PAT } from './GameMaterials.js';
 import { Vendor } from './Vendor.js';
 import { loadStallAssets, KitBuilder, LAYER, ATLAS, place, Shapes } from './StallKit.js';
-import { ISLAND_DEFINITION } from '../../../src/world/IslandDefinition.js';
 
 // The upgrade trader by the boathouse: a scanned work table with a tackle box, spools of line and
 // reels, display shelves of rope and floats behind her, a rack of rods, jerrycans of diesel, fenders,
 // a coil of mooring line and a hand-painted sign on posts (StallKit, Poly Haven CC0; the old
 // procedural table is the fallback). Sells the gear levels in Gear.js and fuel.
-export const CHANDLERY = ISLAND_DEFINITION.chandlery; // faces the beach and the pier
-
 export class Chandlery {
 
-	constructor( { scene, terrain, colliders, material = null, placement = CHANDLERY } ) {
+	constructor( { scene, terrain, colliders, material = null, placement } ) {
 
+		if ( ! placement ) throw new Error( 'Chandlery placement is required from world behavior data' );
 		this.placement = { x: placement.position?.[ 0 ] ?? placement.x, z: placement.position?.[ 1 ] ?? placement.z, yaw: placement.yaw, interactionRadius: placement.interactionRadius };
 		const location = this.placement;
 		const y = terrain.heightAt( location.x, location.z );

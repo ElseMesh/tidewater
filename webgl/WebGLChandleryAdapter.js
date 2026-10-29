@@ -1,11 +1,12 @@
-import { CHANDLERY, buildChandleryKit } from '../game/Chandlery.js';
+import { buildChandleryKit } from '../game/Chandlery.js';
 import { loadStallGeometryData } from '../game/StallKit.js';
 import { threeStallGeometry } from './WebGLStallKit.js';
 
 export class WebGLChandleryAdapter {
 
-	constructor( T, scene, { terrain, colliders = null, loader = null, placement = CHANDLERY } ) {
+	constructor( T, scene, { terrain, colliders = null, loader = null, placement } ) {
 
+		if ( ! placement ) throw new Error( 'Chandlery placement is required from world behavior data' );
 		this.T = T;
 		this.colliders = colliders;
 		this.placement = { x: placement.position?.[ 0 ] ?? placement.x, z: placement.position?.[ 1 ] ?? placement.z, yaw: placement.yaw };

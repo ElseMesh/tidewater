@@ -1,4 +1,4 @@
-import { STAND, FISH_STAND_VENDOR, buildFishStandGeometry, fishStandColliderVolumes } from '../game/FishStandContent.js';
+import { FISH_STAND_VENDOR, buildFishStandGeometry, fishStandColliderVolumes } from '../game/FishStandContent.js';
 import { buildFishStandKit } from '../game/FishStand.js';
 import { loadStallGeometryData } from '../game/StallKit.js';
 import { threeGeometry, threeStallGeometry } from './WebGLStallKit.js';
@@ -8,8 +8,9 @@ import { threeGeometry, threeStallGeometry } from './WebGLStallKit.js';
 // and the scene node.
 export class WebGLFishStandAdapter {
 
-	constructor( T, scene, { terrain, colliders = null, loader = null, placement = STAND } ) {
+	constructor( T, scene, { terrain, colliders = null, loader = null, placement } ) {
 
+		if ( ! placement ) throw new Error( 'Fish stand placement is required from world behavior data' );
 		this.T = T;
 		this.colliders = colliders;
 		this.loader = loader;
