@@ -33,9 +33,8 @@ registerWorldBehaviorImplementation( 'elsemesh.shore-aware-boat/1', {
 	onWebGLWorldActivated( { active, fallback, mode } ) {
 		if ( ! active || ! fallback.waterQuery ) return;
 		const terrain = mode === 'builtin' ? fallback.terrain : fallback.hostedTerrainData;
-		const seaLevel = mode === 'builtin' ? - 0.15 : fallback.hostedSeaLevel ?? 0;
 		fallback.waterQuery.setSurfaceOffsetSampler( createWebGLShoreSurfaceOffset( {
-			terrain, seaLevel, field: fallback.shoreField,
+			terrain, seaLevel: fallback.worldSeaLevel, field: fallback.shoreField,
 		} ) );
 	},
 } );
