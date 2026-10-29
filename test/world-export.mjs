@@ -236,7 +236,7 @@ try {
 	assert.deepEqual( [ ...lanternMaterialIndexes ].map( index => villageGLB.materials[ index ].extras?.elsemeshMaterial?.role ).sort(), [ 'hard', 'wood' ], 'export includes static hanging lanterns with the trusted hard and wood materials' );
 	const lanternPrimitives = villageGLB.meshes[ 0 ].filter( primitive => lanternMaterialIndexes.has( primitive.material ) );
 	assert.equal( lanternPrimitives.length, 2, 'export includes separate lantern wood and hard geometry batches' );
-	assert.ok( lanternPrimitives.every( primitive => primitive.indices?.length > 0 && primitive.attributes._TW_VDATA?.itemSize === 4 ), 'exported lantern geometry retains indexed meshes and renderer material data' );
+	assert.ok( lanternPrimitives.every( primitive => primitive.indices?.length > 0 && primitive.attributes._ELSEMESH_VDATA?.itemSize === 4 ), 'exported lantern geometry retains indexed meshes and renderer material data' );
 	assert.equal( villageObject.collision.shape, 'compound', 'village source includes the runtime builder collision layout' );
 	assert.equal( villageObject.collision.boxes.length, 394, 'village collision layout matches its deterministic walkable and solid boxes' );
 	assert.equal( villageObject.lods.length, 1, 'village has a separate distance LOD while retaining its full-detail base asset' );
@@ -246,7 +246,7 @@ try {
 	const triangleCount = ( model ) => model.meshes.flat().reduce( ( total, primitive ) => total + primitive.indices.length / 3, 0 );
 	assert.ok( triangleCount( villageLOD ) < triangleCount( villageGLB ) * 0.5, 'village distance LOD reduces geometry by more than half' );
 	assert.deepEqual( [ ...new Set( villageLOD.materials.map( material => material.extras?.elsemeshMaterial?.role ).filter( Boolean ) ) ].sort(), VILLAGE_MATERIAL_ROLES.slice().sort(), 'village distance LOD preserves the trusted material-role catalog' );
-	assert.ok( villageLOD.meshes.flat().every( primitive => primitive.attributes.COLOR_0 && primitive.attributes._TW_VDATA?.itemSize === 4 ), 'village distance LOD preserves tint and trusted per-vertex material parameters' );
+	assert.ok( villageLOD.meshes.flat().every( primitive => primitive.attributes.COLOR_0 && primitive.attributes._ELSEMESH_VDATA?.itemSize === 4 ), 'village distance LOD preserves tint and trusted per-vertex material parameters' );
 	assert.deepEqual( villageObject.lods[ 0 ], { assetId: villageObject.lods[ 0 ].assetId, maxScreenFraction: 0.45 }, 'village selects lower detail only when its projected size falls below the authored threshold' );
 	const boatBase = parseGLB( firstAssets.get( boatObject.assetId ) );
 	const boatLOD = parseGLB( firstAssets.get( boatObject.lods[ 0 ].assetId ) );

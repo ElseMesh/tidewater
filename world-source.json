@@ -467,18 +467,18 @@
       "Press I to open your cooler and fish log. Deck lights let you fish after dark."
     ],
     "stages": {
-      "gpu": "Starting WebGPU\u2026",
-      "atmosphere": "Setting the coastal sky\u2026",
-      "terrain": "Preparing the island terrain\u2026",
-      "village": "Building the harbour village\u2026",
-      "vegetation": "Growing the island vegetation\u2026",
-      "ocean": "Preparing the sea\u2026",
-      "reef": "Growing the reef\u2026",
-      "simulation": "Starting ocean simulation\u2026",
-      "shaders": "Preparing the island renderer\u2026",
-      "world": "Connecting to this ThruHold\u2026",
-      "compile": "Compiling shaders\u2026",
-      "warmup": "Warming up the world\u2026"
+      "gpu": "Starting WebGPU…",
+      "atmosphere": "Setting the coastal sky…",
+      "terrain": "Preparing the island terrain…",
+      "village": "Building the harbour village…",
+      "vegetation": "Growing the island vegetation…",
+      "ocean": "Preparing the sea…",
+      "reef": "Growing the reef…",
+      "simulation": "Starting ocean simulation…",
+      "shaders": "Preparing the island renderer…",
+      "world": "Connecting to this ThruHold…",
+      "compile": "Compiling shaders…",
+      "warmup": "Warming up the world…"
     }
   },
   "spawn": {
@@ -599,10 +599,10 @@
       "id": "elsemesh-object:island-village",
       "kind": "asset-instance",
       "label": "Procedural village, pier and harbor",
-      "assetId": "sha256:d9b79e3c55fa4dc1f7838b8981991a60cf5acbd2a8af8a4eae41532aee751f65",
+      "assetId": "sha256:81d6e2f5b482cd8cbd368cd2ecbe80df8253f1310fb2faf6a9a92a941837c27e",
       "lods": [
         {
-          "assetId": "sha256:4d67066d8b9439d4e9636a6dbc6acb82a5a40b556df8e7e138752be132ac7f8b",
+          "assetId": "sha256:e582cd9e095db2a40fb84ebc68b41b672126d2b368bb7ae31cfe6d4e666c6dee",
           "maxScreenFraction": 0.45
         }
       ],
@@ -10947,7 +10947,7 @@
         "rotation": [
           0.07890634602882417,
           0.20955596292266318,
-          6.019730273089732e-05,
+          0.00006019730273089732,
           0.9746076561038394
         ]
       },

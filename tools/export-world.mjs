@@ -118,7 +118,7 @@ const triangleCount = ( model ) => model.meshes.flat().reduce( ( total, primitiv
 const materialRoles = ( model ) => [ ...new Set( model.materials.map( ( material ) => material.extras?.elsemeshMaterial?.role ).filter( Boolean ) ) ].sort();
 if ( triangleCount( villageLODData ) >= triangleCount( villageBaseData ) * 0.5 ) throw new Error( 'Village distance LOD must use less than half the full-detail triangles' );
 if ( JSON.stringify( materialRoles( villageLODData ) ) !== JSON.stringify( VILLAGE_MATERIAL_ROLES.slice().sort() ) ) throw new Error( 'Village distance LOD must preserve every trusted material role' );
-if ( villageLODData.meshes.flat().some( primitive => ! primitive.attributes.COLOR_0 || primitive.attributes._TW_VDATA?.itemSize !== 4 ) ) throw new Error( 'Village distance LOD must preserve vertex tints and VEC4 material data' );
+if ( villageLODData.meshes.flat().some( primitive => ! primitive.attributes.COLOR_0 || primitive.attributes._ELSEMESH_VDATA?.itemSize !== 4 ) ) throw new Error( 'Village distance LOD must preserve vertex tints and VEC4 material data' );
 staticAssets.set( villageLODAssetId, villageLODGLB );
 const boatGLB = exportBatchGLB( generated.boatBatches, 'Moored lobster boat' );
 const boatAssetId = `sha256:${createHash( 'sha256' ).update( boatGLB ).digest( 'hex' )}`;
@@ -540,7 +540,7 @@ function exportBatchGLB( batches, sceneName, villageMaterials = false ) {
 				NORMAL: accessor( Float32Array.from( batch.nrm ), 34962, 'VEC3' ),
 				TEXCOORD_0: accessor( Float32Array.from( batch.uv ), 34962, 'VEC2' ),
 				COLOR_0: accessor( Float32Array.from( batch.tint ), 34962, 'VEC3' ),
-				...( villageMaterials ? { _TW_VDATA: accessor( Float32Array.from( batch.data ), 34962, 'VEC4' ) } : {} ),
+				...( villageMaterials ? { _ELSEMESH_VDATA: accessor( Float32Array.from( batch.data ), 34962, 'VEC4' ) } : {} ),
 			},
 			indices: accessor( Uint32Array.from( batch.idx ), 34963, 'SCALAR', 5125 ),
 			material,
