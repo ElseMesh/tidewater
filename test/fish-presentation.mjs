@@ -21,10 +21,10 @@ for ( const name of names ) {
 	if ( model.wid ) {
 		let width = 0;
 		for ( let u = 0.1; u < 0.9; u += 0.05 ) width = Math.max( width, section( model, u ).W );
-		assert.equal( presentation.PLACEMENT.restHeight( name, 0.4, presentation ), width * 0.4 * 0.85, `${name} rest height preserves the renderer's original formula` );
+		assert.ok( Math.abs( presentation.PLACEMENT.restHeightScale[ name ] * 0.4 - width * 0.4 * 0.85 ) < 1e-12, `${name} rest height preserves the renderer's original formula` );
 	}
-	assert.deepEqual( presentation.PLACEMENT.tailAnchor( name, presentation ), [ 0, 0, 0.5 - model.body * 0.985 ], `${name} tail hook anchor follows authored body length` );
-	assert.deepEqual( presentation.PLACEMENT.gillAnchor( name, presentation ), [ 0, model.mouth.y * 0.5, 0.5 - model.body * ( model.mouth.corner + 0.03 ) ], `${name} gill hook anchor follows authored mouth anatomy` );
+	assert.deepEqual( presentation.PLACEMENT.tailAnchor[ name ], [ 0, 0, 0.5 - model.body * 0.985 ], `${name} tail hook anchor follows authored body length` );
+	assert.deepEqual( presentation.PLACEMENT.gillAnchor[ name ], [ 0, model.mouth.y * 0.5, 0.5 - model.body * ( model.mouth.corner + 0.03 ) ], `${name} gill hook anchor follows authored mouth anatomy` );
 }
 
 const catalog = source.experience.behaviors[ 'elsemesh.fishing-game/1' ].fishCatalog;

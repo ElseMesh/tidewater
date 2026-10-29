@@ -36,7 +36,7 @@ export class CatchDisplay {
 		for ( const id of fishIds( fishCatalog ) ) {
 
 			const model = fishCatalog[ id ].model;
-			fp.add( 'whole', model, _f, 'gill', 0.3, { anchor: PLACEMENT.gillAnchor( model, fishPresentation ), cloudy: 0.1, wet: 1 } );
+			fp.add( 'whole', model, _f, 'gill', 0.3, { anchor: PLACEMENT.gillAnchor[ model ], cloudy: 0.1, wet: 1 } );
 			this.slot[ id ] = i ++;
 
 		}
@@ -67,7 +67,7 @@ export class CatchDisplay {
 		const swing = Math.sin( this.t * 2.6 ) * 0.25 * Math.exp( - this.t * 0.4 );
 		_q.setFromAxisAngle( _a.set( 0, 1, 0 ), faceYaw + swing );
 		_f.makeRotationFromQuaternion( _q ).setPosition( mouth );
-		this.place( i, _f, GILL, L, PLACEMENT.gillAnchor( model, this.props.presentation ), flap, 0, 0.4 + 0.4 * Math.max( 0, Math.sin( this.t * 7 ) ) );
+		this.place( i, _f, GILL, L, PLACEMENT.gillAnchor[ model ], flap, 0, 0.4 + 0.4 * Math.max( 0, Math.sin( this.t * 7 ) ) );
 
 	}
 

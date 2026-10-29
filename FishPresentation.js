@@ -387,26 +387,13 @@ function profileAt( points, u ) {
 	return points[ points.length - 1 ][ 1 ];
 }
 
-function speciesForPlacement( species, presentation ) {
-	const model = presentation?.SPECIES?.[ species ];
-	if ( ! model ) throw new Error( `Fish species is not present in the world fish-presentation profile: ${species}` );
-	return model;
-}
-
+const placementModels = Object.entries( SPECIES ).filter( ( [ , model ] ) => model.wid );
 export const PLACEMENT = Object.freeze( {
-	restHeight( species, length, presentation ) {
-		const model = speciesForPlacement( species, presentation );
-		if ( ! model.wid ) throw new Error( `Fish species has no body width profile for placement: ${species}` );
+	restHeightScale: Object.freeze( Object.fromEntries( placementModels.map( ( [ name, model ] ) => {
 		let width = 0;
 		for ( let u = 0.1; u < 0.9; u += 0.05 ) width = Math.max( width, profileAt( model.wid, u ) );
-		return width * length * 0.85;
-	},
-	tailAnchor( species, presentation ) {
-		const model = speciesForPlacement( species, presentation );
-		return [ 0, 0, 0.5 - model.body * 0.985 ];
-	},
-	gillAnchor( species, presentation ) {
-		const model = speciesForPlacement( species, presentation );
-		return [ 0, model.mouth.y * 0.5, 0.5 - model.body * ( model.mouth.corner + 0.03 ) ];
-	},
+		return [ name, width * 0.85 ];
+	} ) ) ),
+	tailAnchor: Object.freeze( Object.fromEntries( Object.entries( SPECIES ).map( ( [ name, model ] ) => [ name, [ 0, 0, 0.5 - model.body * 0.985 ] ] ) ) ),
+	gillAnchor: Object.freeze( Object.fromEntries( Object.entries( SPECIES ).map( ( [ name, model ] ) => [ name, [ 0, model.mouth.y * 0.5, 0.5 - model.body * ( model.mouth.corner + 0.03 ) ] ] ) ) ),
 } );

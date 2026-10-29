@@ -80,7 +80,7 @@ export class FishStand {
 			// frame origin is the fish's body axis: lift it by the half thickness of the fish lying on its
 			// side so it rests on the ice instead of sinking into it; later fish lie a little higher,
 			// overlapping the one before like a real display.
-			const rest = PLACEMENT.restHeight( this.fishCatalog[ species ].model, L, this.fishPresentation );
+			const rest = PLACEMENT.restHeightScale[ this.fishCatalog[ species ].model ] * L;
 			const local = new Matrix4().makeRotationY( ( i % 2 ? 0.12 : - 0.1 ) ).setPosition( - 0.55 + ( i % 2 ? 0.04 : - 0.04 ), FISH_STAND_ICE_TOP + rest + 0.006 * i, 0.7 + i * 0.085 );
 			out.push( { species, frame: new Matrix4().multiplyMatrices( base, local ), L, pose: i % 2 ? 'sideFlip' : 'side' } );
 
