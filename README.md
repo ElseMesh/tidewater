@@ -15,6 +15,9 @@ ElseMesh imports it at `worlds/tidewater`, validates its
 - `fishing.json` contains Tidewater's authored fish species and fishing behavior
   data. The exporter adds it to the versioned fishing behavior in the signed
   world experience.
+- `register-behavior.js` owns Tidewater's behavior registrations and
+  world-authored experience validation. The built-in package bootstrap loads
+  it into ElseMesh's generic behavior registry.
 - `assets/<sha256>` contains exact runtime package bytes. Filenames are SHA-256
   digests without extensions; use the [human-readable asset index](ASSET-INDEX.md)
   to find an asset by purpose, format, size, or world object.

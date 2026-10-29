@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import '../register-behavior.js';
 import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { createWorldBehaviorRuntime, worldBehaviorsFor } from '../../../src/network/WorldBehaviorRegistry.js';

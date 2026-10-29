@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import '../register-behavior.js';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
