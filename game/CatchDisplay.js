@@ -1,6 +1,6 @@
 import { Matrix4, Quaternion, Vector3 } from '../../../src/engine/index.js';
 import { FishProps } from '../../../src/world/fish/FishProps.js';
-import { SPECIES } from '../../../src/world/fish/FishSpecies.js';
+import { SPECIES } from '../FishPresentation.js';
 import { fishIds, fishLengthCm } from '../FishTable.js';
 
 // Real fish (the world's fish models and wet skin, world/fish/FishProps) for the game:
@@ -26,17 +26,17 @@ export function fishLength( fishCatalog, species, kg ) {
 
 export class CatchDisplay {
 
-	constructor( { scene, stall = [], fishCatalog } ) {
+	constructor( { scene, stall = [], fishCatalog, fishPresentation } ) {
 
 		this.fishCatalog = fishCatalog;
-		const fp = this.props = new FishProps();
+		const fp = this.props = new FishProps( fishPresentation );
 		this.slot = {};
 		let i = 0;
 		_f.makeTranslation( PARK.x, PARK.y, PARK.z );
 		for ( const id of fishIds( fishCatalog ) ) {
 
 			const model = fishCatalog[ id ].model;
-			fp.add( 'whole', model, _f, 'gill', 0.3, { anchor: FishProps.gillAnchor( model ), cloudy: 0.1, wet: 1 } );
+			fp.add( 'whole', model, _f, 'gill', 0.3, { anchor: FishProps.gillAnchor( model, fishPresentation ), cloudy: 0.1, wet: 1 } );
 			this.slot[ id ] = i ++;
 
 		}
@@ -67,7 +67,7 @@ export class CatchDisplay {
 		const swing = Math.sin( this.t * 2.6 ) * 0.25 * Math.exp( - this.t * 0.4 );
 		_q.setFromAxisAngle( _a.set( 0, 1, 0 ), faceYaw + swing );
 		_f.makeRotationFromQuaternion( _q ).setPosition( mouth );
-		this.place( i, _f, GILL, L, FishProps.gillAnchor( model ), flap, 0, 0.4 + 0.4 * Math.max( 0, Math.sin( this.t * 7 ) ) );
+		this.place( i, _f, GILL, L, FishProps.gillAnchor( model, this.props.presentation ), flap, 0, 0.4 + 0.4 * Math.max( 0, Math.sin( this.t * 7 ) ) );
 
 	}
 

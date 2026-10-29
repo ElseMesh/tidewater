@@ -56,9 +56,10 @@ ElseMesh imports it at `worlds/tidewater`, validates its
   applies generic fishing calculations to this signed world data. See the
   [fish catalog contract](docs/schemas/fish-catalog.md).
 
-The asset catalogue is generated, not hand-edited. Exporter and format
-validators live in ElseMesh. Run `npm run export:island` from an ElseMesh
-checkout to regenerate `world-source.json`, `assets/`, the terrain validation
+The asset catalogue is generated, not hand-edited. The world exporter lives in
+this repository and uses shared format tools from ElseMesh. Run
+`npm --prefix worlds/tidewater run export` from an ElseMesh checkout to
+regenerate `world-source.json`, `assets/`, the terrain validation
 report, and `ASSET-INDEX.md`. Review generated package changes together with
 the source edits. See [world repository layout and file definitions](../../docs/world-repository-layout.md)
 for the shared package contract.

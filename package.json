@@ -1,0 +1,8 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+		"export": "node tools/export-world.mjs",
+		"export:grass-density": "node tools/export-grass-density.mjs"
+  }
+}

@@ -4,6 +4,9 @@ import { createWebGLShoreSurfaceOffset } from './webgl-shore-surface.js';
 import { registerWorldBehavior, registerWorldBehaviorImplementation } from '../../src/network/WorldBehaviorRegistry.js';
 import { browserBehaviorImplementations } from './browser-behavior.js';
 import { webglBehaviorImplementations } from './webgl-behavior.js';
+import * as fishPresentation from './FishPresentation.js';
+import { registerWorldFishPresentation } from '../../src/network/WorldFishPresentation.js';
+import './register-components.js';
 
 registerWorldBehavior( 'elsemesh.fishing-game/1', {
 	validateExperienceData: ( data, hasExtension ) => {
@@ -24,6 +27,8 @@ registerWorldBehavior( 'elsemesh.fishing-game/1', {
 		return runtime;
 	},
 } );
+
+registerWorldFishPresentation( 'elsemesh.fishing-game/1', fishPresentation );
 
 registerWorldBehavior( 'elsemesh.shore-aware-boat/1', {
 	validateExperienceData: data => {

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import '../register-behavior.js';
+import * as fishPresentation from '../FishPresentation.js';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
@@ -25,8 +26,9 @@ import { Vector3 } from '../../../src/engine/math/Vector3.js';
 const temporaryRoot = process.env.PREFIX ? path.join( process.env.PREFIX, 'tmp' ) : '/var/tmp';
 const output = await mkdtemp( path.join( temporaryRoot, 'elsemesh-island-export-' ) );
 const repositoryRoot = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '../../..' );
-const whaleAssetRefs = ( component ) => [ component.modelAssetId, component.geometryAssetId, component.albedoAssetId, component.heightAssetId ].filter( Boolean );
-const componentAssetRefs = ( component ) => [ component.placementAssetId, component.grassMaskAssetId, component.dataAssetId, ...whaleAssetRefs( component ), ...( component.beds || [] ).map( ( bed ) => bed.assetId ) ].filter( Boolean );
+const componentData = component => component?.data || {};
+const componentAssetRefs = component => ( component.assets || [] ).map( asset => asset.assetId );
+const whaleAssetRefs = component => ( component.assets || [] ).filter( asset => asset.kind.startsWith( 'whale-' ) ).map( asset => asset.assetId );
 
 try {
 	const detailImage = getDetailImage();
@@ -50,8 +52,8 @@ try {
 	assert.ok( checkedInSource.objects.some( ( object ) => object.id === 'elsemesh-object:island-village' ), 'checked-in island source contains the static village GLB instance' );
 	const checkedInWhale = checkedInSource.components.find( component => component.type === 'elsemesh.humpback-whale/1' );
 	assert.ok( checkedInWhale, 'checked-in Example Island declares its humpback simulation' );
-	assert.deepEqual( checkedInWhale.route, [ [ 70, 300 ], [ 60, 200 ], [ 35, 120 ], [ 5, 88 ], [ -25, 100 ], [ -52, 128 ], [ -75, 178 ], [ -52, 262 ], [ -10, 330 ] ], 'whale route is explicit world data, not a hidden client default' );
-	assert.equal( checkedInWhale.seed, 1, 'whale simulation seed is explicit and stable' );
+	assert.deepEqual( componentData( checkedInWhale ).route, [ [ 70, 300 ], [ 60, 200 ], [ 35, 120 ], [ 5, 88 ], [ -25, 100 ], [ -52, 128 ], [ -75, 178 ], [ -52, 262 ], [ -10, 330 ] ], 'whale route is explicit world data, not a hidden client default' );
+	assert.equal( componentData( checkedInWhale ).seed, 1, 'whale simulation seed is explicit and stable' );
 	for ( const id of whaleAssetRefs( checkedInWhale ) ) {
 		const bytes = await readFile( path.join( checkedInDir, 'assets', id.slice( 'sha256:'.length ) ) );
 		assert.equal( `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`, id, `whale model input ${id} is content addressed` );
@@ -65,11 +67,11 @@ try {
 	assert.ok( checkedInBoatGLB.meshes[ 0 ]?.length >= 10, 'static boat GLB includes the generated hull, cabin, deck gear, and fittings' );
 	assert.ok( checkedInBoatGLB.meshes.every( ( mesh ) => mesh.every( ( primitive ) => primitive.attributes.COLOR_0 && primitive.indices?.length > 0 ) ), 'static boat GLB keeps vertex colors and indexed geometry' );
 	const checkedInVegetationComponent = checkedInSource.components.find( component => component.type === 'elsemesh.static-vegetation/1' );
-	const checkedInVegetationBytes = await readFile( path.join( checkedInDir, 'assets', checkedInVegetationComponent.placementAssetId.slice( 'sha256:'.length ) ) );
+	const checkedInVegetationBytes = await readFile( path.join( checkedInDir, 'assets', componentData( checkedInVegetationComponent ).placementAssetId.slice( 'sha256:'.length ) ) );
 	const checkedInVegetation = decodeVegetationPlacements( new Uint8Array( checkedInVegetationBytes ) );
 	assert.ok( Object.values( checkedInVegetation ).filter( Array.isArray ).reduce( ( count, records ) => count + records.length, 0 ) > 100, 'checked-in component asset contains portable individual vegetation placements' );
 	const sourcePath = path.join( output, 'world-source.json' );
-	const firstExportOutput = execFileSync( process.execPath, [ 'tools/export-island.mjs', '--out', output ], { cwd: repositoryRoot, encoding: 'utf8' } );
+	const firstExportOutput = execFileSync( process.execPath, [ 'worlds/tidewater/tools/export-world.mjs', '--out', output ], { cwd: repositoryRoot, encoding: 'utf8' } );
 	const sourceFirst = await readFile( sourcePath );
 	const terrainReportPath = path.join( output, 'terrain-validation.json' );
 	const terrainReportFirst = await readFile( terrainReportPath );
@@ -79,7 +81,7 @@ try {
 	const assetFirst = await readFile( assetPath );
 	const firstAssets = new Map();
 	for ( const id of referencedIDs( firstDocument ) ) firstAssets.set( id, await readFile( path.join( output, 'assets', id.slice( 'sha256:'.length ) ) ) );
-	const secondExportOutput = execFileSync( process.execPath, [ 'tools/export-island.mjs', '--out', output ], { cwd: repositoryRoot, encoding: 'utf8' } );
+	const secondExportOutput = execFileSync( process.execPath, [ 'worlds/tidewater/tools/export-world.mjs', '--out', output ], { cwd: repositoryRoot, encoding: 'utf8' } );
 	const sourceBytes = await readFile( sourcePath );
 	const terrainReportSecond = await readFile( terrainReportPath );
 	const source = validateWorldSource( JSON.parse( sourceBytes ) );
@@ -112,7 +114,7 @@ try {
 	assert.deepEqual( terrainReport.assets[ 0 ].dimensions.detailTexture, [ 512, 512 ], 'visual terrain report records the packaged detail texture dimensions' );
 	assert.deepEqual( assetBytes, assetFirst, 'repeated GLB generation must be byte-identical' );
 	const vegetationComponent = source.components.find( component => component.type === 'elsemesh.static-vegetation/1' );
-	const placementID = vegetationComponent.placementAssetId;
+	const placementID = componentData( vegetationComponent ).placementAssetId;
 	const placementBytes = await readFile( path.join( output, 'assets', placementID.slice( 'sha256:'.length ) ) );
 	assert.equal( `sha256:${createHash( 'sha256' ).update( placementBytes ).digest( 'hex' )}`, placementID, 'vegetation placement asset is content addressed' );
 	assert.ok( placementBytes.length < 3 * 1024 * 1024, 'compact binary placement encoding stays below three MiB' );
@@ -145,55 +147,55 @@ try {
 	assert.deepEqual( source.portals, [], 'the island package contains no undeclared external world links' );
 	assert.equal( source.components.length, 9 + source.components.filter( ( component ) => component.type === 'elsemesh.static-reef/1' ).length, 'portable island declares village materials, vegetation, reef tiles, fish props, terrain renderer, wildlife, humpback, ocean, boat, and ambient components' );
 	assert.equal( vegetationComponent.type, 'elsemesh.static-vegetation/1', 'portable island uses terrain-independent, authored world-space vegetation placements' );
-	assert.match( vegetationComponent.placementAssetId, /^sha256:[0-9a-f]{64}$/, 'vegetation placement data is content addressed' );
-	assert.match( vegetationComponent.grassMaskAssetId, /^sha256:[0-9a-f]{64}$/, 'grass density data is content addressed' );
-	const grassMask = decodeGrassDensityAsset( new Uint8Array( firstAssets.get( vegetationComponent.grassMaskAssetId ) ) );
+	assert.match( componentData( vegetationComponent ).placementAssetId, /^sha256:[0-9a-f]{64}$/, 'vegetation placement data is content addressed' );
+	assert.match( componentData( vegetationComponent ).grassMaskAssetId, /^sha256:[0-9a-f]{64}$/, 'grass density data is content addressed' );
+	const grassMask = decodeGrassDensityAsset( new Uint8Array( firstAssets.get( componentData( vegetationComponent ).grassMaskAssetId ) ) );
 	assert.equal( grassMask.res, 1024, 'portable grass density uses two-metre terrain-mask texels' );
 	assert.equal( grassMask.data.length, grassMask.res * grassMask.res * 4, 'portable grass density has four RGBA channels per texel' );
 	assert.equal( vegetationComponent.priority, 'portal-preview', 'vegetation records are available for open portal previews' );
 	const fishPropsComponent = source.components.find( component => component.type === 'elsemesh.static-fish-props/1' );
 	assert.ok( fishPropsComponent && fishPropsComponent.streamingBounds.radius > 0, 'market fish use a bounded trusted renderer component' );
 	assert.equal( fishPropsComponent.priority, 'visible', 'market fish placement data is streamed when the village becomes visible' );
-	const fishPropsBytes = firstAssets.get( fishPropsComponent.placementAssetId );
+	const fishPropsBytes = firstAssets.get( componentData( fishPropsComponent ).placementAssetId );
 	assert.ok( fishPropsBytes?.byteLength > 0 && fishPropsBytes.byteLength < 16 * 1024 * 1024, 'market fish data stays within its bounded placement asset budget' );
-	const fishProps = decodeFishPropPlacements( new Uint8Array( fishPropsBytes ) );
+	const fishProps = decodeFishPropPlacements( new Uint8Array( fishPropsBytes ), fishPresentation );
 	assert.ok( fishProps.length > 0 && fishProps.some( record => record.kind === 'whole' ) && fishProps.some( record => record.kind === 'lobster' ), 'export carries the market fish and lobster renderer inputs' );
 	assert.ok( fishProps.every( record => Number.isFinite( record.seed ) && Number.isInteger( record.pattern ) ), 'fish prop export includes deterministic renderer seeds and pattern inputs' );
 	const villageMaterialsComponent = source.components.find( component => component.type === 'elsemesh.village-materials/2' );
-	assert.equal( villageMaterialsComponent?.profile, VILLAGE_MATERIAL_RENDERER_PROFILE, 'hosted village selects the versioned original material renderer' );
-	assert.equal( villageMaterialsComponent?.objectId, villageObject.id, 'packaged village textures are associated with the village object' );
+	assert.equal( componentData( villageMaterialsComponent ).profile, VILLAGE_MATERIAL_RENDERER_PROFILE, 'hosted village selects the versioned original material renderer' );
+	assert.equal( componentData( villageMaterialsComponent ).objectId, villageObject.id, 'packaged village textures are associated with the village object' );
 	assert.equal( villageMaterialsComponent?.priority, 'visible', 'village maps stream at visible priority, not for portal previews' );
-	assert.ok( firstAssets.has( villageMaterialsComponent.dataAssetId ), 'village PBR maps are included in the exported package' );
-	const villageMaterialData = await decodeVillageMaterialAsset( new Uint8Array( firstAssets.get( villageMaterialsComponent.dataAssetId ) ) );
+	assert.ok( firstAssets.has( componentData( villageMaterialsComponent ).dataAssetId ), 'village PBR maps are included in the exported package' );
+	const villageMaterialData = await decodeVillageMaterialAsset( new Uint8Array( firstAssets.get( componentData( villageMaterialsComponent ).dataAssetId ) ) );
 	assert.deepEqual( Object.keys( villageMaterialData.maps ), VILLAGE_MATERIAL_MAPS.map( map => map.name ), 'village package contains every renderer map in schema order' );
 	const terrainSurface = source.components.find( ( component ) => component.type === 'elsemesh.terrain-surface/1' );
-	assert.equal( terrainSurface?.profile, 'example-island-v1', 'hosted island declares the compatible terrain renderer profile' );
-	assert.equal( terrainSurface?.objectId, 'elsemesh-object:island-terrain', 'terrain heightfield GLB remains the collision and fallback object' );
-	assert.match( terrainSurface?.dataAssetId || '', /^sha256:[0-9a-f]{64}$/, 'terrain component links its portable surface asset' );
-	assert.ok( firstAssets.has( terrainSurface.dataAssetId ), 'terrain surface asset is included in the exported package' );
-	const terrainAsset = await decodeTerrainSurfaceAsset( new Uint8Array( firstAssets.get( terrainSurface.dataAssetId ) ) );
+	assert.equal( componentData( terrainSurface ).profile, 'example-island-v1', 'hosted island declares the compatible terrain renderer profile' );
+	assert.equal( componentData( terrainSurface ).objectId, 'elsemesh-object:island-terrain', 'terrain heightfield GLB remains the collision and fallback object' );
+	assert.match( componentData( terrainSurface ).dataAssetId || '', /^sha256:[0-9a-f]{64}$/, 'terrain component links its portable surface asset' );
+	assert.ok( firstAssets.has( componentData( terrainSurface ).dataAssetId ), 'terrain surface asset is included in the exported package' );
+	const terrainAsset = await decodeTerrainSurfaceAsset( new Uint8Array( firstAssets.get( componentData( terrainSurface ).dataAssetId ) ) );
 	assert.equal( terrainAsset.heights.length, terrainAsset.resolution ** 2, 'portable terrain surface contains its full-resolution heightfield' );
 	assert.equal( terrainAsset.metadata.rendererProfile, 'original-elsemesh-terrain-v1', 'terrain asset pins its versioned material renderer contract' );
 	assert.ok( terrainAsset.metadata.material.paletteLinear.rockDark.length === 3, 'terrain package includes linear material palette parameters' );
 	const wildlife = source.components.find( ( component ) => component.type === 'elsemesh.example-island-wildlife/1' );
-	assert.equal( wildlife?.profile, 'example-island-wildlife-v1', 'hosted island declares the versioned trusted wildlife runtime' );
+	assert.equal( componentData( wildlife ).profile, 'example-island-wildlife-v1', 'hosted island declares the versioned trusted wildlife runtime' );
 	assert.equal( wildlife?.priority, 'visible', 'wildlife waits for its terrain runtime instead of being constructed during portal preview' );
-	assert.ok( wildlife?.roofPerches.length > 0 && wildlife.roofPerches.length <= 64, 'portable wildlife carries bounded authored roof perches' );
-	assert.ok( wildlife?.footprints.length > 0 && wildlife.footprints.length <= 256, 'portable wildlife carries bounded building exclusion footprints' );
-	assert.deepEqual( source.components.find( ( component ) => component.type === 'elsemesh.island-ocean/1' ), { id: 'elsemesh-component:island-ocean', type: 'elsemesh.island-ocean/1', priority: 'portal-preview' }, 'portable island declares its versioned ocean renderer for early portal previews' );
+	assert.ok( componentData( wildlife ).roofPerches.length > 0 && componentData( wildlife ).roofPerches.length <= 64, 'portable wildlife carries bounded authored roof perches' );
+	assert.ok( componentData( wildlife ).footprints.length > 0 && componentData( wildlife ).footprints.length <= 256, 'portable wildlife carries bounded building exclusion footprints' );
+	assert.deepEqual( source.components.find( ( component ) => component.type === 'elsemesh.island-ocean/1' ), { id: 'elsemesh-component:island-ocean', type: 'elsemesh.island-ocean/1', priority: 'portal-preview', assets: [], data: {} }, 'portable island declares its versioned ocean renderer for early portal previews' );
 	const boat = source.components.find( ( component ) => component.type === 'elsemesh.downeast-boat/1' );
-	assert.deepEqual( boat, { id: 'elsemesh-component:island-lobster-boat', type: 'elsemesh.downeast-boat/1', objectId: 'elsemesh-object:moored-lobster-boat', priority: 'portal-preview' }, 'portable island binds the trusted boat runtime to its signed world-local berth' );
+	assert.deepEqual( componentData( boat ), { objectId: 'elsemesh-object:moored-lobster-boat' }, 'portable island binds the trusted boat runtime to its signed world-local berth' );
 	assert.equal( source.rules.seaLevel, 0, 'the boat has a declared world-space sea level' );
 	assert.deepEqual( source.rules.vehiclePolicy, { enabled: true, maxSpeed: 8, maxCombinedComplexity: 100000 }, 'example island accepts transported boats with signed speed and combined-complexity limits' );
 	const ambience = source.components.find( ( component ) => component.type === 'elsemesh.ambient-audio/1' );
-	assert.equal( ambience?.beds.length, 8, 'portable island exports its eight original ambient loop beds' );
-	assert.ok( ambience.beds.every( ( bed ) => firstAssets.has( bed.assetId ) && firstAssets.get( bed.assetId ).length <= 16 * 1024 * 1024 ), 'each ambience bed is bundled as a bounded content-addressed asset' );
+	assert.equal( componentData( ambience ).beds.length, 8, 'portable island exports its eight original ambient loop beds' );
+	assert.ok( componentData( ambience ).beds.every( ( bed ) => firstAssets.has( bed.assetId ) && firstAssets.get( bed.assetId ).length <= 16 * 1024 * 1024 ), 'each ambience bed is bundled as a bounded content-addressed asset' );
 	const originalLoopAssets = new Map();
 	for ( const entry of Object.values( BANK ) ) if ( entry.loop && entry.file ) {
 		const bytes = await readFile( path.join( repositoryRoot, 'public', 'audio', entry.file ) );
 		originalLoopAssets.set( `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`, bytes );
 	}
-	for ( const bed of ambience.beds ) {
+	for ( const bed of componentData( ambience ).beds ) {
 		const bytes = firstAssets.get( bed.assetId );
 		assert.equal( `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`, bed.assetId, 'ambient audio bytes match their signed content ID' );
 		assert.deepEqual( bytes, originalLoopAssets.get( bed.assetId ), 'package transports the exact original recorded ambience bytes' );
@@ -204,9 +206,9 @@ try {
 	let reefRecordCount = 0, reefAssetByteCount = 0;
 	for ( const component of reefComponents ) {
 		assert.equal( component.priority, 'visible', 'reef tile is requested at visible priority' );
-		assert.match( component.placementAssetId, /^sha256:[0-9a-f]{64}$/, 'reef tile references a content-addressed placement asset' );
+		assert.match( componentData( component ).placementAssetId, /^sha256:[0-9a-f]{64}$/, 'reef tile references a content-addressed placement asset' );
 		assert.ok( Number.isFinite( component.streamingBounds.radius ) && component.streamingBounds.radius > 0, 'reef tile has bounded view-streaming metadata' );
-		const bytes = firstAssets.get( component.placementAssetId );
+		const bytes = firstAssets.get( componentData( component ).placementAssetId );
 		assert.ok( bytes?.length > 0 && bytes.length <= 16 * 1024 * 1024, 'each encoded reef tile fits the 16 MiB server asset limit' );
 		const decoded = decodeReefPlacements( new Uint8Array( bytes ) );
 		assert.equal( decoded.seed, 20260923, 'reef placement file records the stable procedural seed' );

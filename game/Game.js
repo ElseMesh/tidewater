@@ -9,6 +9,7 @@ import { CatchDisplay } from './CatchDisplay.js';
 import { GameHUD } from './GameHUD.js';
 import { Minimap } from './Minimap.js';
 import { Guide } from './Guide.js';
+import { worldFishPresentationFor } from '../../../src/network/WorldFishPresentation.js';
 
 // how long the catch card stays up unless dismissed (ms)
 const CATCH_CARD_MS = 9000;
@@ -36,11 +37,12 @@ export class Game {
 		this.boatGameplay = this.runtime.boatGameplay;
 		this.boatGameplay.onFuelOut = () => this.toast( 'Out of fuel · buy diesel at the chandlery by the boathouse', 4000 );
 		this.fishCatalog = this.runtime.fishCatalog;
+		this.fishPresentation = worldFishPresentationFor( experience );
 		this.rod = new FishingRod( { scene: app.scene, camera: app.camera, query, terrain, audio: app.audio } );
 		this.rod.onLand = ( where ) => this.onBobberLanded( where );
 		const fishingData = worldBehaviorData( experience, 'elsemesh.fishing-game/1' );
-		this.stand = new FishStand( { scene: app.scene, terrain, colliders, placement: fishingData?.fishStand, fishCatalog: this.fishCatalog } );
-		this.display = new CatchDisplay( { scene: app.scene, stall: this.stand.iceFish(), fishCatalog: this.fishCatalog } );
+		this.stand = new FishStand( { scene: app.scene, terrain, colliders, placement: fishingData?.fishStand, fishCatalog: this.fishCatalog, fishPresentation: this.fishPresentation } );
+		this.display = new CatchDisplay( { scene: app.scene, stall: this.stand.iceFish(), fishCatalog: this.fishCatalog, fishPresentation: this.fishPresentation } );
 		this.landing = null; // { species, kg } while the caught fish swings in view
 		this.chandlery = new Chandlery( { scene: app.scene, terrain, colliders, material: this.stand.material, placement: fishingData?.chandlery } );
 		this.vendors = [ this.stand.vendor, this.chandlery.vendor ];

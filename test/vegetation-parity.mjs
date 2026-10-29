@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import '../register-behavior.js';
+import * as fishPresentation from '../FishPresentation.js';
 import { TerrainData } from '../../../src/world/TerrainData.js';
 import { Village } from '../../../src/world/Village.js';
 import { Colliders } from '../../../src/world/Colliders.js';
@@ -12,9 +14,11 @@ import { encodeVegetationPlacements } from '../../../src/network/VegetationPlace
 const worldRoot = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..' );
 const source = JSON.parse( await readFile( path.join( worldRoot, 'world-source.json' ), 'utf8' ) );
 const component = source.components.find( item => item.type === 'elsemesh.static-vegetation/1' );
-assert.ok( component?.placementAssetId && component.grassMaskAssetId, 'Tidewater static vegetation references exported placements and its grass-density mask' );
+const data = component?.data;
+assert.ok( data?.placementAssetId && data.grassMaskAssetId, 'Tidewater static vegetation keeps its authored asset IDs in opaque owner data' );
+assert.deepEqual( component.assets, [ { assetId: data.placementAssetId, kind: 'vegetation-placement/1' }, { assetId: data.grassMaskAssetId, kind: 'grass-density/1' } ], 'generic component references declare each asset kind separately' );
 
-const assetID = component.grassMaskAssetId.slice( 'sha256:'.length );
+const assetID = data.grassMaskAssetId.slice( 'sha256:'.length );
 const packaged = decodeGrassDensityAsset( await readFile( path.join( worldRoot, 'assets', assetID ) ) );
 const terrain = new TerrainData( 7 );
 const colliders = new Colliders();
@@ -24,11 +28,11 @@ class PackageVillage extends Village {
   _buildSign() {}
   _buildLanterns() {}
 }
-const village = new PackageVillage( { scene, terrain, colliders } );
+const village = new PackageVillage( { scene, terrain, colliders, fishPresentation } );
 const sourceVegetation = createVegetationPlacement( terrain, village );
 const sourceMask = buildGrassMask( sourceVegetation.site );
 const sourcePlacements = encodeVegetationPlacements( sourceVegetation.records, 7 );
-const placementID = component.placementAssetId.slice( 'sha256:'.length );
+const placementID = data.placementAssetId.slice( 'sha256:'.length );
 const packagedPlacements = await readFile( path.join( worldRoot, 'assets', placementID ) );
 
 assert.equal( packaged.size, terrain.size, 'packaged grass mask covers the source terrain size' );

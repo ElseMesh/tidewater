@@ -15,8 +15,10 @@ const bytes = new Uint8Array( await readFile( new URL( `../assets/${village.asse
 assert.equal( `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`, village.assetId );
 const materialComponent = source.components.find( component => component.type === 'elsemesh.village-materials/2' );
 assert.ok( materialComponent, 'the island package must include its portable village maps' );
-const materialBytes = new Uint8Array( await readFile( new URL( `../assets/${materialComponent.dataAssetId.slice( 'sha256:'.length )}`, import.meta.url ) ) );
-assert.equal( `sha256:${createHash( 'sha256' ).update( materialBytes ).digest( 'hex' )}`, materialComponent.dataAssetId );
+const materialComponentData = materialComponent.data;
+const materialAssetID = materialComponentData.dataAssetId;
+const materialBytes = new Uint8Array( await readFile( new URL( `../assets/${materialAssetID.slice( 'sha256:'.length )}`, import.meta.url ) ) );
+assert.equal( `sha256:${createHash( 'sha256' ).update( materialBytes ).digest( 'hex' )}`, materialAssetID );
 const previewBytes = new Uint8Array( await readFile( new URL( `../assets/${previewObject.assetId.slice( 'sha256:'.length )}`, import.meta.url ) ) );
 const materialData = await decodeVillageMaterialAsset( materialBytes );
 assert.equal( materialData.metadata.protocol, 'elsemesh.village-material-data/1' );
@@ -27,19 +29,20 @@ const materialContext = { materials, textures: { bake() {} } };
 const assetIndex = [
 	{ id: village.assetId, kind: 'glb', bytes: bytes.byteLength, priority: village.priority },
 	{ id: previewObject.assetId, kind: 'glb', bytes: previewBytes.byteLength, priority: previewObject.priority },
-	{ id: materialComponent.dataAssetId, kind: 'village-materials/1', bytes: materialBytes.byteLength, priority: materialComponent.priority },
+	{ id: materialAssetID, kind: 'village-materials/1', bytes: materialBytes.byteLength, priority: materialComponent.priority },
 ];
+const hydratedComponents = source.components.map( component => ( { ...component, ...component.data } ) );
 const makeConnector = requiredFeatures => ( {
-	worldId: source.worldId, manifest: { ...source, rules: { ...source.rules, requiredFeatures }, portals: [], assets: assetIndex },
-	assets: new Map( [ [ village.assetId, bytes ], [ previewObject.assetId, previewBytes ], [ materialComponent.dataAssetId, materialBytes ] ] ),
-	getAsset: async id => id === village.assetId ? bytes : id === previewObject.assetId ? previewBytes : id === materialComponent.dataAssetId ? materialBytes : null,
+	worldId: source.worldId, manifest: { ...source, components: hydratedComponents, rules: { ...source.rules, requiredFeatures }, portals: [], assets: assetIndex },
+	assets: new Map( [ [ village.assetId, bytes ], [ previewObject.assetId, previewBytes ], [ materialAssetID, materialBytes ] ] ),
+	getAsset: async id => id === village.assetId ? bytes : id === previewObject.assetId ? previewBytes : id === materialAssetID ? materialBytes : null,
 } );
 
 let previewMapReads = 0;
 const previewConnector = makeConnector( source.rules.requiredFeatures );
 const previewGetAsset = previewConnector.getAsset;
 previewConnector.getAsset = async id => {
-	if ( id === materialComponent.dataAssetId ) previewMapReads ++;
+	if ( id === materialAssetID ) previewMapReads ++;
 	return previewGetAsset( id );
 };
 const previewRoot = await loadWorldPackage( previewConnector, { objectIDs: [ previewObject.id ], assets: new Map( [ [ previewObject.assetId, previewBytes ] ] ), materialContext } );

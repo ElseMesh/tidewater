@@ -467,18 +467,18 @@
       "Press I to open your cooler and fish log. Deck lights let you fish after dark."
     ],
     "stages": {
-      "gpu": "Starting WebGPU…",
-      "atmosphere": "Setting the coastal sky…",
-      "terrain": "Preparing the island terrain…",
-      "village": "Building the harbour village…",
-      "vegetation": "Growing the island vegetation…",
-      "ocean": "Preparing the sea…",
-      "reef": "Growing the reef…",
-      "simulation": "Starting ocean simulation…",
-      "shaders": "Preparing the island renderer…",
-      "world": "Connecting to this ThruHold…",
-      "compile": "Compiling shaders…",
-      "warmup": "Warming up the world…"
+      "gpu": "Starting WebGPU\u2026",
+      "atmosphere": "Setting the coastal sky\u2026",
+      "terrain": "Preparing the island terrain\u2026",
+      "village": "Building the harbour village\u2026",
+      "vegetation": "Growing the island vegetation\u2026",
+      "ocean": "Preparing the sea\u2026",
+      "reef": "Growing the reef\u2026",
+      "simulation": "Starting ocean simulation\u2026",
+      "shaders": "Preparing the island renderer\u2026",
+      "world": "Connecting to this ThruHold\u2026",
+      "compile": "Compiling shaders\u2026",
+      "warmup": "Warming up the world\u2026"
     }
   },
   "spawn": {
@@ -10947,7 +10947,7 @@
         "rotation": [
           0.07890634602882417,
           0.20955596292266318,
-          0.00006019730273089732,
+          6.019730273089732e-05,
           0.9746076561038394
         ]
       },
@@ -12858,9 +12858,6 @@
     {
       "id": "elsemesh-component:island-village-materials",
       "type": "elsemesh.village-materials/2",
-      "profile": "original-elsemesh-village-v1",
-      "dataAssetId": "sha256:58c5317f614c767686efe99b996ed908dee8e21024acccf3e746f2fbbb88534d",
-      "objectId": "elsemesh-object:island-village",
       "priority": "visible",
       "streamingBounds": {
         "center": [
@@ -12869,20 +12866,42 @@
           -59.4708137512207
         ],
         "radius": 106.39631016446681
+      },
+      "assets": [
+        {
+          "assetId": "sha256:58c5317f614c767686efe99b996ed908dee8e21024acccf3e746f2fbbb88534d",
+          "kind": "village-materials/1"
+        }
+      ],
+      "data": {
+        "profile": "original-elsemesh-village-v1",
+        "dataAssetId": "sha256:58c5317f614c767686efe99b996ed908dee8e21024acccf3e746f2fbbb88534d",
+        "objectId": "elsemesh-object:island-village"
       }
     },
     {
       "id": "elsemesh-component:island-vegetation",
       "type": "elsemesh.static-vegetation/1",
       "priority": "portal-preview",
-      "placementAssetId": "sha256:e9ead2780768e0dabea07317da0c020497137472e6adc1cb3f166611fb0fbae6",
-      "grassMaskAssetId": "sha256:36507b8de08a52423c0eb3d5bf7cba6c373dbbec931aa1e1969e09abac9df8c2"
+      "assets": [
+        {
+          "assetId": "sha256:e9ead2780768e0dabea07317da0c020497137472e6adc1cb3f166611fb0fbae6",
+          "kind": "vegetation-placement/1"
+        },
+        {
+          "assetId": "sha256:36507b8de08a52423c0eb3d5bf7cba6c373dbbec931aa1e1969e09abac9df8c2",
+          "kind": "grass-density/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:e9ead2780768e0dabea07317da0c020497137472e6adc1cb3f166611fb0fbae6",
+        "grassMaskAssetId": "sha256:36507b8de08a52423c0eb3d5bf7cba6c373dbbec931aa1e1969e09abac9df8c2"
+      }
     },
     {
       "id": "elsemesh-component:island-fish-props",
       "type": "elsemesh.static-fish-props/1",
       "priority": "visible",
-      "placementAssetId": "sha256:11f5ea7d9ccaf1a3d7931bfc46a34d71f133e0df23225e8b86904c47137f0fcf",
       "streamingBounds": {
         "center": [
           66.64174159012683,
@@ -12890,21 +12909,36 @@
           -40.00388889533359
         ],
         "radius": 79.93684890306201
+      },
+      "assets": [
+        {
+          "assetId": "sha256:11f5ea7d9ccaf1a3d7931bfc46a34d71f133e0df23225e8b86904c47137f0fcf",
+          "kind": "fish-props-placement/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:11f5ea7d9ccaf1a3d7931bfc46a34d71f133e0df23225e8b86904c47137f0fcf"
       }
     },
     {
       "id": "elsemesh-component:island-terrain",
       "type": "elsemesh.terrain-surface/1",
-      "profile": "example-island-v1",
-      "objectId": "elsemesh-object:island-terrain",
-      "dataAssetId": "sha256:0d22d7f65330eaf827604de10d3d1e77af7c43ad08b1991dca31781129dc037a",
-      "priority": "visible"
+      "priority": "visible",
+      "assets": [
+        {
+          "assetId": "sha256:0d22d7f65330eaf827604de10d3d1e77af7c43ad08b1991dca31781129dc037a",
+          "kind": "terrain-surface/1"
+        }
+      ],
+      "data": {
+        "profile": "example-island-v1",
+        "objectId": "elsemesh-object:island-terrain",
+        "dataAssetId": "sha256:0d22d7f65330eaf827604de10d3d1e77af7c43ad08b1991dca31781129dc037a"
+      }
     },
     {
       "id": "elsemesh-component:island-wildlife",
       "type": "elsemesh.example-island-wildlife/1",
-      "profile": "example-island-wildlife-v1",
-      "seed": 5,
       "priority": "visible",
       "streamingBounds": {
         "center": [
@@ -12914,190 +12948,194 @@
         ],
         "radius": 300
       },
-      "roofPerches": [
-        [
-          67.8,
-          7.081561054555244,
-          -64.6
+      "assets": [],
+      "data": {
+        "profile": "example-island-wildlife-v1",
+        "seed": 5,
+        "roofPerches": [
+          [
+            67.8,
+            7.081561054555244,
+            -64.6
+          ],
+          [
+            79.8,
+            7.9690550253136445,
+            -70.4
+          ],
+          [
+            37.2,
+            7.90732275028513,
+            -72.4
+          ]
         ],
-        [
-          79.8,
-          7.9690550253136445,
-          -70.4
-        ],
-        [
-          37.2,
-          7.90732275028513,
-          -72.4
+        "footprints": [
+          {
+            "x": 41.5,
+            "z": -111,
+            "r": 6
+          },
+          {
+            "x": 13.5,
+            "z": -106.5,
+            "r": 6.347071299343465
+          },
+          {
+            "x": 26.5,
+            "z": -112,
+            "r": 5.782218381404011
+          },
+          {
+            "x": 62.5,
+            "z": -106,
+            "r": 6.985466837676846
+          },
+          {
+            "x": 79,
+            "z": -110.5,
+            "r": 6.125410782277739
+          },
+          {
+            "x": 96,
+            "z": -115.5,
+            "r": 5.877400909914442
+          },
+          {
+            "x": -3,
+            "z": -125,
+            "r": 6.015361924162118
+          },
+          {
+            "x": 16.5,
+            "z": -130,
+            "r": 6.790826320300063
+          },
+          {
+            "x": 57.5,
+            "z": -128.5,
+            "r": 6.460388679233962
+          },
+          {
+            "x": 75.5,
+            "z": -132.5,
+            "r": 4.34682957019364
+          },
+          {
+            "x": 96.5,
+            "z": -135,
+            "r": 6.2644304369257
+          },
+          {
+            "x": 3.5,
+            "z": -151,
+            "r": 6.291812087098392
+          },
+          {
+            "x": 30.5,
+            "z": -149,
+            "r": 7.100793600809346
+          },
+          {
+            "x": 55,
+            "z": -152.5,
+            "r": 5.739635614091387
+          },
+          {
+            "x": 78.5,
+            "z": -156,
+            "r": 6.125410782277739
+          },
+          {
+            "x": 67.8,
+            "z": -64.6,
+            "r": 5.005948168962618
+          },
+          {
+            "x": 79.8,
+            "z": -70.4,
+            "r": 5.019004621945797
+          },
+          {
+            "x": 37.2,
+            "z": -72.4,
+            "r": 4.918252056394801
+          },
+          {
+            "x": 21.5,
+            "z": -119.5,
+            "r": 1.8747548783981962
+          },
+          {
+            "x": 68,
+            "z": -124,
+            "r": 1.8747548783981962
+          },
+          {
+            "x": 89,
+            "z": -146,
+            "r": 1.8747548783981962
+          },
+          {
+            "x": 43.5,
+            "z": -155.5,
+            "r": 1.8747548783981962
+          },
+          {
+            "x": 92.5,
+            "z": -57.5,
+            "r": 5.5
+          },
+          {
+            "x": 40.2,
+            "z": -113.2,
+            "r": 3.2808652046684816
+          },
+          {
+            "x": 20.799999999999997,
+            "z": -57.2,
+            "r": 2.4
+          },
+          {
+            "x": 17.9,
+            "z": -59.8,
+            "r": 2.4
+          },
+          {
+            "x": 63.5,
+            "z": -55.6,
+            "r": 2.4
+          },
+          {
+            "x": 84.6,
+            "z": -53.2,
+            "r": 2.4
+          },
+          {
+            "x": 102.5,
+            "z": -49.8,
+            "r": 4
+          },
+          {
+            "x": 41.8,
+            "z": -64.2,
+            "r": 2.2
+          },
+          {
+            "x": 74.6,
+            "z": -58.6,
+            "r": 2.2
+          },
+          {
+            "x": 86.4,
+            "z": -64,
+            "r": 2.2
+          }
         ]
-      ],
-      "footprints": [
-        {
-          "x": 41.5,
-          "z": -111,
-          "r": 6
-        },
-        {
-          "x": 13.5,
-          "z": -106.5,
-          "r": 6.347071299343465
-        },
-        {
-          "x": 26.5,
-          "z": -112,
-          "r": 5.782218381404011
-        },
-        {
-          "x": 62.5,
-          "z": -106,
-          "r": 6.985466837676846
-        },
-        {
-          "x": 79,
-          "z": -110.5,
-          "r": 6.125410782277739
-        },
-        {
-          "x": 96,
-          "z": -115.5,
-          "r": 5.877400909914442
-        },
-        {
-          "x": -3,
-          "z": -125,
-          "r": 6.015361924162118
-        },
-        {
-          "x": 16.5,
-          "z": -130,
-          "r": 6.790826320300063
-        },
-        {
-          "x": 57.5,
-          "z": -128.5,
-          "r": 6.460388679233962
-        },
-        {
-          "x": 75.5,
-          "z": -132.5,
-          "r": 4.34682957019364
-        },
-        {
-          "x": 96.5,
-          "z": -135,
-          "r": 6.2644304369257
-        },
-        {
-          "x": 3.5,
-          "z": -151,
-          "r": 6.291812087098392
-        },
-        {
-          "x": 30.5,
-          "z": -149,
-          "r": 7.100793600809346
-        },
-        {
-          "x": 55,
-          "z": -152.5,
-          "r": 5.739635614091387
-        },
-        {
-          "x": 78.5,
-          "z": -156,
-          "r": 6.125410782277739
-        },
-        {
-          "x": 67.8,
-          "z": -64.6,
-          "r": 5.005948168962618
-        },
-        {
-          "x": 79.8,
-          "z": -70.4,
-          "r": 5.019004621945797
-        },
-        {
-          "x": 37.2,
-          "z": -72.4,
-          "r": 4.918252056394801
-        },
-        {
-          "x": 21.5,
-          "z": -119.5,
-          "r": 1.8747548783981962
-        },
-        {
-          "x": 68,
-          "z": -124,
-          "r": 1.8747548783981962
-        },
-        {
-          "x": 89,
-          "z": -146,
-          "r": 1.8747548783981962
-        },
-        {
-          "x": 43.5,
-          "z": -155.5,
-          "r": 1.8747548783981962
-        },
-        {
-          "x": 92.5,
-          "z": -57.5,
-          "r": 5.5
-        },
-        {
-          "x": 40.2,
-          "z": -113.2,
-          "r": 3.2808652046684816
-        },
-        {
-          "x": 20.799999999999997,
-          "z": -57.2,
-          "r": 2.4
-        },
-        {
-          "x": 17.9,
-          "z": -59.8,
-          "r": 2.4
-        },
-        {
-          "x": 63.5,
-          "z": -55.6,
-          "r": 2.4
-        },
-        {
-          "x": 84.6,
-          "z": -53.2,
-          "r": 2.4
-        },
-        {
-          "x": 102.5,
-          "z": -49.8,
-          "r": 4
-        },
-        {
-          "x": 41.8,
-          "z": -64.2,
-          "r": 2.2
-        },
-        {
-          "x": 74.6,
-          "z": -58.6,
-          "r": 2.2
-        },
-        {
-          "x": 86.4,
-          "z": -64,
-          "r": 2.2
-        }
-      ]
+      }
     },
     {
       "id": "elsemesh-component:island-humpback",
       "type": "elsemesh.humpback-whale/1",
-      "profile": "example-island-humpback-v1",
       "priority": "visible",
       "streamingBounds": {
         "center": [
@@ -13107,58 +13145,78 @@
         ],
         "radius": 250
       },
-      "modelAssetId": "sha256:c47390c365da1c8c6fa73bea4996bf51073a973770c1942e8993f545e283a354",
-      "geometryAssetId": "sha256:b3a31801a393489331bc3dd4fd5be64cbad32ac4e159f5180e0eb028d489a92d",
-      "albedoAssetId": "sha256:5daaa6727f5304aaa3b6f6ef86cedcebc7cf922376a5c0e7caad66c4f4a5efe1",
-      "heightAssetId": "sha256:5e18fbff0aa0034519d149c245d515f75011e7dd4f626dbd1a5e97eea79b66b5",
-      "seed": 1,
-      "route": [
-        [
-          70,
-          300
-        ],
-        [
-          60,
-          200
-        ],
-        [
-          35,
-          120
-        ],
-        [
-          5,
-          88
-        ],
-        [
-          -25,
-          100
-        ],
-        [
-          -52,
-          128
-        ],
-        [
-          -75,
-          178
-        ],
-        [
-          -52,
-          262
-        ],
-        [
-          -10,
-          330
-        ]
+      "assets": [
+        {
+          "assetId": "sha256:c47390c365da1c8c6fa73bea4996bf51073a973770c1942e8993f545e283a354",
+          "kind": "whale-model/1"
+        },
+        {
+          "assetId": "sha256:b3a31801a393489331bc3dd4fd5be64cbad32ac4e159f5180e0eb028d489a92d",
+          "kind": "whale-geometry/1"
+        },
+        {
+          "assetId": "sha256:5daaa6727f5304aaa3b6f6ef86cedcebc7cf922376a5c0e7caad66c4f4a5efe1",
+          "kind": "whale-albedo/1"
+        },
+        {
+          "assetId": "sha256:5e18fbff0aa0034519d149c245d515f75011e7dd4f626dbd1a5e97eea79b66b5",
+          "kind": "whale-height/1"
+        }
       ],
-      "surfaceAt": 0.25,
-      "cruiseSpeed": 2.6,
-      "surfaceSpeed": 1.5
+      "data": {
+        "profile": "example-island-humpback-v1",
+        "modelAssetId": "sha256:c47390c365da1c8c6fa73bea4996bf51073a973770c1942e8993f545e283a354",
+        "geometryAssetId": "sha256:b3a31801a393489331bc3dd4fd5be64cbad32ac4e159f5180e0eb028d489a92d",
+        "albedoAssetId": "sha256:5daaa6727f5304aaa3b6f6ef86cedcebc7cf922376a5c0e7caad66c4f4a5efe1",
+        "heightAssetId": "sha256:5e18fbff0aa0034519d149c245d515f75011e7dd4f626dbd1a5e97eea79b66b5",
+        "seed": 1,
+        "route": [
+          [
+            70,
+            300
+          ],
+          [
+            60,
+            200
+          ],
+          [
+            35,
+            120
+          ],
+          [
+            5,
+            88
+          ],
+          [
+            -25,
+            100
+          ],
+          [
+            -52,
+            128
+          ],
+          [
+            -75,
+            178
+          ],
+          [
+            -52,
+            262
+          ],
+          [
+            -10,
+            330
+          ]
+        ],
+        "surfaceAt": 0.25,
+        "cruiseSpeed": 2.6,
+        "surfaceSpeed": 1.5
+      }
     },
     {
       "id": "elsemesh-component:reef-tile--3--1",
       "type": "elsemesh.static-reef/1",
       "priority": "visible",
-      "placementAssetId": "sha256:ba43c618854cc2f1055f5f7d3e09154bef8dae6b3822afd48c3c92b3409de144",
       "streamingBounds": {
         "center": [
           -146.26987981907746,
@@ -13166,13 +13224,21 @@
           -19.11424616451447
         ],
         "radius": 30.485124022999237
+      },
+      "assets": [
+        {
+          "assetId": "sha256:ba43c618854cc2f1055f5f7d3e09154bef8dae6b3822afd48c3c92b3409de144",
+          "kind": "reef-placement/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:ba43c618854cc2f1055f5f7d3e09154bef8dae6b3822afd48c3c92b3409de144"
       }
     },
     {
       "id": "elsemesh-component:reef-tile--2--1",
       "type": "elsemesh.static-reef/1",
       "priority": "visible",
-      "placementAssetId": "sha256:c86011a9d6427f6577ddebbce24bd5436aacac038774951c1450f03b538cdf34",
       "streamingBounds": {
         "center": [
           -95.27328677060707,
@@ -13180,13 +13246,21 @@
           -19.12249584390025
         ],
         "radius": 42.27409413766623
+      },
+      "assets": [
+        {
+          "assetId": "sha256:c86011a9d6427f6577ddebbce24bd5436aacac038774951c1450f03b538cdf34",
+          "kind": "reef-placement/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:c86011a9d6427f6577ddebbce24bd5436aacac038774951c1450f03b538cdf34"
       }
     },
     {
       "id": "elsemesh-component:reef-tile--1--1",
       "type": "elsemesh.static-reef/1",
       "priority": "visible",
-      "placementAssetId": "sha256:92cdd6f611d76139891a1440cd2deeb4ae88159a899989593127eb0630b28ae4",
       "streamingBounds": {
         "center": [
           -32.958182511635435,
@@ -13194,13 +13268,21 @@
           -16.334005391296333
         ],
         "radius": 39.858279008436696
+      },
+      "assets": [
+        {
+          "assetId": "sha256:92cdd6f611d76139891a1440cd2deeb4ae88159a899989593127eb0630b28ae4",
+          "kind": "reef-placement/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:92cdd6f611d76139891a1440cd2deeb4ae88159a899989593127eb0630b28ae4"
       }
     },
     {
       "id": "elsemesh-component:reef-tile-0--1",
       "type": "elsemesh.static-reef/1",
       "priority": "visible",
-      "placementAssetId": "sha256:1a8c7863673e686dce0cb700445aa2794ab497fc9271d49b2902eb2207f25708",
       "streamingBounds": {
         "center": [
           32.5260751463076,
@@ -13208,13 +13290,21 @@
           -16.058036467906614
         ],
         "radius": 40.188158025386784
+      },
+      "assets": [
+        {
+          "assetId": "sha256:1a8c7863673e686dce0cb700445aa2794ab497fc9271d49b2902eb2207f25708",
+          "kind": "reef-placement/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:1a8c7863673e686dce0cb700445aa2794ab497fc9271d49b2902eb2207f25708"
       }
     },
     {
       "id": "elsemesh-component:reef-tile-1--1",
       "type": "elsemesh.static-reef/1",
       "priority": "visible",
-      "placementAssetId": "sha256:e13f70baba76b98878edf6e17bd8d5d4673e0036d18cfd110b3f8acdbdb50d70",
       "streamingBounds": {
         "center": [
           96.77101299463314,
@@ -13222,13 +13312,21 @@
           -20.83192804096315
         ],
         "radius": 42.75910308222066
+      },
+      "assets": [
+        {
+          "assetId": "sha256:e13f70baba76b98878edf6e17bd8d5d4673e0036d18cfd110b3f8acdbdb50d70",
+          "kind": "reef-placement/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:e13f70baba76b98878edf6e17bd8d5d4673e0036d18cfd110b3f8acdbdb50d70"
       }
     },
     {
       "id": "elsemesh-component:reef-tile-2--1",
       "type": "elsemesh.static-reef/1",
       "priority": "visible",
-      "placementAssetId": "sha256:cc0df7d87d245c8c7dab51eb2a29f0e5ffb03b3fa06b83b07ccde6c993b61c12",
       "streamingBounds": {
         "center": [
           131.99431390493876,
@@ -13236,13 +13334,21 @@
           -20.155003919562525
         ],
         "radius": 22.374473429324514
+      },
+      "assets": [
+        {
+          "assetId": "sha256:cc0df7d87d245c8c7dab51eb2a29f0e5ffb03b3fa06b83b07ccde6c993b61c12",
+          "kind": "reef-placement/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:cc0df7d87d245c8c7dab51eb2a29f0e5ffb03b3fa06b83b07ccde6c993b61c12"
       }
     },
     {
       "id": "elsemesh-component:reef-tile--3-0",
       "type": "elsemesh.static-reef/1",
       "priority": "visible",
-      "placementAssetId": "sha256:346b801cf6eb4300bb00e59a0abfb6876d34285464154f80dc2a3efaa5ae15ef",
       "streamingBounds": {
         "center": [
           -147.34365681186264,
@@ -13250,13 +13356,21 @@
           35.10383305879403
         ],
         "radius": 46.33913812311311
+      },
+      "assets": [
+        {
+          "assetId": "sha256:346b801cf6eb4300bb00e59a0abfb6876d34285464154f80dc2a3efaa5ae15ef",
+          "kind": "reef-placement/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:346b801cf6eb4300bb00e59a0abfb6876d34285464154f80dc2a3efaa5ae15ef"
       }
     },
     {
       "id": "elsemesh-component:reef-tile--2-0",
       "type": "elsemesh.static-reef/1",
       "priority": "visible",
-      "placementAssetId": "sha256:defd2926880ce19a837e7895ae14b38fe09940b4b87960ee60be6686ff8d798f",
       "streamingBounds": {
         "center": [
           -95.38526393432183,
@@ -13264,13 +13378,21 @@
           33.82879427717645
         ],
         "radius": 57.22920454695858
+      },
+      "assets": [
+        {
+          "assetId": "sha256:defd2926880ce19a837e7895ae14b38fe09940b4b87960ee60be6686ff8d798f",
+          "kind": "reef-placement/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:defd2926880ce19a837e7895ae14b38fe09940b4b87960ee60be6686ff8d798f"
       }
     },
     {
       "id": "elsemesh-component:reef-tile--1-0",
       "type": "elsemesh.static-reef/1",
       "priority": "visible",
-      "placementAssetId": "sha256:a57e9503967a8bb1e21ea64964cf0d4945c4656948ae76bc0ff19af83cfb5cdf",
       "streamingBounds": {
         "center": [
           -34.76076084422529,
@@ -13278,13 +13400,21 @@
           32.58109519488144
         ],
         "radius": 54.32580121153753
+      },
+      "assets": [
+        {
+          "assetId": "sha256:a57e9503967a8bb1e21ea64964cf0d4945c4656948ae76bc0ff19af83cfb5cdf",
+          "kind": "reef-placement/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:a57e9503967a8bb1e21ea64964cf0d4945c4656948ae76bc0ff19af83cfb5cdf"
       }
     },
     {
       "id": "elsemesh-component:reef-tile-0-0",
       "type": "elsemesh.static-reef/1",
       "priority": "visible",
-      "placementAssetId": "sha256:773bcb401d4971f2b841fedb7b0ffbb4e92cbb52aace26fc29422c1bb1aa4303",
       "streamingBounds": {
         "center": [
           32.76096265978246,
@@ -13292,13 +13422,21 @@
           33.76432851610088
         ],
         "radius": 52.26641300429508
+      },
+      "assets": [
+        {
+          "assetId": "sha256:773bcb401d4971f2b841fedb7b0ffbb4e92cbb52aace26fc29422c1bb1aa4303",
+          "kind": "reef-placement/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:773bcb401d4971f2b841fedb7b0ffbb4e92cbb52aace26fc29422c1bb1aa4303"
       }
     },
     {
       "id": "elsemesh-component:reef-tile-1-0",
       "type": "elsemesh.static-reef/1",
       "priority": "visible",
-      "placementAssetId": "sha256:7185467fad9a6ea3a00efac62755739dbca7cfd5d533eb189080cd8ba963a43b",
       "streamingBounds": {
         "center": [
           95.52532842304909,
@@ -13306,13 +13444,21 @@
           31.27533024557325
         ],
         "radius": 51.88218379100515
+      },
+      "assets": [
+        {
+          "assetId": "sha256:7185467fad9a6ea3a00efac62755739dbca7cfd5d533eb189080cd8ba963a43b",
+          "kind": "reef-placement/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:7185467fad9a6ea3a00efac62755739dbca7cfd5d533eb189080cd8ba963a43b"
       }
     },
     {
       "id": "elsemesh-component:reef-tile-2-0",
       "type": "elsemesh.static-reef/1",
       "priority": "visible",
-      "placementAssetId": "sha256:aff37b865ada64170a1d23e8cb790c57f1d160875089efe2abb6813cc2cbfe08",
       "streamingBounds": {
         "center": [
           130.5006163370847,
@@ -13320,13 +13466,21 @@
           32.67923464698607
         ],
         "radius": 34.82907773785151
+      },
+      "assets": [
+        {
+          "assetId": "sha256:aff37b865ada64170a1d23e8cb790c57f1d160875089efe2abb6813cc2cbfe08",
+          "kind": "reef-placement/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:aff37b865ada64170a1d23e8cb790c57f1d160875089efe2abb6813cc2cbfe08"
       }
     },
     {
       "id": "elsemesh-component:reef-tile--3-1",
       "type": "elsemesh.static-reef/1",
       "priority": "visible",
-      "placementAssetId": "sha256:219d199fd3bbe7401276f72ea1e5c4e5cf0b4d3c5a9ce371e4e236c94338d0f5",
       "streamingBounds": {
         "center": [
           -152.79136096675666,
@@ -13334,13 +13488,21 @@
           93.72651798761896
         ],
         "radius": 51.09448101486896
+      },
+      "assets": [
+        {
+          "assetId": "sha256:219d199fd3bbe7401276f72ea1e5c4e5cf0b4d3c5a9ce371e4e236c94338d0f5",
+          "kind": "reef-placement/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:219d199fd3bbe7401276f72ea1e5c4e5cf0b4d3c5a9ce371e4e236c94338d0f5"
       }
     },
     {
       "id": "elsemesh-component:reef-tile--2-1",
       "type": "elsemesh.static-reef/1",
       "priority": "visible",
-      "placementAssetId": "sha256:a9b8bc0971279ec4d8dab4324705c3a65d629e599681a6bd61b6624b6cc3a1a6",
       "streamingBounds": {
         "center": [
           -96.37474537134685,
@@ -13348,13 +13510,21 @@
           96.46456656976923
         ],
         "radius": 58.61083298427145
+      },
+      "assets": [
+        {
+          "assetId": "sha256:a9b8bc0971279ec4d8dab4324705c3a65d629e599681a6bd61b6624b6cc3a1a6",
+          "kind": "reef-placement/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:a9b8bc0971279ec4d8dab4324705c3a65d629e599681a6bd61b6624b6cc3a1a6"
       }
     },
     {
       "id": "elsemesh-component:reef-tile--1-1",
       "type": "elsemesh.static-reef/1",
       "priority": "visible",
-      "placementAssetId": "sha256:e1ecc47d9a7140c15398464ffa06201d24b0aa6f585803d7abdffb4ca987553d",
       "streamingBounds": {
         "center": [
           -31.622399913589685,
@@ -13362,13 +13532,21 @@
           96.28518454106721
         ],
         "radius": 58.585469934009595
+      },
+      "assets": [
+        {
+          "assetId": "sha256:e1ecc47d9a7140c15398464ffa06201d24b0aa6f585803d7abdffb4ca987553d",
+          "kind": "reef-placement/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:e1ecc47d9a7140c15398464ffa06201d24b0aa6f585803d7abdffb4ca987553d"
       }
     },
     {
       "id": "elsemesh-component:reef-tile-0-1",
       "type": "elsemesh.static-reef/1",
       "priority": "visible",
-      "placementAssetId": "sha256:163164d9f22321dba99a7e2a428d24733e61e98a2086da66f0c24a428f6164c4",
       "streamingBounds": {
         "center": [
           29.567121862116114,
@@ -13376,13 +13554,21 @@
           94.99860196047
         ],
         "radius": 52.75815575950244
+      },
+      "assets": [
+        {
+          "assetId": "sha256:163164d9f22321dba99a7e2a428d24733e61e98a2086da66f0c24a428f6164c4",
+          "kind": "reef-placement/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:163164d9f22321dba99a7e2a428d24733e61e98a2086da66f0c24a428f6164c4"
       }
     },
     {
       "id": "elsemesh-component:reef-tile-1-1",
       "type": "elsemesh.static-reef/1",
       "priority": "visible",
-      "placementAssetId": "sha256:cc15ff66701be8812ccbddd991b73f9d06401cb49db687bafb1531babab914e3",
       "streamingBounds": {
         "center": [
           96.56700225660458,
@@ -13390,13 +13576,21 @@
           95.99744770280071
         ],
         "radius": 51.75837522470666
+      },
+      "assets": [
+        {
+          "assetId": "sha256:cc15ff66701be8812ccbddd991b73f9d06401cb49db687bafb1531babab914e3",
+          "kind": "reef-placement/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:cc15ff66701be8812ccbddd991b73f9d06401cb49db687bafb1531babab914e3"
       }
     },
     {
       "id": "elsemesh-component:reef-tile-2-1",
       "type": "elsemesh.static-reef/1",
       "priority": "visible",
-      "placementAssetId": "sha256:5aa859968dcde2074dd8ff465c7cdf14df34ae0756b07aba659b253444212de9",
       "streamingBounds": {
         "center": [
           131.00239664979102,
@@ -13404,13 +13598,21 @@
           95.55616100826336
         ],
         "radius": 36.46343422281371
+      },
+      "assets": [
+        {
+          "assetId": "sha256:5aa859968dcde2074dd8ff465c7cdf14df34ae0756b07aba659b253444212de9",
+          "kind": "reef-placement/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:5aa859968dcde2074dd8ff465c7cdf14df34ae0756b07aba659b253444212de9"
       }
     },
     {
       "id": "elsemesh-component:reef-tile--4-2",
       "type": "elsemesh.static-reef/1",
       "priority": "visible",
-      "placementAssetId": "sha256:a554f32e4b3a6202daa8d09ae3783cf4adb7ecf0100bd497e7c744b9d30b061a",
       "streamingBounds": {
         "center": [
           -195.07422409398868,
@@ -13418,13 +13620,21 @@
           165.51213167476857
         ],
         "radius": 7.541122655556636
+      },
+      "assets": [
+        {
+          "assetId": "sha256:a554f32e4b3a6202daa8d09ae3783cf4adb7ecf0100bd497e7c744b9d30b061a",
+          "kind": "reef-placement/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:a554f32e4b3a6202daa8d09ae3783cf4adb7ecf0100bd497e7c744b9d30b061a"
       }
     },
     {
       "id": "elsemesh-component:reef-tile--3-2",
       "type": "elsemesh.static-reef/1",
       "priority": "visible",
-      "placementAssetId": "sha256:64aca198e94b45f918c403ddf795a5fe8889beed9f0e3c7bb31ec1ba4d08e52c",
       "streamingBounds": {
         "center": [
           -157.8229795479633,
@@ -13432,13 +13642,21 @@
           158.524786477889
         ],
         "radius": 48.67200490119624
+      },
+      "assets": [
+        {
+          "assetId": "sha256:64aca198e94b45f918c403ddf795a5fe8889beed9f0e3c7bb31ec1ba4d08e52c",
+          "kind": "reef-placement/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:64aca198e94b45f918c403ddf795a5fe8889beed9f0e3c7bb31ec1ba4d08e52c"
       }
     },
     {
       "id": "elsemesh-component:reef-tile--2-2",
       "type": "elsemesh.static-reef/1",
       "priority": "visible",
-      "placementAssetId": "sha256:87fd006add6e78ffc58b44d8c0dcc0f388cb199951f98689413a0da8bbcda17d",
       "streamingBounds": {
         "center": [
           -93.91457929687074,
@@ -13446,13 +13664,21 @@
           156.48729263348844
         ],
         "radius": 53.30767759505895
+      },
+      "assets": [
+        {
+          "assetId": "sha256:87fd006add6e78ffc58b44d8c0dcc0f388cb199951f98689413a0da8bbcda17d",
+          "kind": "reef-placement/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:87fd006add6e78ffc58b44d8c0dcc0f388cb199951f98689413a0da8bbcda17d"
       }
     },
     {
       "id": "elsemesh-component:reef-tile--1-2",
       "type": "elsemesh.static-reef/1",
       "priority": "visible",
-      "placementAssetId": "sha256:af604d8e0a9e8b1a53c341413a959dc21c225e6c5356328e9b01ea86f64b892c",
       "streamingBounds": {
         "center": [
           -35.352397802937936,
@@ -13460,13 +13686,21 @@
           150.13142168181773
         ],
         "radius": 49.48382265874207
+      },
+      "assets": [
+        {
+          "assetId": "sha256:af604d8e0a9e8b1a53c341413a959dc21c225e6c5356328e9b01ea86f64b892c",
+          "kind": "reef-placement/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:af604d8e0a9e8b1a53c341413a959dc21c225e6c5356328e9b01ea86f64b892c"
       }
     },
     {
       "id": "elsemesh-component:reef-tile-0-2",
       "type": "elsemesh.static-reef/1",
       "priority": "visible",
-      "placementAssetId": "sha256:66bb8f0dff1bd01607b666f52a916a08bad9f46ae67139ed2d8a1448bbe405b2",
       "streamingBounds": {
         "center": [
           31.303349459616868,
@@ -13474,13 +13708,21 @@
           152.06174372213223
         ],
         "radius": 47.28897444085688
+      },
+      "assets": [
+        {
+          "assetId": "sha256:66bb8f0dff1bd01607b666f52a916a08bad9f46ae67139ed2d8a1448bbe405b2",
+          "kind": "reef-placement/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:66bb8f0dff1bd01607b666f52a916a08bad9f46ae67139ed2d8a1448bbe405b2"
       }
     },
     {
       "id": "elsemesh-component:reef-tile-1-2",
       "type": "elsemesh.static-reef/1",
       "priority": "visible",
-      "placementAssetId": "sha256:45d39e5f33a8521fb955b0c25e70776d0bc01bbb54e08d583c3158ae5af8ea61",
       "streamingBounds": {
         "center": [
           95.21621140365399,
@@ -13488,13 +13730,21 @@
           158.3515466012728
         ],
         "radius": 50.64662531928503
+      },
+      "assets": [
+        {
+          "assetId": "sha256:45d39e5f33a8521fb955b0c25e70776d0bc01bbb54e08d583c3158ae5af8ea61",
+          "kind": "reef-placement/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:45d39e5f33a8521fb955b0c25e70776d0bc01bbb54e08d583c3158ae5af8ea61"
       }
     },
     {
       "id": "elsemesh-component:reef-tile-2-2",
       "type": "elsemesh.static-reef/1",
       "priority": "visible",
-      "placementAssetId": "sha256:915b9b99134d08eeb0d6e42945f162758960432bcb20b3944cd3ce0d01a1addb",
       "streamingBounds": {
         "center": [
           132.21436203639018,
@@ -13502,13 +13752,21 @@
           150.87217350288324
         ],
         "radius": 29.76872123960937
+      },
+      "assets": [
+        {
+          "assetId": "sha256:915b9b99134d08eeb0d6e42945f162758960432bcb20b3944cd3ce0d01a1addb",
+          "kind": "reef-placement/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:915b9b99134d08eeb0d6e42945f162758960432bcb20b3944cd3ce0d01a1addb"
       }
     },
     {
       "id": "elsemesh-component:reef-tile--3-3",
       "type": "elsemesh.static-reef/1",
       "priority": "visible",
-      "placementAssetId": "sha256:3fb717c7e0e600723de4b87d94855a5e31bb64785318bd8747a005e80727e025",
       "streamingBounds": {
         "center": [
           -137.5928575125632,
@@ -13516,13 +13774,21 @@
           206.33868267944405
         ],
         "radius": 12.521945436951919
+      },
+      "assets": [
+        {
+          "assetId": "sha256:3fb717c7e0e600723de4b87d94855a5e31bb64785318bd8747a005e80727e025",
+          "kind": "reef-placement/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:3fb717c7e0e600723de4b87d94855a5e31bb64785318bd8747a005e80727e025"
       }
     },
     {
       "id": "elsemesh-component:reef-tile--2-3",
       "type": "elsemesh.static-reef/1",
       "priority": "visible",
-      "placementAssetId": "sha256:d6a3b46ff6710a3c3f241e9af098f3fdbacdeab3366dae9b7de7d3f74330558c",
       "streamingBounds": {
         "center": [
           -120.70647032124157,
@@ -13530,13 +13796,21 @@
           196.60332797040832
         ],
         "radius": 6.591737430697553
+      },
+      "assets": [
+        {
+          "assetId": "sha256:d6a3b46ff6710a3c3f241e9af098f3fdbacdeab3366dae9b7de7d3f74330558c",
+          "kind": "reef-placement/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:d6a3b46ff6710a3c3f241e9af098f3fdbacdeab3366dae9b7de7d3f74330558c"
       }
     },
     {
       "id": "elsemesh-component:reef-tile-1-3",
       "type": "elsemesh.static-reef/1",
       "priority": "visible",
-      "placementAssetId": "sha256:1e6d46e7be708e382f2b8018c1224daf13671020087ffc2505adcfbe49f016fe",
       "streamingBounds": {
         "center": [
           118.96061192818962,
@@ -13544,13 +13818,21 @@
           201.40356751399918
         ],
         "radius": 14.816024182151672
+      },
+      "assets": [
+        {
+          "assetId": "sha256:1e6d46e7be708e382f2b8018c1224daf13671020087ffc2505adcfbe49f016fe",
+          "kind": "reef-placement/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:1e6d46e7be708e382f2b8018c1224daf13671020087ffc2505adcfbe49f016fe"
       }
     },
     {
       "id": "elsemesh-component:reef-tile-2-3",
       "type": "elsemesh.static-reef/1",
       "priority": "visible",
-      "placementAssetId": "sha256:f9dfbd9eab64e24254837c585f1ed8ceddce1392aeaea477e1aaea03d36e0143",
       "streamingBounds": {
         "center": [
           129.06967876695404,
@@ -13558,79 +13840,129 @@
           205.96850199316057
         ],
         "radius": 5.634802590025045
+      },
+      "assets": [
+        {
+          "assetId": "sha256:f9dfbd9eab64e24254837c585f1ed8ceddce1392aeaea477e1aaea03d36e0143",
+          "kind": "reef-placement/1"
+        }
+      ],
+      "data": {
+        "placementAssetId": "sha256:f9dfbd9eab64e24254837c585f1ed8ceddce1392aeaea477e1aaea03d36e0143"
       }
     },
     {
       "id": "elsemesh-component:island-ocean",
       "type": "elsemesh.island-ocean/1",
-      "priority": "portal-preview"
+      "priority": "portal-preview",
+      "assets": [],
+      "data": {}
     },
     {
       "id": "elsemesh-component:island-lobster-boat",
       "type": "elsemesh.downeast-boat/1",
-      "objectId": "elsemesh-object:moored-lobster-boat",
-      "priority": "portal-preview"
+      "priority": "portal-preview",
+      "assets": [],
+      "data": {
+        "objectId": "elsemesh-object:moored-lobster-boat"
+      }
     },
     {
       "id": "elsemesh-component:island-ambience",
       "type": "elsemesh.ambient-audio/1",
       "priority": "portal-preview",
-      "beds": [
+      "assets": [
         {
           "assetId": "sha256:a4c0068c83ae7752c0b666cf06548ac917aefd61bb49f970d9f19d52b4f7eaa4",
-          "gain": 0.3981071705534972,
-          "condition": "always"
+          "kind": "audio/ogg"
         },
         {
           "assetId": "sha256:3e5d45f75364bf797f375061ed0232724e0570c1ff8f64c4c97498093e1789ec",
-          "gain": 0.2398832919019491,
-          "condition": "always"
+          "kind": "audio/ogg"
         },
         {
           "assetId": "sha256:33c89a41d0e0592cb2b6fd5592fab4e7333b090dace7fd755334cc145ef51820",
-          "gain": 0.16405897731995395,
-          "condition": "always"
+          "kind": "audio/ogg"
         },
         {
           "assetId": "sha256:01b41d7e8fc719373f77f41f3936e8ccfdfee4aadea1a1dd1120206b2115d76c",
-          "gain": 0.31622776601683794,
-          "condition": "night"
+          "kind": "audio/ogg"
         },
         {
           "assetId": "sha256:e020be075543b148dfb2b47540a605c1a30d25e5d18206b945b949b96a32079a",
-          "gain": 0.8609937521846006,
-          "condition": "always",
-          "position": [
-            55,
-            0,
-            35
-          ],
-          "refDistance": 3,
-          "rolloff": 1.3
+          "kind": "audio/ogg"
         },
         {
           "assetId": "sha256:121952cc2e09a3a30712e2d1038a00366e2cbad3dccf1fa2388261487028249f",
-          "gain": 0.1,
-          "condition": "underwater"
+          "kind": "audio/ogg"
         },
         {
           "assetId": "sha256:90c0b619f22842e8625520e36d6da6cad6d3cf21ade49c36a77d03ddcbde9bb8",
-          "gain": 0.8128305161640995,
-          "condition": "always",
-          "position": [
-            64.5,
-            0,
-            36.5
-          ],
-          "refDistance": 3,
-          "rolloff": 1
+          "kind": "audio/ogg"
         },
         {
           "assetId": "sha256:4647b53f1409faab746a18f946e76b4f4002ec6821c2be62e6f9a4f40da694a4",
-          "gain": 0.2600159563165272,
-          "condition": "dawn"
+          "kind": "audio/ogg"
         }
-      ]
+      ],
+      "data": {
+        "beds": [
+          {
+            "assetId": "sha256:a4c0068c83ae7752c0b666cf06548ac917aefd61bb49f970d9f19d52b4f7eaa4",
+            "gain": 0.3981071705534972,
+            "condition": "always"
+          },
+          {
+            "assetId": "sha256:3e5d45f75364bf797f375061ed0232724e0570c1ff8f64c4c97498093e1789ec",
+            "gain": 0.2398832919019491,
+            "condition": "always"
+          },
+          {
+            "assetId": "sha256:33c89a41d0e0592cb2b6fd5592fab4e7333b090dace7fd755334cc145ef51820",
+            "gain": 0.16405897731995395,
+            "condition": "always"
+          },
+          {
+            "assetId": "sha256:01b41d7e8fc719373f77f41f3936e8ccfdfee4aadea1a1dd1120206b2115d76c",
+            "gain": 0.31622776601683794,
+            "condition": "night"
+          },
+          {
+            "assetId": "sha256:e020be075543b148dfb2b47540a605c1a30d25e5d18206b945b949b96a32079a",
+            "gain": 0.8609937521846006,
+            "condition": "always",
+            "position": [
+              55,
+              0,
+              35
+            ],
+            "refDistance": 3,
+            "rolloff": 1.3
+          },
+          {
+            "assetId": "sha256:121952cc2e09a3a30712e2d1038a00366e2cbad3dccf1fa2388261487028249f",
+            "gain": 0.1,
+            "condition": "underwater"
+          },
+          {
+            "assetId": "sha256:90c0b619f22842e8625520e36d6da6cad6d3cf21ade49c36a77d03ddcbde9bb8",
+            "gain": 0.8128305161640995,
+            "condition": "always",
+            "position": [
+              64.5,
+              0,
+              36.5
+            ],
+            "refDistance": 3,
+            "rolloff": 1
+          },
+          {
+            "assetId": "sha256:4647b53f1409faab746a18f946e76b4f4002ec6821c2be62e6f9a4f40da694a4",
+            "gain": 0.2600159563165272,
+            "condition": "dawn"
+          }
+        ]
+      }
     }
   ],
   "portals": [],

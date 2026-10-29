@@ -23,7 +23,7 @@ assert.throws( () => new HeightfieldTerrainData( { size: 4, origin: - 2, resolut
 const island = path.resolve( 'worlds/tidewater' );
 const source = JSON.parse( await readFile( path.join( island, 'world-source.json' ), 'utf8' ) );
 const surface = source.components.find( component => component.type === 'elsemesh.terrain-surface/1' );
-const packed = await readFile( path.join( island, 'assets', surface.dataAssetId.slice( 'sha256:'.length ) ) );
+const packed = await readFile( path.join( island, 'assets', surface.data.dataAssetId.slice( 'sha256:'.length ) ) );
 const maps = await decodeTerrainSurfaceAsset( new Uint8Array( packed ) );
 assert.equal( maps.metadata.protocol, 'elsemesh.terrain-data/1', 'the signed world package uses the ElseMesh terrain contract' );
 assert.equal( maps.metadata.rendererProfile, 'original-elsemesh-terrain-v1', 'the signed world package uses the registered ElseMesh terrain renderer' );

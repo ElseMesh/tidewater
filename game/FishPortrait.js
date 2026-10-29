@@ -37,11 +37,11 @@ const hasDOM = typeof HTMLCanvasElement !== 'undefined' && typeof document !== '
 
 export class FishPortrait {
 
-	constructor( fishCatalog ) {
+	constructor( fishCatalog, fishPresentation ) {
 
 		this.fishCatalog = fishCatalog;
 		// one 'whole' fish per species, all parked; the one being drawn moves to the studio
-		const fp = this.props = new FishProps();
+		const fp = this.props = new FishProps( fishPresentation );
 		this.slot = {};
 		_f.makeTranslation( PARK.x, PARK.y, PARK.z );
 		fishIds( fishCatalog ).forEach( ( id, i ) => {

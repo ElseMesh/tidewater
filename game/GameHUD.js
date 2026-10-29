@@ -346,7 +346,7 @@ export class GameHUD {
 		// the fish itself: the real model in a studio, drawn live into the stage canvas
 		try {
 
-			if ( ! this.portrait ) this.portrait = new FishPortrait( this.game.fishCatalog );
+			if ( ! this.portrait ) this.portrait = new FishPortrait( this.game.fishCatalog, this.game.fishPresentation );
 			if ( this.portrait.attach( c.querySelector( '.gm-catch-stage canvas' ) ) ) this.portrait.show( info.species, info.kg );
 
 		} catch ( e ) {

@@ -9,25 +9,26 @@ const root = path.resolve( 'worlds/tidewater' );
 const world = JSON.parse( await readFile( path.join( root, 'world-source.json' ), 'utf8' ) );
 const component = world.components.find( item => item.type === 'elsemesh.humpback-whale/1' );
 assert.ok( component, 'Tidewater exports a packaged whale component' );
+const data = component.data;
 const queryNames = [];
 const query = { allocate: name => { queryNames.push( name ); return queryNames.length - 1; } };
-const firstBrain = new WhaleBrain( { terrain: null, query, queryName: 'whale:first', route: component.route } );
-const secondBrain = new WhaleBrain( { terrain: null, query, queryName: 'whale:second', route: component.route } );
+const firstBrain = new WhaleBrain( { terrain: null, query, queryName: 'whale:first', route: data.route } );
+const secondBrain = new WhaleBrain( { terrain: null, query, queryName: 'whale:second', route: data.route } );
 assert.deepEqual( queryNames, [ 'whale:first', 'whale:second' ], 'multiple whale components allocate independent water query slots' );
 assert.notEqual( firstBrain.slot, secondBrain.slot, 'multiple whales do not overwrite each other water query results' );
 const asset = async id => new Uint8Array( await readFile( path.join( root, 'assets', id.slice( 'sha256:'.length ) ) ) );
-const [ manifest, geometry, albedo, height ] = await Promise.all( [ component.modelAssetId, component.geometryAssetId, component.albedoAssetId, component.heightAssetId ].map( asset ) );
+const [ manifest, geometry, albedo, height ] = await Promise.all( [ data.modelAssetId, data.geometryAssetId, data.albedoAssetId, data.heightAssetId ].map( asset ) );
 
 const scene = new THREE.Scene();
 const whale = new Whale( {
 	scene, terrain: null, THREE, webgl: true, seaLevel: world.rules.seaLevel,
-	profile: { seed: component.seed, route: component.route, surfaceAt: component.surfaceAt, cruiseSpeed: component.cruiseSpeed, surfaceSpeed: component.surfaceSpeed },
+	profile: { seed: data.seed, route: data.route, surfaceAt: data.surfaceAt, cruiseSpeed: data.cruiseSpeed, surfaceSpeed: data.surfaceSpeed },
 } );
 await whale.loadPackage( { manifest, geometry, albedo, height } );
 assert.equal( whale.ready, true, 'WebGL whale loads only the packaged asset bytes' );
 assert.deepEqual( whale.meshes.map( mesh => mesh.geometry.attributes.position.count ), [ 40212, 5898, 908 ], 'WebGL creates all authored whale LODs' );
 assert.ok( whale.meshes.every( mesh => mesh.castShadow && mesh.customDepthMaterial === whale.depthMaterial ), 'WebGL whale LODs cast shadows through the shared deformed depth material' );
-assert.deepEqual( whale.brain.curve.points.map( point => [ point.x, point.z ] ), component.route, 'WebGL uses the signed route profile' );
+assert.deepEqual( whale.brain.curve.points.map( point => [ point.x, point.z ] ), data.route, 'WebGL uses the signed route profile' );
 assert.equal( whale.material.map, whale.albedoTex, 'WebGL uses the packaged albedo texture' );
 assert.equal( whale.albedoTex.flipY, true, 'WebGL preserves the decoded PNG orientation relative to WebGPU sampling' );
 
