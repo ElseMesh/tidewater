@@ -24,3 +24,13 @@ fixture:
 python3 worlds/tidewater/test/blender-world-actions.py
 BLENDER_EXECUTABLE=/path/to/blender python3 worlds/tidewater/test/blender-world-actions-runtime.py
 ```
+
+The manual scene review scripts also live here because their fixtures are the
+Tidewater island, village, and pier. They use the shared engine headless harness
+from the containing ElseMesh checkout:
+
+```sh
+node worlds/tidewater/test/world-all.mjs
+node worlds/tidewater/test/world-village.mjs
+node worlds/tidewater/test/taa-pier.mjs
+```
