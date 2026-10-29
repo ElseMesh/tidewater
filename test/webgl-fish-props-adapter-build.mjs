@@ -1,3 +1,6 @@
+// Node-side adapter construction check. This imports Three.js and builds the
+// WebGL fish-prop mesh, but does not create a WebGLRenderer/context or inspect
+// rendered pixels; it is not visual-rendering or FPS parity evidence.
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { encodeFishPropPlacements } from '../FishPropPlacements.js';
@@ -46,4 +49,4 @@ assert.equal( componentAdapter( {
 }, { id: 'fish-props', type: componentType, placementAssetId: 'placements' } ), true, 'backend adapter installs the signed component' );
 assert.equal( componentScene.children.length, 1, 'registered component adapter owns hosted WebGL dispatch' );
 componentFallback.hostedFishProps[ 0 ].dispose();
-console.log( 'webgl fish props adapter passed (canonical placements and shared geometry)' );
+console.log( 'WebGL fish-prop adapter mesh construction passed (no GPU context)' );
