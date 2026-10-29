@@ -18,10 +18,6 @@ const createAudio = () => {
 		lineSnap: () => events.push( [ 'snap' ] ),
 	};
 };
-const seededRandom = seed => () => {
-	seed = ( seed * 1664525 + 1013904223 ) >>> 0;
-	return seed / 0x100000000;
-};
 const fightSnapshot = runtime => {
 	if ( ! runtime.fight ) return null;
 	return Object.fromEntries( Object.entries( runtime.fight ).filter( ( [ key, value ] ) => key !== 'rng' && typeof value !== 'function' ) );
@@ -58,7 +54,7 @@ const webgl = Object.assign( Object.create( WebGLGameAdapter.prototype ), {
 for ( const [ runtime, game, seed ] of [ [ webgpuRuntime, webgpu, 0x71de ], [ webglRuntime, webgl, 0x71de ] ] ) {
 	runtime.bite = { phase: 'take', species: 'grunt', kg: 0.8 };
 	const previousRandom = Math.random;
-	Math.random = seededRandom( seed );
+	Math.random = () => seed / 0x100000000;
 	if ( game === webgpu ) await game.strike();
 	else await game._strike();
 	Math.random = previousRandom;
@@ -77,6 +73,7 @@ while ( webgpuRuntime.fight && webglRuntime.fight && frames < 60 * 180 ) {
 	frames ++;
 }
 assert.ok( frames < 60 * 180, 'the deterministic encounter reaches an outcome' );
+assert.equal( frames, 987, 'the encounter length matches the pre-split WebGPU fight trace' );
 assert.equal( webgpuRod.state, webglRod.state, 'both renderers present the same terminal rod state' );
 assert.deepEqual( webgpuRuntime.state.inventory, webglRuntime.state.inventory, 'both renderers record the same landed catch' );
 assert.deepEqual( webgpuAudio.events, webglAudio.events, 'both renderers emit the same fight audio cues' );

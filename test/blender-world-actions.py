@@ -2,11 +2,14 @@ import hashlib
 import importlib.util
 import json
 import pathlib
+import sys
 import unittest
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 TIDEWATER = pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "tools/blender"))
+from world_identity import is_world_id
 SPEC = importlib.util.spec_from_file_location("world_actions", ROOT / "tools/blender/world_actions.py")
 world_actions = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(world_actions)
@@ -30,6 +33,12 @@ class BlenderWorldActionsTests(unittest.TestCase):
         result, actions = world_actions.validate_plan(self.plan([]), self.source_bytes)
         self.assertEqual(result, self.source)
         self.assertEqual(actions, [])
+
+    def test_canonical_world_ids_are_shared_with_world_source_import(self):
+        self.assertTrue(is_world_id(self.source["worldId"]))
+        self.assertTrue(is_world_id("elsemesh:my-world_1"))
+        for world_id in ("world:legacy", "elsemesh-world:legacy", "em-world:legacy", "tw-world:legacy"):
+            self.assertFalse(is_world_id(world_id), world_id)
 
     def test_add_and_update_asset_object(self):
         item = {
@@ -157,7 +166,7 @@ class BlenderWorldActionsTests(unittest.TestCase):
         source = json.loads(self.source_bytes)
         source["portals"] = [{
             "id": "elsemesh-portal:frame-style-test",
-            "destinationWorldId": "world:frame-style-test",
+            "destinationWorldId": "elsemesh:frame-style-test",
             "entry": {"position": [0, 0, 0], "yaw": 0},
             "exit": {"position": [0, 0, 0], "yaw": 0},
             "openView": True,
@@ -167,6 +176,11 @@ class BlenderWorldActionsTests(unittest.TestCase):
         source_bytes = json.dumps(source, separators=(",", ":")).encode()
         result, _ = world_actions.validate_plan(self.plan([], source_bytes), source_bytes)
         self.assertEqual(result["portals"][0]["visual"], "timber")
+        source["portals"][0]["destinationWorldId"] = "world:legacy"
+        bad_id_bytes = json.dumps(source, separators=(",", ":")).encode()
+        with self.assertRaisesRegex(ValueError, "requires a destination world"):
+            world_actions.validate_plan(self.plan([], bad_id_bytes), bad_id_bytes)
+        source["portals"][0]["destinationWorldId"] = "elsemesh:frame-style-test"
         source["portals"][0]["visual"] = "glass"
         bad_bytes = json.dumps(source, separators=(",", ":")).encode()
         with self.assertRaisesRegex(ValueError, "visual must be"):

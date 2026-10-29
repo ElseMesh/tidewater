@@ -22,11 +22,7 @@ function compileBiteRateSchedule( schedule ) {
 }
 
 function seededRandom( fightState ) {
-	let value = fightState.randomState | 0;
-	value ^= value << 13;
-	value ^= value >>> 17;
-	value ^= value << 5;
-	fightState.randomState = value >>> 0;
+	fightState.randomState = ( Math.imul( fightState.randomState, 1664525 ) + 1013904223 ) >>> 0;
 	return fightState.randomState / 0x100000000;
 }
 
