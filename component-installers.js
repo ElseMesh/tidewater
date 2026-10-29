@@ -6,7 +6,6 @@ import { TerrainGPU } from '../../src/world/TerrainGPU.js';
 import { Terrain } from '../../src/world/Terrain.js';
 import { Vegetation } from '../../src/world/Vegetation.js';
 import { Reef } from '../../src/world/Reef.js';
-import { FishProps } from '../../src/world/fish/FishProps.js';
 import { Wildlife } from '../../src/world/wildlife/Wildlife.js';
 import { Whale } from '../../src/world/marine/Whale.js';
 import { HostedBoat } from '../../src/network/HostedBoat.js';
@@ -14,8 +13,6 @@ import { decodeVegetationPlacements } from '../../src/network/VegetationPlacemen
 import { decodeGrassDensityAsset } from '../../src/network/GrassDensityAsset.js';
 import { decodeTerrainSurfaceAsset } from '../../src/network/TerrainSurfaceAsset.js';
 import { decodeReefPlacements, MAX_REEF_PLACEMENTS, REEF_PLACEMENT_HEADER_BYTES, REEF_PLACEMENT_RECORD_BYTES } from '../../src/network/ReefPlacements.js';
-import { decodeFishPropPlacements } from '../../src/network/FishPropPlacements.js';
-import { worldFishPresentationFor } from '../../src/network/WorldFishPresentation.js';
 
 const INSTALLERS = new Map( [
 	[ 'elsemesh.procedural-island-vegetation/1', installVegetation ],
@@ -24,7 +21,6 @@ const INSTALLERS = new Map( [
 	[ 'elsemesh.example-island-wildlife/1', installWildlife ],
 	[ 'elsemesh.procedural-island-terrain/1', installProceduralTerrain ],
 	[ 'elsemesh.static-reef/1', installReef ],
-	[ 'elsemesh.static-fish-props/1', installFishProps ],
 	[ 'elsemesh.humpback-whale/1', installWhale ],
 	[ 'elsemesh.island-ocean/1', installIslandOcean ],
 	[ 'elsemesh.village-materials/2', installVillageMaterials ],
@@ -117,15 +113,6 @@ async function installReef( { app, root, connector, installed }, component ) {
 	return true;
 }
 
-async function installFishProps( { root, connector }, component ) {
-	const presentation = worldFishPresentationFor( connector.manifest.experience );
-	const fishProps = new FishProps( presentation );
-	fishProps.items = readFishPropPlacements( connector, component, presentation );
-	const mesh = fishProps.build();
-	root.add( mesh );
-	return { installed: true, runtime: { fishProps: true, dispose: () => { root.remove( mesh ); fishProps.dispose(); } } };
-}
-
 async function installWhale( { app, root, connector, installed }, component ) {
 	const whale = new Whale( {
 		scene: root, terrain: root.userData.terrainData || null,
@@ -184,12 +171,6 @@ function readReefPlacements( connector, component ) {
 	const bytes = connector.assets.get( component.placementAssetId );
 	if ( ! bytes ) throw new Error( `Reef component ${component.id} is missing its placement asset` );
 	return decodeReefPlacements( bytes );
-}
-
-function readFishPropPlacements( connector, component, presentation ) {
-	const bytes = connector.assets.get( component.placementAssetId );
-	if ( ! bytes ) throw new Error( `Fish-prop component ${component.id} is missing its placement asset` );
-	return decodeFishPropPlacements( bytes, presentation );
 }
 
 function reefPlacementCapacity( connector ) {
