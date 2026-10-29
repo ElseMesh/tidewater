@@ -4,18 +4,27 @@ import { WebGLWaterQuery } from '../../../src/fallback/WebGLWaterQuery.js';
 import { BoatController } from '../../../src/player/BoatController.js';
 import { BoatDesign } from '../../../src/world/boat/BoatDesign.js';
 import { IslandWorldState } from '../../../src/world/IslandWorldState.js';
+import { computeShoreField } from '../../../src/world/ShoreField.js';
+import '../register-behavior.js';
+import { dispatchWorldBehaviorHooks } from '../../../src/network/WorldBehaviorRegistry.js';
 
 const world = new IslandWorldState();
-const query = new WebGLWaterQuery( world.terrain );
-query.time = 3.25;
+const shoreField = computeShoreField( world.terrain, { res: 512, swellDir: [ - 0.12, - 1 ], seaLevel: - 0.15 } );
+const query = new WebGLWaterQuery( world.terrain, - 0.15 );
+const experience = { behaviors: { 'elsemesh.shore-aware-boat/1': {} } };
+dispatchWorldBehaviorHooks( experience, 'onWebGLWorldActivated', {
+	fallback: { waterQuery: query, terrain: world.terrain, shoreField }, mode: 'builtin',
+} );
+query.update( 0, 3.25 );
 const x = 72.4, z = 31.8, t = query.time;
-const expectedSurface = query.seaLevel
+const expectedBase = query.seaLevel
 	+ 0.95 * Math.sin( x * 0.035 + z * 0.025 + t * 0.3 )
 	+ 0.55 * Math.sin( - x * 0.07 + z * 0.15 - t * 0.55 )
 	+ 0.08 * Math.sin( x * 0.21 - z * 0.16 + t * 0.7 )
 	+ 0.03 * Math.sin( x * 0.42 + z * 0.09 + t * 1.3 )
 	+ 0.01 * Math.sin( x * 0.72 - z * 0.48 + t * 1.6 );
-assert.ok( Math.abs( query._height( x, z ) - expectedSurface ) < 1e-12, 'WebGL physics query includes every offshore base-wave term rendered by the water shader' );
+assert.ok( Math.abs( query._height( x, z ) - expectedBase ) > 0.05, 'WebGL gameplay query includes depth-aware shore displacement in addition to the offshore base waves' );
+assert.ok( Math.abs( query._height( 64.5, 36.5 ) - ( - 1.1862450522107852 ) ) < 1e-6, 'the dock query matches the rendered shore-wave height at a fixed simulation time' );
 query.time = 0;
 const boat = new BoatController( { design: new BoatDesign(), query, terrain: world.terrain, colliders: world.colliders } );
 
