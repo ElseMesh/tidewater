@@ -1,6 +1,6 @@
 # Example Island asset index
 
-Generated from [world-source.json](world-source.json) (61 verified content-addressed assets).
+Generated from [world-source.json](world-source.json) (60 verified content-addressed assets).
 Each filename is the SHA-256 of the exact packaged bytes. Keep these names immutable; use the descriptions and use sites below to identify the assets.
 
 | Description / use | Format | Size | SHA-256 asset |
@@ -24,7 +24,6 @@ Each filename is the SHA-256 of the exact packaged bytes. Keep these names immut
 | Editable source: source/models/whale/humpback.bin<br>Humpback-whale asset — model geometry | Binary (elsemesh.humpback-whale/1) | 3.31 MiB | [`b3a31801a393489331bc3dd4fd5be64cbad32ac4e159f5180e0eb028d489a92d`](assets/b3a31801a393489331bc3dd4fd5be64cbad32ac4e159f5180e0eb028d489a92d) |
 | Editable source: source/models/whale/humpback.json<br>Humpback-whale asset — model metadata | JSON | 4.0 KiB | [`c47390c365da1c8c6fa73bea4996bf51073a973770c1942e8993f545e283a354`](assets/c47390c365da1c8c6fa73bea4996bf51073a973770c1942e8993f545e283a354) |
 | Fish-prop placement data — placement data | JSON | 25.2 KiB | [`11f5ea7d9ccaf1a3d7931bfc46a34d71f133e0df23225e8b86904c47137f0fcf`](assets/11f5ea7d9ccaf1a3d7931bfc46a34d71f133e0df23225e8b86904c47137f0fcf) |
-| fishing rhythm extension — WebAssembly module | WebAssembly module | 0.8 KiB | [`4694279a3d9dc782378b3ec1112b044d09d3cf8803430181c271cc0fdccf56ba`](assets/4694279a3d9dc782378b3ec1112b044d09d3cf8803430181c271cc0fdccf56ba) |
 | lambis shell — LOD mesh | glTF binary (GLB) | 772.7 KiB | [`6348fabfc00e8ae4efb50b1b2987567bb116e0bf05b63402c187a3e2236ac056`](assets/6348fabfc00e8ae4efb50b1b2987567bb116e0bf05b63402c187a3e2236ac056) |
 | lambis shell — mesh | glTF binary (GLB) | 781.0 KiB | [`0ee07523352578110d78347d93a4536673f67c2d01a0aee6b334882bad80b717`](assets/0ee07523352578110d78347d93a4536673f67c2d01a0aee6b334882bad80b717) |
 | Moored lobster boat (static preview) — LOD mesh | glTF binary (GLB) | 1.20 MiB | [`eed66ccd07cb5e3a6583e12fbba397b17650c224c15d8b60cc53ce83366aac74`](assets/eed66ccd07cb5e3a6583e12fbba397b17650c224c15d8b60cc53ce83366aac74) |

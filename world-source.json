@@ -7,7 +7,16 @@
     "behaviors": {
       "elsemesh.fishing-game/1": {
         "fishStand": { "position": [49.9, -74.6], "yaw": 1.45, "interactionRadius": 3.2 },
-        "chandlery": { "position": [85.5, -60.5], "yaw": -1.9, "interactionRadius": 3.0 }
+        "chandlery": { "position": [85.5, -60.5], "yaw": -1.9, "interactionRadius": 3.0 },
+        "biteRateSchedule": {
+          "defaultMultiplier": 1.0,
+          "windows": [
+            { "startHour": 0.0, "endHour": 5.0, "multiplier": 0.8 },
+            { "startHour": 5.0, "endHour": 8.1, "multiplier": 1.4 },
+            { "startHour": 17.0, "endHour": 20.1, "multiplier": 1.4 },
+            { "startHour": 22.0, "endHour": 24.0, "multiplier": 0.8 }
+          ]
+        }
       },
       "elsemesh.shore-aware-boat/1": {}
     },
@@ -76,24 +85,11 @@
       "elsemesh.downeast-boat/1",
       "elsemesh.ambient-audio/1",
       "elsemesh.portal-handoff/1",
-      "elsemesh.portal-preview-static/1",
-      "elsemesh.world-extension/1"
+      "elsemesh.portal-preview-static/1"
     ],
     "maxPackageBytes": 134217728
   },
   "hosts": [],
-  "extensions": [
-    {
-      "id": "elsemesh-extension:fishing-rhythm",
-      "protocol": "elsemesh.world-extension/1",
-      "assetId": "sha256:4694279a3d9dc782378b3ec1112b044d09d3cf8803430181c271cc0fdccf56ba",
-      "memoryPages": 4,
-      "capabilities": [
-        "fishing.rules"
-      ],
-      "behaviorId": "elsemesh.fishing-game/1"
-    }
-  ],
   "objects": [
     {
       "id": "elsemesh-object:island-terrain",
