@@ -15,7 +15,7 @@ import { WORLD } from '../../../src/world/WorldLayout.js';
 import { Rocks } from '../../../src/world/Rocks.js';
 import { Colliders } from '../../../src/world/Colliders.js';
 import { Builder, Batch } from '../../../src/world/village/GeoBuilder.js';
-import { VILLAGE_MATERIAL_PROFILE, VILLAGE_MATERIAL_ROLES } from '../../../src/network/WorldVillageMaterial.js';
+import { VILLAGE_MATERIAL_PROFILE, VILLAGE_MATERIAL_ROLES } from '../VillageMaterialProfile.js';
 import { InstancedProps } from '../../../src/world/Props.js';
 import { DebrisPlacer } from '../../../src/world/debris/DebrisPlacement.js';
 import { SCAN_ASSETS } from '../../../src/world/debris/ScannedDebris.js';

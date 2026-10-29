@@ -2,11 +2,12 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import '../../../test/headless.mjs';
+import '../register-behavior.js';
 import { GPU } from '../../../src/engine/gpu/GPU.js';
 import { readTexture } from '../../../src/engine/gpu/Readback.js';
 import { loadWorldPackage, disposeWorldPackage } from '../../../src/network/WorldPackage.js';
 import { decodeVillageMaterialAsset } from '../../../src/network/VillageMaterialAsset.js';
-import { VILLAGE_MATERIAL_PROFILE, VILLAGE_MATERIAL_ROLES } from '../../../src/network/WorldVillageMaterial.js';
+import { VILLAGE_MATERIAL_PROFILE, VILLAGE_MATERIAL_ROLES } from '../VillageMaterialProfile.js';
 
 const source = JSON.parse( await readFile( new URL( '../world-source.json', import.meta.url ) ) );
 const village = source.objects.find( object => object.id === 'elsemesh-object:island-village' );
@@ -67,7 +68,7 @@ for ( const mesh of meshes ) {
 	roles.add( roleName[ 0 ].toLowerCase() + roleName.slice( 1 ) );
 }
 assert.deepEqual( roles, new Set( VILLAGE_MATERIAL_ROLES ) );
-const ownedContext = root.userData.worldPackage.ownedMaterialContext;
+const ownedContext = root.userData.worldPackage.materialAdapterContexts.get( 'elsemesh.village-materials/2' )?.context;
 assert.ok( ownedContext?.textures?.baked, 'the renderer must use packaged maps instead of re-baking hidden project state' );
 const map = await readTexture( ownedContext.textures.textures.woodA );
 assert.deepEqual( new Uint8Array( map.data ), materialData.maps.woodA, 'the GPU texture must match the packaged level-zero bytes' );

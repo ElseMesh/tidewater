@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { parseGLB } from '../../../src/engine/loaders/GLTF.js';
 import { getDetailImage } from '../../../src/world/terrain/DetailTextures.js';
 import { appendWorldPackageAssets, disposeWorldPackage, loadWorldPackage, registerWorldPackageCollisions, unregisterWorldPackageCollisions } from '../../../src/network/WorldPackage.js';
-import { VILLAGE_MATERIAL_ROLES } from '../../../src/network/WorldVillageMaterial.js';
+import { VILLAGE_MATERIAL_ROLES } from '../VillageMaterialProfile.js';
 import { validateWorldSource } from '../../../src/network/WorldSource.js';
 import { Colliders } from '../../../src/world/Colliders.js';
 import { standard } from '../../../src/materials/Materials.js';
