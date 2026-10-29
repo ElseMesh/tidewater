@@ -6,7 +6,7 @@ import '../register-behavior.js';
 import { GPU } from '../../../src/engine/gpu/GPU.js';
 import { readTexture } from '../../../src/engine/gpu/Readback.js';
 import { loadWorldPackage, disposeWorldPackage } from '../../../src/network/WorldPackage.js';
-import { decodeVillageMaterialAsset } from '../../../src/network/VillageMaterialAsset.js';
+import { decodeVillageMaterialAsset } from '../VillageMaterialAsset.js';
 import { VILLAGE_MATERIAL_PROFILE, VILLAGE_MATERIAL_ROLES } from '../VillageMaterialProfile.js';
 
 const source = JSON.parse( await readFile( new URL( '../world-source.json', import.meta.url ) ) );

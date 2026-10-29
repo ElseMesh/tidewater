@@ -1,5 +1,5 @@
 import { registerWorldPackageMaterialAdapter } from '../../src/network/WorldPackageMaterialAdapterRegistry.js';
-import { decodeVillageMaterialAsset } from '../../src/network/VillageMaterialAsset.js';
+import { decodeWorldComponentAsset } from '../../src/network/WorldComponentAssetCodecRegistry.js';
 import { VillageTextures } from '../../src/world/village/TextureBaker.js';
 import { createVillageMaterials } from '../../src/world/village/VillageMaterials.js';
 
@@ -7,7 +7,7 @@ registerWorldPackageMaterialAdapter( 'elsemesh.village-materials/2', {
 	async prepare( { connector, signal, component } ) {
 		const packed = await connector.getAsset( component.dataAssetId, { signal } );
 		if ( signal?.aborted ) throw signal.reason || new DOMException( 'World unloaded', 'AbortError' );
-		const decoded = await decodeVillageMaterialAsset( packed );
+		const decoded = await decodeWorldComponentAsset( 'village-materials/1', packed );
 		if ( signal?.aborted ) throw signal.reason || new DOMException( 'World unloaded', 'AbortError' );
 		const textures = new VillageTextures( { bakedMaps: decoded.maps } );
 		try {

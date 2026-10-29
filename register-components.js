@@ -4,13 +4,15 @@ import { registerWorldMaterialProfile } from '../../src/network/WorldMaterialPro
 import { tidewaterComponentInstaller } from './component-installers.js';
 import { decodeFishPropPlacements, FISH_PROP_PLACEMENT_ASSET_KIND } from './FishPropPlacements.js';
 import * as fishPresentation from './FishPresentation.js';
-import { VILLAGE_MATERIAL_PROFILE, VILLAGE_MATERIAL_ROLES } from './VillageMaterialProfile.js';
+import { VILLAGE_MATERIAL_MAPS, VILLAGE_MATERIAL_PROFILE, VILLAGE_MATERIAL_ROLES } from './VillageMaterialProfile.js';
+import { decodeVillageMaterialAsset, VILLAGE_MATERIAL_ASSET_KIND } from './VillageMaterialAsset.js';
 import './WorldPackageMaterialAdapter.js';
 import './renderers/WebGPUFishPropsComponentAdapter.js';
 import './renderers/WebGLFishPropsComponentAdapters.js';
 
 registerWorldComponentAssetDecoder( FISH_PROP_PLACEMENT_ASSET_KIND, bytes => decodeFishPropPlacements( bytes, fishPresentation ) );
-registerWorldMaterialProfile( VILLAGE_MATERIAL_PROFILE, VILLAGE_MATERIAL_ROLES );
+registerWorldComponentAssetDecoder( VILLAGE_MATERIAL_ASSET_KIND, decodeVillageMaterialAsset );
+registerWorldMaterialProfile( VILLAGE_MATERIAL_PROFILE, { roles: VILLAGE_MATERIAL_ROLES, maps: VILLAGE_MATERIAL_MAPS } );
 
 for ( const [ type, traits ] of [
 	[ 'elsemesh.static-grass/1', {} ],
