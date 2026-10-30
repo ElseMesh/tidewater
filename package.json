@@ -3,6 +3,7 @@
   "type": "module",
   "scripts": {
 		"export": "node tools/export-world.mjs",
-		"export:grass-density": "node tools/export-grass-density.mjs"
+		"export:grass-density": "node tools/export-grass-density.mjs",
+		"test:webgl-shore-query-parity": "node test/webgl-shore-query-parity.mjs"
   }
 }
