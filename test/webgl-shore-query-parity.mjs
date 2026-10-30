@@ -28,7 +28,7 @@ async function stopBrowser( browser ) {
 }
 
 const writer = spawnSync( process.execPath, [ '--preserve-symlinks', join( testDirectory, 'write-webgpu-shore-query-reference.mjs' ) ], {
-	cwd: engineRoot, encoding: 'utf8', timeout: 120000, maxBuffer: 1024 * 1024,
+	cwd: engineRoot, encoding: 'utf8', timeout: 600000, maxBuffer: 1024 * 1024,
 	env: { ...process.env, ELSEMESH_SHORE_QUERY_REFERENCE: referencePath },
 } );
 if ( writer.error ) throw writer.error;
@@ -97,7 +97,7 @@ try {
 		await command( 'Page.enable' );
 		await command( 'Runtime.enable' );
 		await command( 'Page.navigate', { url } );
-		const deadline = Date.now() + 30000;
+		const deadline = Date.now() + 300000;
 		let result;
 		while ( Date.now() < deadline ) {
 			const response = await command( 'Runtime.evaluate', {
@@ -117,6 +117,11 @@ try {
 		assert( metrics.normalError <= 0.01, `Tidewater WebGL shoreline normal MAE ${metrics.normalError} <= 0.01` );
 		assert( metrics.floorError <= 1e-5, `Tidewater WebGL terrain floor MAE ${metrics.floorError} m <= 1e-5 m` );
 		console.log( `Tidewater shoreline query parity passed (${metrics.count} packaged-terrain points; height MAE ${metrics.heightError.toFixed(4)} m, max ${metrics.maxHeightError.toFixed(4)} m; normal MAE ${metrics.normalError.toFixed(4)}; floor MAE ${metrics.floorError.toExponential(1)} m)` );
+		assert( metrics.boat && Number.isFinite( metrics.boat.maxPositionDelta ) && Number.isFinite( metrics.boat.maxSpeedDelta ), 'production boat traces yield finite backend deltas' );
+		const peakPosition = metrics.boat.samples.reduce( ( peak, sample ) => sample.positionDelta > peak.positionDelta ? sample : peak );
+		const finalBoat = metrics.boat.samples.at( - 1 );
+		console.log( `Tidewater production boat trace (18 s, FFT + packaged shoreline, no interactive wake): max position delta ${metrics.boat.maxPositionDelta.toFixed(3)} m at ${peakPosition.second} s; final ${finalBoat.positionDelta.toFixed(3)} m; max speed delta ${metrics.boat.maxSpeedDelta.toFixed(3)} m/s` );
+		console.log( `per-second position deltas (m): ${metrics.boat.samples.map( sample => sample.positionDelta.toFixed(2) ).join( ', ' )}` );
 	} finally {
 		socket.close();
 	}

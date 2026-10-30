@@ -22,6 +22,13 @@ without a graphics context. `webgpu-fish-props-adapter-build.mjs` creates the
 registered component with a headless WebGPU device and checks GPU buffer
 creation and cleanup. Neither check renders pixels or measures FPS.
 
+`webgl-shore-query-parity.mjs` compares WebGPU and WebGL against Tidewater's
+packaged terrain and shoreline field, then records an 18-second underway boat
+trace using FFT and shoreline inputs. That controlled trace omits interactive
+wake and collision handling. Its headless WebGL harness uses synchronous pixel
+readback because Chromium's async readback stopped completing after its first
+sample; it does not measure live readback timing, pixels, or FPS.
+
 The optional Blender authoring checks use the Tidewater package as their source
 fixture:
 

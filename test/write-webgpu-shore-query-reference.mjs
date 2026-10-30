@@ -10,6 +10,9 @@ import { WaterSurface } from '../../../src/ocean/WaterSurface.js';
 import { decodeTerrainSurfaceAsset } from '../../../src/network/TerrainSurfaceAsset.js';
 import { HeightfieldTerrainData } from '../../../src/world/HeightfieldTerrainData.js';
 import { TerrainGPU } from '../../../src/world/TerrainGPU.js';
+import { BoatController } from '../../../src/player/BoatController.js';
+import { BoatDesign } from '../../../src/world/boat/BoatDesign.js';
+import { Vector3 } from '../../../src/engine/math/Vector3.js';
 
 const output = process.env.ELSEMESH_SHORE_QUERY_REFERENCE;
 if ( ! output ) throw new Error( 'Set ELSEMESH_SHORE_QUERY_REFERENCE to an external build-tree JSON path' );
@@ -32,6 +35,8 @@ const query = new WaterQuery( null, surface );
 
 const berth = source.objects.find( object => object.id === 'elsemesh-object:moored-lobster-boat' )?.transform.position;
 assert( Array.isArray( berth ) && berth.length === 3, 'Tidewater package has its authored boat berth' );
+const heading = source.objects.find( object => object.id === 'elsemesh-object:moored-lobster-boat' )?.transform.yaw;
+assert( Number.isFinite( heading ), 'Tidewater package has its authored boat heading' );
 const points = [
 	[ berth[ 0 ], berth[ 2 ] ], [ berth[ 0 ] + 4, berth[ 2 ] ], [ berth[ 0 ] - 4, berth[ 2 ] ],
 	[ berth[ 0 ], berth[ 2 ] + 8 ], [ berth[ 0 ], berth[ 2 ] - 8 ],
@@ -56,6 +61,49 @@ for ( const candidate of coast ) {
 }
 assert( points.length >= 10, `reference includes dock and exposed shallow-water points (${points.length})` );
 
+async function traceBoat() {
+
+	const dt = 1 / 60;
+	query.latency = dt;
+	const design = new BoatDesign();
+	const boat = new BoatController( {
+		design, query, terrain, colliders: { resolveCapsule: () => false },
+		initialPosition: new Vector3( ...berth ), initialHeading: heading,
+	} );
+	boat.driven = true;
+	boat.moored = false;
+	const trace = [];
+	for ( let frame = 0; frame < 18 * 60; frame ++ ) {
+
+		const time = ( frame + 1 ) * dt;
+		boat.setInput( 1, frame < 12 * 60 ? 0 : - 0.7, dt );
+		boat.queueQueries();
+		const previousVersion = query.version;
+		GPU.beginFrame();
+		G.time.value = time;
+		G.dt.value = dt;
+		fft.update( time );
+		query.update();
+		GPU.submit();
+		const deadline = Date.now() + 5000;
+		while ( query.version === previousVersion && Date.now() < deadline ) await new Promise( resolve => setTimeout( resolve, 1 ) );
+		assert.notEqual( query.version, previousVersion, `WebGPU boat water query returns at frame ${frame}` );
+		query.latency = dt;
+		boat.update( dt );
+		if ( frame % 60 === 59 ) trace.push( {
+			position: [ boat.position.x, boat.position.y, boat.position.z ],
+			velocity: [ boat.velocity.x, boat.velocity.y, boat.velocity.z ],
+			quaternion: [ boat.quaternion.x, boat.quaternion.y, boat.quaternion.z, boat.quaternion.w ],
+			speed: boat.speed,
+		} );
+
+	}
+
+	assert( boat.isFinite(), 'WebGPU production-query boat trace remains finite' );
+	return trace;
+
+}
+
 try {
 	const time = 4.25, start = query.allocate( 'parity', points.length );
 	for ( let i = 0; i < points.length; i ++ ) query.setPoint( start + i, ...points[ i ] );
@@ -73,11 +121,12 @@ try {
 		protocol: 'elsemesh.tidewater-shore-query-parity/1', time, seaLevel: source.rules.seaLevel,
 		terrain: { size: maps.size, origin: maps.origin, resolution: maps.resolution }, shoreField: maps.shoreField,
 		points, webgpu: points.map( ( _, i ) => Array.from( query.cpu.slice( ( start + i ) * 4, ( start + i + 1 ) * 4 ) ) ),
+		boatTrace: await traceBoat(),
 	};
 	const outputPath = resolve( output );
 	await mkdir( dirname( outputPath ), { recursive: true } );
 	await writeFile( outputPath, JSON.stringify( reference ) );
-	console.log( `wrote ${points.length} Tidewater WebGPU shoreline query samples at ${time.toFixed( 2 )} s` );
+	console.log( `wrote ${points.length} Tidewater WebGPU shoreline query samples and an 18-second production boat trace at ${time.toFixed( 2 )} s` );
 } finally {
 	surface.shore.dispose?.();
 	terrainGPU.dispose();
