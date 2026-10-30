@@ -2,7 +2,7 @@ import '../../../test/headless.mjs';
 import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
-import { GPU, G } from '../../../src/engine/webgpu.js';
+import { GPU, G, ComputeKernel, StorageBuffer, readBuffer } from '../../../src/engine/webgpu.js';
 import { OceanFFT } from '../../../src/ocean/OceanFFT.js';
 import { ShoreWaves } from '../../../src/ocean/ShoreWaves.js';
 import { WaterQuery } from '../../../src/ocean/WaterQuery.js';
@@ -32,6 +32,7 @@ const surface = new WaterSurface( { fft, cdlod: {} } );
 surface.terrain = terrainGPU;
 surface.shore = new ShoreWaves( terrainGPU );
 const query = new WaterQuery( null, surface );
+let fftOnlyQuery = null;
 
 const berth = source.objects.find( object => object.id === 'elsemesh-object:moored-lobster-boat' )?.transform.position;
 assert( Array.isArray( berth ) && berth.length === 3, 'Tidewater package has its authored boat berth' );
@@ -64,12 +65,17 @@ assert( points.length >= 10, `reference includes dock and exposed shallow-water 
 async function traceBoat() {
 
 	const dt = 1 / 60;
+	// The fixed-point reference above advances the FFT directly to t=4.25 s.
+	// Runtime calls OceanFFT.update() with frame delta, so restart its clock and
+	// advance by dt here rather than passing the absolute simulation time.
+	fft.time.value = 0;
 	query.latency = dt;
 	const design = new BoatDesign();
 	const boat = new BoatController( {
 		design, query, terrain, colliders: { resolveCapsule: () => false },
 		initialPosition: new Vector3( ...berth ), initialHeading: heading,
 	} );
+	const tracePointSlot = query.allocate( 'boat-trace-point', 1 );
 	boat.driven = true;
 	boat.moored = false;
 	const trace = [];
@@ -78,11 +84,12 @@ async function traceBoat() {
 		const time = ( frame + 1 ) * dt;
 		boat.setInput( 1, frame < 12 * 60 ? 0 : - 0.7, dt );
 		boat.queueQueries();
+		query.setPoint( tracePointSlot, boat.position.x + boat.velocity.x * dt, boat.position.z + boat.velocity.z * dt );
 		const previousVersion = query.version;
 		GPU.beginFrame();
 		G.time.value = time;
 		G.dt.value = dt;
-		fft.update( time );
+		fft.update( dt );
 		query.update();
 		GPU.submit();
 		const deadline = Date.now() + 5000;
@@ -95,6 +102,8 @@ async function traceBoat() {
 			velocity: [ boat.velocity.x, boat.velocity.y, boat.velocity.z ],
 			quaternion: [ boat.quaternion.x, boat.quaternion.y, boat.quaternion.z, boat.quaternion.w ],
 			speed: boat.speed,
+			waterPoint: Array.from( query.resultInputs.slice( tracePointSlot * 4, tracePointSlot * 4 + 2 ) ),
+			water: Array.from( query.cpu.slice( tracePointSlot * 4, tracePointSlot * 4 + 4 ) ),
 		} );
 
 	}
@@ -117,11 +126,75 @@ try {
 	const deadline = Date.now() + 15000;
 	while ( ! query.cpuValid && Date.now() < deadline ) await new Promise( resolve => setTimeout( resolve, 0 ) );
 	assert( query.cpuValid, 'pre-split WebGPU query returns production terrain and shoreline samples' );
+	const webgpu = points.map( ( _, i ) => Array.from( query.cpu.slice( ( start + i ) * 4, ( start + i + 1 ) * 4 ) ) );
+	const amplitude = surface.amplitude.value;
+	let shoreOnly;
+	try {
+		surface.amplitude.value = 0;
+		const previousVersion = query.version;
+		GPU.beginFrame();
+		G.time.value = time;
+		G.dt.value = 1 / 60;
+		fft.update( 0 );
+		query.update();
+		GPU.submit();
+		const shoreDeadline = Date.now() + 15000;
+		while ( query.version === previousVersion && Date.now() < shoreDeadline ) await new Promise( resolve => setTimeout( resolve, 1 ) );
+		assert.notEqual( query.version, previousVersion, 'pre-split WebGPU shore-only query returns samples' );
+		shoreOnly = points.map( ( _, i ) => Array.from( query.cpu.slice( ( start + i ) * 4, ( start + i + 1 ) * 4 ) ) );
+	} finally {
+		surface.amplitude.value = amplitude;
+	}
+	const shoreInputs = new StorageBuffer( { label: 'shore-only-point-inputs', count: points.length, type: 'vec4f', data: Float32Array.from( points.flatMap( point => [ point[ 0 ], point[ 1 ], 0, 0 ] ) ) } );
+	const shoreOutputs = new StorageBuffer( { label: 'shore-only-point-output', count: points.length, type: 'vec4f' } );
+	const shoreKernel = new ComputeKernel( {
+		label: 'Tidewater shore displacement samples', modules: [ surface.shore.module ], workgroupSize: [ 64, 1, 1 ],
+		bindings: { shoreInputs: { storage: shoreInputs, access: 'read' }, shoreOutputs: { storage: shoreOutputs, access: 'read_write' } },
+		code: /* wgsl */`
+@compute @workgroup_size( WG_X )
+fn main( @builtin( global_invocation_id ) gid: vec3u ) {
+	let i = gid.x;
+	if ( i >= ${points.length}u ) { return; }
+	let p = shoreInputs[ i ].xy;
+	let depth = frame.seaLevel - terrainHeightAt( p );
+	let s = shoreEvaluateNoNormal( p, depth, terrainHeightAt( p ) );
+	shoreOutputs[ i ] = vec4f( s.disp, s.env );
+}`,
+	} );
+	GPU.beginFrame();
+	G.time.value = time;
+	G.seaLevel.value = source.rules.seaLevel;
+	shoreKernel.dispatch( 1 );
+	GPU.submit();
+	const rawShore = new Float32Array( await readBuffer( shoreOutputs.getGPU(), points.length * 16 ) );
+	const shoreAtPoint = points.map( ( _, i ) => Array.from( rawShore.slice( i * 4, i * 4 + 4 ) ) );
+	const boatTrace = await traceBoat();
+	const fftOnlySurface = Object.create( surface );
+	fftOnlySurface.shore = null;
+	fftOnlySurface.wake = null;
+	fftOnlyQuery = new WaterQuery( null, fftOnlySurface );
+	const fftOnlySlot = fftOnlyQuery.allocate( 'boat-trace-fft-only', 1 );
+	for ( let i = 0; i < boatTrace.length; i ++ ) {
+		const time = i + 1;
+		fft.time.value = 0;
+		G.time.value = time;
+		G.dt.value = 1 / 60;
+		fftOnlyQuery.setPoint( fftOnlySlot, ...boatTrace[ i ].waterPoint );
+		const previousVersion = fftOnlyQuery.version;
+		GPU.beginFrame();
+		fft.update( time );
+		fftOnlyQuery.update();
+		GPU.submit();
+		const deadline = Date.now() + 5000;
+		while ( fftOnlyQuery.version === previousVersion && Date.now() < deadline ) await new Promise( resolve => setTimeout( resolve, 1 ) );
+		assert.notEqual( fftOnlyQuery.version, previousVersion, `WebGPU FFT-only query returns at ${time} s` );
+		boatTrace[ i ].waterFFTOnly = Array.from( fftOnlyQuery.cpu.slice( fftOnlySlot * 4, fftOnlySlot * 4 + 4 ) );
+	}
 	const reference = {
 		protocol: 'elsemesh.tidewater-shore-query-parity/1', time, seaLevel: source.rules.seaLevel,
 		terrain: { size: maps.size, origin: maps.origin, resolution: maps.resolution }, shoreField: maps.shoreField,
-		points, webgpu: points.map( ( _, i ) => Array.from( query.cpu.slice( ( start + i ) * 4, ( start + i + 1 ) * 4 ) ) ),
-		boatTrace: await traceBoat(),
+		points, webgpu, shoreOnly, shoreAtPoint,
+		boatTrace,
 	};
 	const outputPath = resolve( output );
 	await mkdir( dirname( outputPath ), { recursive: true } );

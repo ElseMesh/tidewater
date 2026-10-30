@@ -117,11 +117,32 @@ try {
 		assert( metrics.normalError <= 0.01, `Tidewater WebGL shoreline normal MAE ${metrics.normalError} <= 0.01` );
 		assert( metrics.floorError <= 1e-5, `Tidewater WebGL terrain floor MAE ${metrics.floorError} m <= 1e-5 m` );
 		console.log( `Tidewater shoreline query parity passed (${metrics.count} packaged-terrain points; height MAE ${metrics.heightError.toFixed(4)} m, max ${metrics.maxHeightError.toFixed(4)} m; normal MAE ${metrics.normalError.toFixed(4)}; floor MAE ${metrics.floorError.toExponential(1)} m)` );
+		console.log( `Tidewater shore hook vs WebGPU shore-only query: height MAE ${metrics.shoreProfile.shoreOffsetError.toFixed(4)} m, max ${metrics.shoreProfile.maxShoreOffsetError.toFixed(4)} m` );
+		console.log( `Tidewater CPU shore profile vs direct WebGPU shoreEvaluate: height MAE ${metrics.shoreProfile.shorePointError.toFixed(4)} m, max ${metrics.shoreProfile.maxShorePointError.toFixed(4)} m` );
+		assert( metrics.shoreProfile.shoreOffsetError <= 0.001 && metrics.shoreProfile.maxShoreOffsetError <= 0.002, 'Tidewater shore hook tracks Eulerian WebGPU shoreline within 2 mm' );
+		assert( metrics.shoreProfile.shorePointError <= 0.0001 && metrics.shoreProfile.maxShorePointError <= 0.0001, 'Tidewater CPU shore profile matches direct WebGPU displacement within 0.1 mm' );
 		assert( metrics.boat && Number.isFinite( metrics.boat.maxPositionDelta ) && Number.isFinite( metrics.boat.maxSpeedDelta ), 'production boat traces yield finite backend deltas' );
+		assert( metrics.boat.maxPositionDelta <= 0.15, `18-second WebGPU/WebGL boat position delta ${metrics.boat.maxPositionDelta} m <= 0.15 m` );
+		assert( metrics.boat.maxSpeedDelta <= 0.02, `18-second WebGPU/WebGL boat speed delta ${metrics.boat.maxSpeedDelta} m/s <= 0.02 m/s` );
+		assert( metrics.boat.maxTraceWaterHeightError <= 0.02, `same-position production water height error ${metrics.boat.maxTraceWaterHeightError} m <= 0.02 m` );
 		const peakPosition = metrics.boat.samples.reduce( ( peak, sample ) => sample.positionDelta > peak.positionDelta ? sample : peak );
 		const finalBoat = metrics.boat.samples.at( - 1 );
 		console.log( `Tidewater production boat trace (18 s, FFT + packaged shoreline, no interactive wake): max position delta ${metrics.boat.maxPositionDelta.toFixed(3)} m at ${peakPosition.second} s; final ${finalBoat.positionDelta.toFixed(3)} m; max speed delta ${metrics.boat.maxSpeedDelta.toFixed(3)} m/s` );
 		console.log( `per-second position deltas (m): ${metrics.boat.samples.map( sample => sample.positionDelta.toFixed(2) ).join( ', ' )}` );
+		console.log( 'second | position Δ | Δx | Δz | speed Δ | heading Δ° | point height Δ | point normal Δ | depth | WebGPU h | WebGL h' );
+		for ( let i = 0; i < metrics.boat.samples.length; i ++ ) {
+			const boat = metrics.boat.samples[ i ], water = metrics.boat.traceWaterSamples[ i ];
+			const webgpuH = boat.webgpu.water[ 0 ], webglH = boat.webgl.water[ 0 ];
+			const yaw = q => Math.atan2( 2 * ( q[ 3 ] * q[ 1 ] + q[ 0 ] * q[ 2 ] ), 1 - 2 * ( q[ 1 ] ** 2 + q[ 2 ] ** 2 ) );
+			const headingDelta = Math.atan2( Math.sin( yaw( boat.webgl.quaternion ) - yaw( boat.webgpu.quaternion ) ), Math.cos( yaw( boat.webgl.quaternion ) - yaw( boat.webgpu.quaternion ) ) ) * 180 / Math.PI;
+			const dx = boat.webgl.position[ 0 ] - boat.webgpu.position[ 0 ], dz = boat.webgl.position[ 2 ] - boat.webgpu.position[ 2 ];
+			console.log( `${String( i + 1 ).padStart( 6 )} | ${boat.positionDelta.toFixed(3).padStart(11)} | ${dx.toFixed(3).padStart(6)} | ${dz.toFixed(3).padStart(6)} | ${boat.speedDelta.toFixed(3).padStart(7)} | ${headingDelta.toFixed(3).padStart(10)} | ${water.heightDelta.toFixed(4).padStart(14)} | ${water.normalDelta.toFixed(5).padStart(14)} | ${water.depth.toFixed(1).padStart(5)} | ${webgpuH.toFixed(3).padStart(8)} | ${webglH.toFixed(3).padStart(7)}` );
+		}
+		const worstWater = metrics.boat.traceWaterSamples.reduce( ( worst, sample ) => sample.heightDelta > worst.heightDelta ? sample : worst );
+		console.log( `same-position/time water samples along the WebGPU trace: height MAE ${metrics.boat.traceWaterHeightError.toFixed(4)} m, max ${metrics.boat.maxTraceWaterHeightError.toFixed(4)} m; normal-vector MAE ${metrics.boat.traceWaterNormalError.toFixed(5)}` );
+		console.log( `FFT-only same-position/time samples: height MAE ${metrics.boat.fftOnlyHeightError.toFixed(4)} m, max ${metrics.boat.maxFFTOnlyHeightError.toFixed(4)} m; normal-vector MAE ${metrics.boat.fftOnlyNormalError.toFixed(5)}` );
+		console.log( `FFT-only per-second height deltas (m): ${metrics.boat.fftOnlySamples.map( sample => sample.heightDelta.toFixed(3) ).join( ', ' )}` );
+		console.log( `largest fixed-point height error is ${worstWater.heightDelta.toFixed(4)} m at ${worstWater.second} s (depth ${worstWater.depth.toFixed(1)} m, x/z ${worstWater.point.map( value => value.toFixed(1) ).join('/')}); WebGPU ${worstWater.webgpu[0].toFixed(3)} m, WebGL ${worstWater.webgl[0].toFixed(3)} m` );
 	} finally {
 		socket.close();
 	}

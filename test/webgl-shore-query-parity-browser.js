@@ -33,6 +33,19 @@ try {
 	};
 	query = new WebGLWaterQuery( THREE, renderer, terrain, reference.seaLevel );
 	query.setSurfaceOffsetSampler( createWebGLShoreSurfaceOffset( { terrain, seaLevel: reference.seaLevel, field: maps.shoreField } ) );
+	let shoreOffsetError = 0, maxShoreOffsetError = 0, shorePointError = 0, maxShorePointError = 0;
+	for ( let i = 0; i < reference.points.length; i ++ ) {
+		const actual = query.surfaceOffsetAt( ...reference.points[ i ], reference.time );
+		const expected = reference.shoreOnly[ i ][ 0 ] - reference.seaLevel;
+		const error = Math.abs( actual - expected );
+		shoreOffsetError += error;
+		maxShoreOffsetError = Math.max( maxShoreOffsetError, error );
+		const pointError = Math.abs( actual - reference.shoreAtPoint[ i ][ 1 ] );
+		shorePointError += pointError;
+		maxShorePointError = Math.max( maxShorePointError, pointError );
+	}
+	shoreOffsetError /= reference.points.length;
+	shorePointError /= reference.points.length;
 	const start = query.allocate( 'shore-parity', reference.points.length );
 	for ( let i = 0; i < reference.points.length; i ++ ) query.setPoint( start + i, ...reference.points[ i ] );
 	const deadline = performance.now() + 20000;
@@ -61,6 +74,7 @@ try {
 		design, query, terrain, colliders: { resolveCapsule: () => false },
 		initialPosition: new Vector3( ...berthObject.transform.position ), initialHeading: berthObject.transform.yaw,
 	} );
+	const tracePointSlot = query.allocate( 'boat-trace-point', 1 );
 	boat.driven = true;
 	boat.moored = false;
 	const boatTrace = [];
@@ -69,6 +83,7 @@ try {
 		const dt = 1 / 60, time = ( frame + 1 ) * dt;
 		boat.setInput( 1, frame < 12 * 60 ? 0 : - 0.7, dt );
 		boat.queueQueries();
+		query.setPoint( tracePointSlot, boat.position.x + boat.velocity.x * dt, boat.position.z + boat.velocity.z * dt );
 		while ( query._pending ) await new Promise( resolve => setTimeout( resolve, 1 ) );
 		const previousVersion = query.version;
 		query.update( dt, time );
@@ -83,6 +98,8 @@ try {
 			velocity: [ boat.velocity.x, boat.velocity.y, boat.velocity.z ],
 			quaternion: [ boat.quaternion.x, boat.quaternion.y, boat.quaternion.z, boat.quaternion.w ],
 			speed: boat.speed,
+			waterPoint: Array.from( query.resultInputs.slice( tracePointSlot * 4, tracePointSlot * 4 + 2 ) ),
+			water: Array.from( query.cpu.slice( tracePointSlot * 4, tracePointSlot * 4 + 4 ) ),
 		} );
 
 	}
@@ -97,7 +114,62 @@ try {
 		maxBoatSpeedDelta = Math.max( maxBoatSpeedDelta, speedDelta );
 		return { second: i + 1, positionDelta, speedDelta, webgpu: expected, webgl: actual };
 	} );
-	result.textContent = JSON.stringify( { status: 'complete', count: samples.length, heightError, maxHeightError, normalError, floorError, samples, boat: { maxPositionDelta: maxBoatPositionDelta, maxSpeedDelta: maxBoatSpeedDelta, samples: boatSamples } } );
+	const traceProbeSlot = query.allocate( 'webgpu-boat-trace-probe', 1 );
+	let traceWaterHeightError = 0, maxTraceWaterHeightError = 0, traceWaterNormalError = 0;
+	const traceWaterSamples = [];
+	for ( let i = 0; i < reference.boatTrace.length; i ++ ) {
+
+		const expected = reference.boatTrace[ i ];
+		while ( query._pending ) await new Promise( resolve => setTimeout( resolve, 1 ) );
+		query.setPoint( traceProbeSlot, ...expected.waterPoint );
+		const previousVersion = query.version;
+		const time = i + 1, dt = 1 / 60;
+		query.update( dt, time );
+		const probeDeadline = performance.now() + 5000;
+		while ( query.version === previousVersion && performance.now() < probeDeadline ) await new Promise( resolve => setTimeout( resolve, 1 ) );
+		if ( query.version === previousVersion ) throw new Error( `WebGL fixed-position water probe timed out at ${time} s` );
+		while ( query._pending ) await new Promise( resolve => setTimeout( resolve, 1 ) );
+		const actual = Array.from( query.cpu.slice( traceProbeSlot * 4, traceProbeSlot * 4 + 4 ) );
+		const heightDelta = Math.abs( actual[ 0 ] - expected.water[ 0 ] );
+		const normalDelta = Math.hypot( actual[ 1 ] - expected.water[ 1 ], actual[ 2 ] - expected.water[ 2 ] );
+		traceWaterHeightError += heightDelta;
+		maxTraceWaterHeightError = Math.max( maxTraceWaterHeightError, heightDelta );
+		traceWaterNormalError += normalDelta;
+		traceWaterSamples.push( { second: time, point: expected.waterPoint, depth: reference.seaLevel - expected.water[ 3 ], webgpu: expected.water, webgl: actual, heightDelta, normalDelta } );
+
+	}
+	traceWaterHeightError /= reference.boatTrace.length;
+	traceWaterNormalError /= reference.boatTrace.length * 2;
+	const surfaceOffsetSampler = query.surfaceOffsetAt;
+	let fftOnlyHeightError = 0, maxFFTOnlyHeightError = 0, fftOnlyNormalError = 0;
+	const fftOnlySamples = [];
+	try {
+		query.setSurfaceOffsetSampler( null );
+		for ( let i = 0; i < reference.boatTrace.length; i ++ ) {
+			const expected = reference.boatTrace[ i ], time = i + 1;
+			query.setPoint( traceProbeSlot, ...expected.waterPoint );
+			const previousVersion = query.version;
+			query.update( 0, time );
+			const deadline = performance.now() + 5000;
+			while ( query.version === previousVersion && performance.now() < deadline ) await new Promise( resolve => setTimeout( resolve, 1 ) );
+			if ( query.version === previousVersion ) throw new Error( `WebGL FFT-only water probe timed out at ${time} s` );
+			while ( query._pending ) await new Promise( resolve => setTimeout( resolve, 1 ) );
+			const actual = Array.from( query.cpu.slice( traceProbeSlot * 4, traceProbeSlot * 4 + 4 ) );
+			const expectedFFT = expected.waterFFTOnly;
+			if ( ! Array.isArray( expectedFFT ) || expectedFFT.length !== 4 ) throw new Error( `Missing WebGPU FFT-only sample at ${time} s` );
+			const heightDelta = Math.abs( actual[ 0 ] - expectedFFT[ 0 ] );
+			const normalDelta = Math.hypot( actual[ 1 ] - expectedFFT[ 1 ], actual[ 2 ] - expectedFFT[ 2 ] );
+			fftOnlyHeightError += heightDelta;
+			maxFFTOnlyHeightError = Math.max( maxFFTOnlyHeightError, heightDelta );
+			fftOnlyNormalError += normalDelta;
+			fftOnlySamples.push( { second: time, point: expected.waterPoint, webgpu: expectedFFT, webgl: actual, heightDelta, normalDelta } );
+		}
+	} finally {
+		query.setSurfaceOffsetSampler( surfaceOffsetSampler );
+	}
+	fftOnlyHeightError /= reference.boatTrace.length;
+	fftOnlyNormalError /= reference.boatTrace.length * 2;
+	result.textContent = JSON.stringify( { status: 'complete', count: samples.length, heightError, maxHeightError, normalError, floorError, samples, shoreProfile: { shoreOffsetError, maxShoreOffsetError, shorePointError, maxShorePointError }, boat: { maxPositionDelta: maxBoatPositionDelta, maxSpeedDelta: maxBoatSpeedDelta, traceWaterHeightError, maxTraceWaterHeightError, traceWaterNormalError, fftOnlyHeightError, maxFFTOnlyHeightError, fftOnlyNormalError, samples: boatSamples, traceWaterSamples, fftOnlySamples } } );
 	result.dataset.status = 'complete';
 } catch ( error ) {
 	result.textContent = JSON.stringify( { status: 'failed', error: error.stack || String( error ) } );

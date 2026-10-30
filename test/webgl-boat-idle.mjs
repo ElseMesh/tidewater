@@ -23,7 +23,7 @@ query.update( 0, 3.25 );
 const baseQuery = new SyntheticWaterQuery( world.terrain, seaLevel );
 baseQuery.update( 0, 3.25 );
 assert.ok( Math.abs( query._height( 64.5, 36.5 ) - baseQuery._height( 64.5, 36.5 ) ) > 0.2, 'WebGL gameplay query includes depth-aware shore displacement at the default berth' );
-assert.ok( Math.abs( query._height( 64.5, 36.5 ) - ( - 0.9816116677228413 ) ) < 1e-6, 'the dock query matches the rendered shore-wave height at a fixed simulation time' );
+assert.ok( Math.abs( query._height( 64.5, 36.5 ) - ( - 0.9965546952995952 ) ) < 1e-6, 'the dock query matches the f32-matched, crest-depth shore-wave height at a fixed simulation time' );
 const hostedQuery = new SyntheticWaterQuery( world.terrain, seaLevel );
 dispatchWorldBehaviorHooks( experience, 'onWebGLWorldActivated', {
 	fallback: { waterQuery: hostedQuery, hostedTerrainData: world.terrain, hostedTerrainSurface: { shoreField }, worldSeaLevel: seaLevel }, mode: 'hosted',
