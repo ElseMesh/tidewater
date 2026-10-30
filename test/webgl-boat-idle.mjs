@@ -24,6 +24,12 @@ const baseQuery = new WebGLWaterQuery( world.terrain, seaLevel );
 baseQuery.update( 0, 3.25 );
 assert.ok( Math.abs( query._height( 64.5, 36.5 ) - baseQuery._height( 64.5, 36.5 ) ) > 0.2, 'WebGL gameplay query includes depth-aware shore displacement at the default berth' );
 assert.ok( Math.abs( query._height( 64.5, 36.5 ) - ( - 0.9816116677228413 ) ) < 1e-6, 'the dock query matches the rendered shore-wave height at a fixed simulation time' );
+const hostedQuery = new WebGLWaterQuery( world.terrain, seaLevel );
+dispatchWorldBehaviorHooks( experience, 'onWebGLWorldActivated', {
+	fallback: { waterQuery: hostedQuery, hostedTerrainData: world.terrain, hostedTerrainSurface: { shoreField }, worldSeaLevel: seaLevel }, mode: 'hosted',
+} );
+hostedQuery.update( 0, 3.25 );
+assert.ok( Math.abs( hostedQuery._height( 64.5, 36.5 ) - query._height( 64.5, 36.5 ) ) < 1e-6, 'hosted WebGL boat queries use the signed hosted shore field' );
 query.time = 0;
 const boat = new BoatController( { design: new BoatDesign(), query, terrain: world.terrain, colliders: world.colliders, initialPosition: new Vector3( ...ISLAND_DEFINITION.boatDock.position ), initialHeading: ISLAND_DEFINITION.boatDock.heading } );
 

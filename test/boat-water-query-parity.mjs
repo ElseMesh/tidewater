@@ -5,6 +5,10 @@ import { BoatController } from '../../../src/player/BoatController.js';
 import { ISLAND_DEFINITION } from '../../../src/world/IslandDefinition.js';
 import { BoatDesign } from '../../../src/world/boat/BoatDesign.js';
 import { Vector3 } from '../../../src/engine/math/Vector3.js';
+import { Group } from '../../../src/engine/scene/Group.js';
+import { HostedBoat } from '../../../src/network/HostedBoat.js';
+import { worldWaterSurfaceFor } from '../../../src/network/WorldWaterSurface.js';
+import { tidewaterComponentInstaller } from '../component-installers.js';
 
 // The pre-split BoatController and boat design are the physics baseline. Their
 // source is intentionally pinned here: the hosted boat must retain the same
@@ -34,6 +38,24 @@ const berth = world.objects.find( object => object.id === 'elsemesh-object:moore
 assert.deepEqual( berth?.transform.position, ISLAND_DEFINITION.boatDock.position, 'the packaged Tidewater boat uses the original berth position' );
 assert.equal( berth?.transform.yaw, ISLAND_DEFINITION.boatDock.heading, 'the packaged Tidewater boat uses the original berth heading' );
 
+// The Tidewater ocean installer exposes the active world's surface, and the
+// hosted boat keeps the query selected from that surface. App activation adds
+// this world's terrain, shore, and wake to the surface before constructing it.
+const worldSurface = { fft: {}, terrain: {}, shore: {}, wake: {}, shoreSim: {} };
+const oceanRoot = new Group(), oceanComponents = [];
+await tidewaterComponentInstaller( 'elsemesh.island-ocean/1' )( {
+	app: { qs: new URLSearchParams(), surface: worldSurface, waterMaterial: {} },
+	root: oceanRoot, installed: oceanComponents,
+} );
+const activeSurface = worldWaterSurfaceFor( oceanComponents, berth.transform.position, {} );
+assert.equal( activeSurface, worldSurface, 'the active Tidewater ocean is selected for boat water queries' );
+for ( const feature of [ 'fft', 'terrain', 'shore', 'wake', 'shoreSim' ] ) assert( activeSurface[ feature ], `the active water surface includes ${feature}` );
+const boatQuery = { surface: activeSurface, allocate: () => 1 };
+const boatRuntime = new HostedBoat( { root: new Group(), component: { id: 'elsemesh-component:boat' }, object: berth } );
+assert.equal( boatRuntime.activate( { query: boatQuery, colliders: {} } ).query, boatQuery, 'the hosted boat controller receives the active world query' );
+boatRuntime.dispose();
+for ( const component of oceanComponents ) component.dispose?.();
+
 class DeterministicQuery {
 
 	constructor() {
@@ -60,9 +82,10 @@ class DeterministicQuery {
 
 }
 
-// Deterministic FFT-like swell common to both query paths, plus small synthetic
-// shoreline and interactive-wake terms. Production currently wires the built-in
-// controller to the full surface, while HostedBoat's query surface is FFT-only.
+// Deterministic FFT-like swell common to both synthetic query paths, plus small
+// shoreline and interactive-wake terms. This sensitivity comparison quantifies
+// the effect of omitting those terms; it does not model the production query
+// wiring, which is asserted above and exercised in the hosted runtime.
 function waterHeight( path, time, x, z ) {
 	const fft = 0.045 * Math.sin( 0.09 * x + 0.13 * z - 1.1 * time ) + 0.025 * Math.sin( 0.035 * x - 0.07 * z + 0.8 * time );
 	if ( path === 'fft-only' ) return fft;
