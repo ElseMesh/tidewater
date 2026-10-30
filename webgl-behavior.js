@@ -9,7 +9,7 @@ export const webglBehaviorImplementations = Object.freeze( {
 		if ( ! active ) return;
 		const builtIn = mode === 'builtin';
 		const terrain = builtIn ? fallback.terrain : fallback.hostedTerrainData || { heightAt: () => Number( fallback.spawn.position[ 1 ] ) - 1.7 };
-		const colliders = builtIn ? fallback.app.worldState.colliders : fallback.app.worldState.hostedColliders || fallback.app.worldState.colliders;
+		const colliders = builtIn ? fallback.app.worldState.colliders : fallback.app.hostedColliders;
 		const fishStand = new WebGLFishStandAdapter( THREE, fallback.scene, {
 			terrain, colliders, loader: fallback.loader, placement: data.fishStand,
 		} );
