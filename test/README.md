@@ -17,6 +17,11 @@ sources remain with the Tidewater package.
 `life-player.mjs` adds a GPU-free smoke of island walking, swimming, boarding,
 boat handling, and flying to the engine test sequence.
 
+`webgl-fish-props-adapter-build.mjs` checks WebGL fish-prop mesh construction
+without a graphics context. `webgpu-fish-props-adapter-build.mjs` creates the
+registered component with a headless WebGPU device and checks GPU buffer
+creation and cleanup. Neither check renders pixels or measures FPS.
+
 The optional Blender authoring checks use the Tidewater package as their source
 fixture:
 
