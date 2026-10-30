@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import '../register-behavior.js';
 import * as fishPresentation from '../FishPresentation.js';
 import { TerrainData } from '../../../src/world/TerrainData.js';
+import { computeShoreField } from '../../../src/world/ShoreField.js';
 import { parseGLB } from '../../../src/engine/loaders/GLTF.js';
 import { Euler, Quaternion } from '../../../src/engine/index.js';
 import { Village } from '../../../src/world/Village.js';
@@ -59,7 +60,8 @@ const fishingRulesExtensionID = `sha256:${createHash( 'sha256' ).update( fishing
 if ( ! canonicalSource.experience.extensions?.some( extension => extension.behaviorId === 'elsemesh.fishing-game/1' && extension.assetId === fishingRulesExtensionID ) ) throw new Error( 'Tidewater fishing rules extension reference does not match its package source' );
 const behaviors = { ...canonicalSource.experience.behaviors };
 for ( const [ id, data ] of Object.entries( { ...presentation.behaviors, 'elsemesh.fishing-game/1': fishingBehavior } ) ) behaviors[ id ] = { ...behaviors[ id ], ...data };
-const experience = { ...canonicalSource.experience, ...presentation, behaviors };
+const { swellDirection, ...presentationExperience } = presentation;
+const experience = { ...canonicalSource.experience, ...presentationExperience, behaviors };
 let updatedAt = '2026-10-01T00:00:00Z';
 try {
 	const previous = JSON.parse( await readFile( sourcePath, 'utf8' ) );
@@ -83,10 +85,17 @@ staticAssets.set( fishingRulesExtensionID, fishingRulesExtension );
 const generated = buildIslandProceduralContent( terrain );
 const terrainMaps = bakeTerrainMaps( terrain );
 const terrainDetail = getDetailImage();
-const terrainPayload = encodeTerrainSurfaceAsset( terrain, terrainMaps, terrainDetail );
+if ( ! Array.isArray( swellDirection ) || swellDirection.length !== 2 || swellDirection.some( value => ! Number.isFinite( value ) ) || Math.hypot( ...swellDirection ) < 1e-6 ) throw new Error( 'Tidewater presentation requires a finite non-zero swellDirection' );
+const swellMagnitude = Math.hypot( ...swellDirection );
+const shoreField = computeShoreField( terrain, {
+	res: 512,
+	swellDir: swellDirection.map( value => value / swellMagnitude ),
+	seaLevel: canonicalSource.rules.seaLevel ?? 0,
+} );
+const terrainPayload = encodeTerrainSurfaceAsset( terrain, terrainMaps, terrainDetail, shoreField );
 const terrainSurfaceHeader = Buffer.alloc( 16 );
-Buffer.from( 'EMTERR1\0' ).copy( terrainSurfaceHeader, 0 );
-terrainSurfaceHeader.writeUInt32LE( 1, 8 );
+Buffer.from( 'EMTERR2\0' ).copy( terrainSurfaceHeader, 0 );
+terrainSurfaceHeader.writeUInt32LE( 2, 8 );
 terrainSurfaceHeader.writeUInt32LE( terrainPayload.byteLength, 12 );
 const terrainSurface = Buffer.concat( [ terrainSurfaceHeader, deflateSync( terrainPayload, { level: 9 } ) ] );
 const terrainSurfaceAssetId = `sha256:${createHash( 'sha256' ).update( terrainSurface ).digest( 'hex' )}`;
@@ -330,7 +339,7 @@ const terrainValidation = {
 			sha256: terrainSurfaceAssetId.slice( 'sha256:'.length ),
 			bytes: terrainSurface.byteLength,
 			dimensions: { heightfield: [ terrain.res + 1, terrain.res + 1 ], normalRockAO: [ terrain.res, terrain.res ], terrainMasks: [ terrain.res, terrain.res ], detailTexture: [ terrainDetail.width, terrainDetail.height ] },
-			encoding: 'EMTERR1/DEFLATE; ETRNSF1; f32le heights; rgba8unorm normal/rock/AO and masks; rgba8unorm detail texture',
+			encoding: 'EMTERR2/DEFLATE; ETRNSF2; f32le heights; rgba8unorm normal/rock/AO and masks; rgba8unorm detail texture; rgba32f shore field',
 			rendererContract: 'original-elsemesh-terrain-v1',
 		},
 		{

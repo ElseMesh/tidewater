@@ -25,8 +25,16 @@ const source = JSON.parse( await readFile( path.join( island, 'world-source.json
 const surface = source.components.find( component => component.type === 'elsemesh.terrain-surface/1' );
 const packed = await readFile( path.join( island, 'assets', surface.data.dataAssetId.slice( 'sha256:'.length ) ) );
 const maps = await decodeTerrainSurfaceAsset( new Uint8Array( packed ) );
-assert.equal( maps.metadata.protocol, 'elsemesh.terrain-data/1', 'the signed world package uses the ElseMesh terrain contract' );
+assert.equal( maps.metadata.protocol, 'elsemesh.terrain-data/2', 'the signed world package uses the ElseMesh terrain contract' );
+const oldAsset = new Uint8Array( packed );
+oldAsset.set( new TextEncoder().encode( 'EMTERR1\0' ) );
+await assert.rejects( decodeTerrainSurfaceAsset( oldAsset ), /Invalid terrain surface asset header/, 'the new terrain format does not accept the old binary protocol' );
 assert.equal( maps.metadata.rendererProfile, 'original-elsemesh-terrain-v1', 'the signed world package uses the registered ElseMesh terrain renderer' );
+assert.equal( maps.shoreField.res, 512, 'the packaged terrain includes the authored-resolution shoreline field' );
+assert.equal( maps.shoreField.data.length, maps.shoreField.res ** 2 * 4, 'the shoreline field has four channels per sample' );
+assert.equal( maps.shoreField.origin, maps.origin, 'the shoreline field shares the terrain origin' );
+assert.equal( maps.shoreField.size, maps.size, 'the shoreline field covers the terrain domain' );
+assert.ok( maps.shoreField.data.some( ( value, index ) => index % 4 === 1 && Math.abs( value ) > 0.01 ), 'the packaged shoreline field contains wave-direction exposure' );
 const packaged = new HeightfieldTerrainData( maps );
 const i = 1024, j = 1024, index = j * maps.resolution + i;
 const x = maps.origin + ( i + 0.5 ) * ( maps.size / maps.resolution );

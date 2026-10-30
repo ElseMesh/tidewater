@@ -36,6 +36,7 @@ try {
 	assert.equal( detailImage.data.length, 512 * 512 * 4, 'CPU detail image retains the exact shared RGBA data layout' );
 	const checkedInDir = path.dirname( path.dirname( fileURLToPath( import.meta.url ) ) );
 	const checkedInSourceBytes = await readFile( path.join( checkedInDir, 'world-source.json' ) );
+	const authoredPresentation = JSON.parse( await readFile( path.join( checkedInDir, 'presentation.json' ), 'utf8' ) );
 	const checkedInTerrainReportBytes = await readFile( path.join( checkedInDir, 'terrain-validation.json' ) );
 	const checkedInSource = validateWorldSource( JSON.parse( checkedInSourceBytes ) );
 	const referencedIDs = ( source ) => new Set( [ ...source.objects.flatMap( ( object ) => [ object.assetId, ...( object.lods || [] ).map( ( lod ) => lod.assetId ) ] ), ...source.components.flatMap( componentAssetRefs ), ...( source.experience?.extensions || [] ).map( extension => extension.assetId ) ] );
@@ -175,6 +176,9 @@ try {
 	assert.ok( firstAssets.has( componentData( terrainSurface ).dataAssetId ), 'terrain surface asset is included in the exported package' );
 	const terrainAsset = await decodeTerrainSurfaceAsset( new Uint8Array( firstAssets.get( componentData( terrainSurface ).dataAssetId ) ) );
 	assert.equal( terrainAsset.heights.length, terrainAsset.resolution ** 2, 'portable terrain surface contains its full-resolution heightfield' );
+	assert.equal( terrainAsset.metadata.protocol, 'elsemesh.terrain-data/2', 'terrain package uses the current non-compatible binary contract' );
+	assert.equal( terrainAsset.shoreField.res, 512, 'terrain package exports the authored shoreline field without client-side recomputation' );
+	assert.deepEqual( authoredPresentation.swellDirection, [ -0.12, -1 ], 'swell direction comes from Tidewater presentation data' );
 	assert.equal( terrainAsset.metadata.rendererProfile, 'original-elsemesh-terrain-v1', 'terrain asset pins its versioned material renderer contract' );
 	assert.ok( terrainAsset.metadata.material.paletteLinear.rockDark.length === 3, 'terrain package includes linear material palette parameters' );
 	const wildlife = source.components.find( ( component ) => component.type === 'elsemesh.example-island-wildlife/1' );

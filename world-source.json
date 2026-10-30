@@ -12943,14 +12943,14 @@
       "priority": "visible",
       "assets": [
         {
-          "assetId": "sha256:0d22d7f65330eaf827604de10d3d1e77af7c43ad08b1991dca31781129dc037a",
+          "assetId": "sha256:b26986a190a36734acfe3004d0ddd3663e3c467d2764b30b60a8afee655d76e8",
           "kind": "terrain-surface/1"
         }
       ],
       "data": {
         "profile": "example-island-v1",
         "objectId": "elsemesh-object:island-terrain",
-        "dataAssetId": "sha256:0d22d7f65330eaf827604de10d3d1e77af7c43ad08b1991dca31781129dc037a"
+        "dataAssetId": "sha256:b26986a190a36734acfe3004d0ddd3663e3c467d2764b30b60a8afee655d76e8"
       }
     },
     {

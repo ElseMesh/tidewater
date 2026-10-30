@@ -1,5 +1,6 @@
 {
 	"genre": "A coastal fishing adventure",
+	"swellDirection": [ -0.12, -1 ],
 	"behaviors": {
 		"elsemesh.shore-aware-boat/1": {}
 	},

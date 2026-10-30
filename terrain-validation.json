@@ -4,9 +4,9 @@
   "assets": [
     {
       "role": "visual-surface",
-      "id": "sha256:0d22d7f65330eaf827604de10d3d1e77af7c43ad08b1991dca31781129dc037a",
-      "sha256": "0d22d7f65330eaf827604de10d3d1e77af7c43ad08b1991dca31781129dc037a",
-      "bytes": 28551681,
+      "id": "sha256:b26986a190a36734acfe3004d0ddd3663e3c467d2764b30b60a8afee655d76e8",
+      "sha256": "b26986a190a36734acfe3004d0ddd3663e3c467d2764b30b60a8afee655d76e8",
+      "bytes": 31148154,
       "dimensions": {
         "heightfield": [
           2049,
@@ -25,7 +25,7 @@
           512
         ]
       },
-      "encoding": "EMTERR1/DEFLATE; ETRNSF1; f32le heights; rgba8unorm normal/rock/AO and masks; rgba8unorm detail texture",
+      "encoding": "EMTERR2/DEFLATE; ETRNSF2; f32le heights; rgba8unorm normal/rock/AO and masks; rgba8unorm detail texture; rgba32f shore field",
       "rendererContract": "original-elsemesh-terrain-v1"
     },
     {

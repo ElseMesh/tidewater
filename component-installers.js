@@ -55,7 +55,7 @@ async function installTerrainSurface( { app, root, connector, installed }, compo
 	const terrainData = new HeightfieldTerrainData( maps );
 	root.userData.terrainData = terrainData;
 	const surfaceMaps = { normal: maps.normal, splat: maps.splat, detailWidth: maps.detailWidth, detailHeight: maps.detailHeight, detail: maps.detail };
-	const terrainGPU = new TerrainGPU( terrainData, null, surfaceMaps );
+	const terrainGPU = new TerrainGPU( terrainData, maps.shoreField, surfaceMaps );
 	const terrain = new Terrain( { scene: root, terrainData, terrainGPU } );
 	if ( fallback ) fallback.visible = false;
 	installed.push( {
