@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { Vector3 } from '../../../src/engine/math/Vector3.js';
-import { WebGLWaterQuery } from '../../../src/fallback/WebGLWaterQuery.js';
+import { SyntheticWaterQuery } from './synthetic-water-query.mjs';
 import { BoatController } from '../../../src/player/BoatController.js';
 import { BoatDesign } from '../../../src/world/boat/BoatDesign.js';
 import { ISLAND_DEFINITION } from '../../../src/world/IslandDefinition.js';
@@ -14,7 +14,7 @@ const world = new IslandWorldState();
 const source = JSON.parse( readFileSync( new URL( '../world-source.json', import.meta.url ), 'utf8' ) );
 const seaLevel = source.rules.seaLevel;
 const shoreField = computeShoreField( world.terrain, { res: 512, swellDir: [ - 0.12, - 1 ], seaLevel } );
-const query = new WebGLWaterQuery( world.terrain, seaLevel );
+const query = new SyntheticWaterQuery( world.terrain, seaLevel );
 dispatchWorldBehaviorHooks( { behaviors: { 'elsemesh.shore-aware-boat/1': {} } }, 'onWebGLWorldActivated', {
 	fallback: { waterQuery: query, terrain: world.terrain, shoreField, worldSeaLevel: seaLevel }, mode: 'builtin',
 } );

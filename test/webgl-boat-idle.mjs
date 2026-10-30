@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { Vector3 } from '../../../src/engine/math/Vector3.js';
-import { WebGLWaterQuery } from '../../../src/fallback/WebGLWaterQuery.js';
+import { SyntheticWaterQuery } from './synthetic-water-query.mjs';
 import { BoatController } from '../../../src/player/BoatController.js';
 import { BoatDesign } from '../../../src/world/boat/BoatDesign.js';
 import { ISLAND_DEFINITION } from '../../../src/world/IslandDefinition.js';
@@ -14,17 +14,17 @@ const world = new IslandWorldState();
 const worldSource = JSON.parse( readFileSync( new URL( '../world-source.json', import.meta.url ), 'utf8' ) );
 const seaLevel = worldSource.rules.seaLevel;
 const shoreField = computeShoreField( world.terrain, { res: 512, swellDir: [ - 0.12, - 1 ], seaLevel } );
-const query = new WebGLWaterQuery( world.terrain, seaLevel );
+const query = new SyntheticWaterQuery( world.terrain, seaLevel );
 const experience = { behaviors: { 'elsemesh.shore-aware-boat/1': {} } };
 dispatchWorldBehaviorHooks( experience, 'onWebGLWorldActivated', {
 	fallback: { waterQuery: query, terrain: world.terrain, shoreField, worldSeaLevel: seaLevel }, mode: 'builtin',
 } );
 query.update( 0, 3.25 );
-const baseQuery = new WebGLWaterQuery( world.terrain, seaLevel );
+const baseQuery = new SyntheticWaterQuery( world.terrain, seaLevel );
 baseQuery.update( 0, 3.25 );
 assert.ok( Math.abs( query._height( 64.5, 36.5 ) - baseQuery._height( 64.5, 36.5 ) ) > 0.2, 'WebGL gameplay query includes depth-aware shore displacement at the default berth' );
 assert.ok( Math.abs( query._height( 64.5, 36.5 ) - ( - 0.9816116677228413 ) ) < 1e-6, 'the dock query matches the rendered shore-wave height at a fixed simulation time' );
-const hostedQuery = new WebGLWaterQuery( world.terrain, seaLevel );
+const hostedQuery = new SyntheticWaterQuery( world.terrain, seaLevel );
 dispatchWorldBehaviorHooks( experience, 'onWebGLWorldActivated', {
 	fallback: { waterQuery: hostedQuery, hostedTerrainData: world.terrain, hostedTerrainSurface: { shoreField }, worldSeaLevel: seaLevel }, mode: 'hosted',
 } );

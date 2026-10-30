@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { PerspectiveCamera } from '../../../src/engine/index.js';
 import { FishingRod } from '../game/FishingRod.js';
-import { WebGLWaterQuery } from '../../../src/fallback/WebGLWaterQuery.js';
+import { SyntheticWaterQuery } from './synthetic-water-query.mjs';
 
 const terrain = { heightAt: () => - 8 };
-const query = new WebGLWaterQuery( terrain );
+const query = new SyntheticWaterQuery( terrain );
 const camera = new PerspectiveCamera( 62, 1, 0.1, 500 );
 camera.position.set( 0, 2, 0 );
 camera.updateMatrixWorld();
