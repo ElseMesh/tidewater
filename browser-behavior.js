@@ -32,7 +32,7 @@ export const browserBehaviorImplementations = Object.freeze( {
 		if ( ! active || ! terrain ) return;
 		// The boat's hosted hydrostatics use the destination terrain and shore model.
 		terrain.shore ||= new ShoreWaves( terrain.terrainGPU );
-		if ( terrain.terrain && app.terrain.wetness ) {
+		if ( terrain.terrain && app.terrain?.wetness ) {
 			terrain.terrain.wetness = app.terrain.wetness;
 			terrain.terrain.finalizeMaterial();
 		}
