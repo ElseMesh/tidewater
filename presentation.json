@@ -1,4 +1,8 @@
 {
+	"environment": {
+		"sky": "atmosphere",
+		"clouds": "procedural"
+	},
 	"genre": "A coastal fishing adventure",
 	"swellDirection": [ -0.12, -1 ],
 	"behaviors": {

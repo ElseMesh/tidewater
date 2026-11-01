@@ -3,6 +3,10 @@
   "worldId": "elsemesh:example-island",
   "title": "Example Island",
   "experience": {
+    "environment": {
+      "sky": "atmosphere",
+      "clouds": "procedural"
+    },
     "extensions": [
       {
         "behaviorId": "elsemesh.fishing-game/1",
