@@ -3,6 +3,7 @@ import { createWorldBehaviorRuntime, worldBehaviorData } from '../../../src/netw
 import { FishingRod } from '../game/FishingRod.js';
 import { fishingHabitatAt } from '../game/Bites.js';
 import { WebGLFishingRodPresentation } from './WebGLFishingRodPresentation.js';
+import { FishingInputController } from '../FishingInputController.js';
 
 const CATCH_CARD_MS = 9000;
 
@@ -74,8 +75,7 @@ export class WebGLGameAdapter {
 		this.rod = camera && query && terrain ? new FishingRod( { camera, query, terrain, audio, render: false } ) : null;
 		this.rodPresentation = this.rod && THREE && scene ? new WebGLFishingRodPresentation( THREE, scene, this.rod ) : null;
 		this.deckFloodlights = createDeckFloodlights( THREE, boatRoot );
-		this._lmb = false;
-		this._rmb = false;
+		this.fishingInput = new FishingInputController();
 		if ( this.rod ) {
 			this.rod.onLand = where => this._onBobberLanded( where );
 		}
@@ -129,21 +129,13 @@ export class WebGLGameAdapter {
 		if ( rod && input ) {
 			this.timeOfDay = timeOfDay;
 			const canFish = ! freeCam && ( player.mode === 'walk' || player.mode === 'deck' );
-			if ( input.hit( 'KeyR' ) && canFish && ! this.runtime.fight ) {
-				rod.equip( ! rod.equipped );
-				if ( ! rod.equipped ) this.runtime.cancel();
-			}
-			if ( ! canFish && rod.equipped ) { this.runtime.cancel(); rod.equip( false ); }
-			const left = input.mouseDown && input.enabled, right = input.rightDown && input.enabled;
-			const leftDown = left && ! this._lmb, leftUp = ! left && this._lmb, rightDown = right && ! this._rmb;
-			this._lmb = left; this._rmb = right;
-			const panelOpen = this.hud.standOpen || this.hud.invOpen || this.hud.catchOpen;
-			if ( rod.equipped && ! panelOpen ) {
-				if ( rod.state === 'idle' && leftDown ) rod.startWindup();
-				else if ( rod.state === 'windup' && leftUp ) rod.release();
-				else if ( rod.state === 'floating' && leftDown ) this._strike().catch( error => console.error( 'Fishing fight worker failed', error ) );
-				else if ( [ 'floating', 'flying' ].includes( rod.state ) && rightDown ) { rod.retrieve(); this.runtime.cancel(); }
-			}
+			const panelOpen = this.hud.standOpen || this.hud.invOpen;
+			const { leftDown, leftHeld: left } = this.fishingInput.update( {
+				rod, runtime: this.runtime, input, canFish, panelOpen,
+				onUnavailable: () => this.runtime.cancel(),
+				onRodToggled: equipped => this.toast( equipped ? 'Rod out · hold left mouse to cast' : 'Rod away', 1600 ),
+				onStrike: () => this._strike().catch( error => console.error( 'Fishing fight worker failed', error ) ),
+			} );
 			if ( rod.state === 'floating' ) {
 				this.runtime.stepBite( dt, { habitat: () => this._habitat( rod ), hour: timeOfDay } ).then( result => {
 					if ( rod.state !== 'floating' ) return;

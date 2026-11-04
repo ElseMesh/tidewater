@@ -9,6 +9,7 @@ import { GameHUD } from './GameHUD.js';
 import { Minimap } from './Minimap.js';
 import { Guide } from './Guide.js';
 import { worldFishPresentationFor } from '../../../src/network/WorldFishPresentation.js';
+import { FishingInputController } from '../FishingInputController.js';
 
 // how long the catch card stays up unless dismissed (ms)
 const CATCH_CARD_MS = 9000;
@@ -54,8 +55,7 @@ export class Game {
 		this.hud = null;
 		this.fight = null;
 		this.bite = null;
-		this._lmb = false;
-		this._rmb = false;
+		this.fishingInput = new FishingInputController();
 		this._hookedSpecies = null;
 		this._tmp = new Vector3();
 		this.applyGear();
@@ -196,22 +196,6 @@ export class Game {
 		}
 
 		const can = this.canFish;
-		if ( inp.hit( 'KeyR' ) && can && ! this.fight ) {
-
-			rod.equip( ! rod.equipped );
-			if ( ! rod.equipped ) this.cancelLine();
-			this.toast( rod.equipped ? 'Rod out · hold left mouse to cast' : 'Rod away', 1600 );
-
-		}
-
-		if ( ! can && rod.equipped ) {
-
-			// swimming, driving, free camera: the line comes in and the rod goes away
-			this.cancelLine( true );
-			rod.equip( false );
-
-		}
-
 		if ( this.hud && ( inp.hit( 'KeyI' ) || inp.hit( 'Tab' ) ) ) this.hud.toggleInventory();
 		if ( this.hud && inp.hit( 'Escape' ) ) {
 
@@ -220,30 +204,13 @@ export class Game {
 
 		}
 
-		// mouse edges (the left button also looks around while the pointer isn't captured)
-		const lmb = inp.mouseDown && inp.enabled, rmb = inp.rightDown && inp.enabled;
-		const lDown = lmb && ! this._lmb, lUp = ! lmb && this._lmb, rDown = rmb && ! this._rmb;
-		this._lmb = lmb;
-		this._rmb = rmb;
 		const panelOpen = this.hud && ( this.hud.invOpen || this.hud.standOpen );
-
-		if ( rod.equipped && ! panelOpen ) {
-
-			if ( rod.state === 'idle' && lDown ) rod.startWindup();
-			else if ( rod.state === 'windup' && lUp ) rod.release();
-			else if ( rod.state === 'floating' ) {
-
-				if ( lDown ) this.strike().catch( error => console.error( 'Fishing fight worker failed', error ) );
-				else if ( rDown ) {
-
-					rod.retrieve();
-					this.runtime.cancel();
-
-				}
-
-			} else if ( rod.state === 'flying' && rDown ) rod.retrieve();
-
-		}
+		const { leftDown: lDown, leftHeld: lmb } = this.fishingInput.update( {
+			rod, runtime: this.runtime, input: inp, canFish: can, panelOpen,
+			onUnavailable: () => this.cancelLine( true ),
+			onRodToggled: equipped => this.toast( equipped ? 'Rod out · hold left mouse to cast' : 'Rod away', 1600 ),
+			onStrike: () => this.strike().catch( error => console.error( 'Fishing fight worker failed', error ) ),
+		} );
 
 		// bites and the fight
 		if ( rod.state === 'floating' ) this.updateBite( dt ).catch( error => console.error( 'Fishing bite worker failed', error ) );

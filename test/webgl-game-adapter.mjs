@@ -6,6 +6,7 @@ import { FishingRod } from '../game/FishingRod.js';
 import { PerspectiveCamera } from '../../../src/engine/index.js';
 import { SyntheticWaterQuery } from './synthetic-water-query.mjs';
 import { WebGLGameAdapter, createDeckFloodlights } from '../webgl/WebGLGameAdapter.js';
+import { FishingInputController } from '../FishingInputController.js';
 import * as THREE from 'three';
 import { createFishingTestRuntime } from './fishing-test-extension.mjs';
 
@@ -80,7 +81,7 @@ const gameplay = Object.create( WebGLGameAdapter.prototype );
 Object.assign( gameplay, {
 	runtime, state: runtime.state, rod, rodPresentation: null, fishingAreas: experience.behaviors[ 'elsemesh.fishing-game/1' ].fishingAreas, vendor: { name: 'Joe · Fish buyer', inRange: () => false }, vendors: [ { name: 'Joe · Fish buyer', inRange: () => false } ],
 	ui: { promptKey: { textContent: '' }, promptText: { textContent: '' }, prompt: { classList: { toggle() {} } }, toast( message ) { this.lastToast = message; } },
-	hud: { standOpen: false, invOpen: false, update() {} }, _lmb: false, _rmb: false,
+	hud: { standOpen: false, invOpen: false, update() {} }, fishingInput: new FishingInputController(),
 } );
 const player = { position: camera.position.clone(), mode: 'walk' };
 const dt = 1 / 60;
@@ -133,7 +134,7 @@ Object.assign( parityAdapter, {
 	boatGameplay: { step: () => ( { fuel: null, sonar: null } ) },
 	ui: { promptKey: { textContent: '' }, promptText: { textContent: '' }, prompt: { classList: { toggle() {} } } },
 	hud: { catchOpen: false, standOpen: false, invOpen: false, showCatch( info, ms ) { this.catchOpen = true; this.info = info; this.ms = ms; }, hideCatch() { this.catchOpen = false; }, update() {} },
-	rodPresentation: null, _lmb: false, _rmb: false,
+	rodPresentation: null, fishingInput: new FishingInputController(),
 } );
 parityAdapter.rod.t = 0.4;
 parityAdapter.update( dt, { position: { x: 0, y: 0, z: 0 }, mode: 'walk' }, catchInput );
