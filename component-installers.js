@@ -56,7 +56,7 @@ async function installTerrainSurface( { app, root, connector, installed }, compo
 	root.userData.terrainData = terrainData;
 	const surfaceMaps = { normal: maps.normal, splat: maps.splat, detailWidth: maps.detailWidth, detailHeight: maps.detailHeight, detail: maps.detail };
 	const terrainGPU = new TerrainGPU( terrainData, maps.shoreField, surfaceMaps );
-	const terrain = new Terrain( { scene: root, terrainData, terrainGPU } );
+	const terrain = new Terrain( { scene: root, terrainData, terrainGPU, surfaceProfile: component.surfaceProfile } );
 	if ( fallback ) fallback.visible = false;
 	installed.push( {
 		islandTerrain: true, terrain, terrainGPU,
@@ -86,7 +86,7 @@ async function installProceduralTerrain( { app, root, installed }, component ) {
 	const fallback = root.children.find( child => child.userData.worldObjectId === component.objectId );
 	const replacedObjects = root.userData.worldPackage?.replacedByComponents || ( root.userData.worldPackage.replacedByComponents = new Set() );
 	replacedObjects.add( component.objectId );
-	const terrain = new Terrain( { scene: root, terrainData: app.terrainData, terrainGPU: app.terrainGPU } );
+	const terrain = new Terrain( { scene: root, terrainData: app.terrainData, terrainGPU: app.terrainGPU, surfaceProfile: component.surfaceProfile } );
 	if ( fallback ) fallback.visible = false;
 	installed.push( {
 		islandTerrain: true,

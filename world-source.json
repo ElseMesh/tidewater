@@ -12953,6 +12953,19 @@
       ],
       "data": {
         "profile": "example-island-v1",
+        "surfaceProfile": {
+          "swellDirection": [
+            -0.12,
+            -1
+          ],
+          "reef": {
+            "center": [
+              -78,
+              58
+            ],
+            "radius": 58
+          }
+        },
         "objectId": "elsemesh-object:island-terrain",
         "dataAssetId": "sha256:b26986a190a36734acfe3004d0ddd3663e3c467d2764b30b60a8afee655d76e8"
       }
