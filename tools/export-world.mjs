@@ -53,6 +53,9 @@ const sourcePath = path.join( output, 'world-source.json' );
 const terrainValidationPath = path.join( output, 'terrain-validation.json' );
 // Geometry is regenerated here; authored world behavior remains world data.
 const canonicalSource = JSON.parse( await readFile( path.join( WORLD_ROOT, 'world-source.json' ), 'utf8' ) );
+const terrainSurfaceSource = canonicalSource.components.find( component => component.type === 'elsemesh.terrain-surface/1' );
+const surfaceProfile = terrainSurfaceSource?.data?.surfaceProfile;
+if ( ! surfaceProfile ) throw new Error( 'Tidewater world source must author the terrain surfaceProfile' );
 const presentation = JSON.parse( await readFile( path.join( WORLD_ROOT, 'presentation.json' ), 'utf8' ) );
 const fishingBehavior = JSON.parse( await readFile( path.join( WORLD_ROOT, 'fishing.json' ), 'utf8' ) );
 const fishingRulesExtension = await readFile( path.join( WORLD_ROOT, 'extensions/fishing-game-rules.js' ) );
@@ -60,8 +63,7 @@ const fishingRulesExtensionID = `sha256:${createHash( 'sha256' ).update( fishing
 if ( ! canonicalSource.experience.extensions?.some( extension => extension.behaviorId === 'elsemesh.fishing-game/1' && extension.assetId === fishingRulesExtensionID ) ) throw new Error( 'Tidewater fishing rules extension reference does not match its package source' );
 const behaviors = { ...canonicalSource.experience.behaviors };
 for ( const [ id, data ] of Object.entries( { ...presentation.behaviors, 'elsemesh.fishing-game/1': fishingBehavior } ) ) behaviors[ id ] = { ...behaviors[ id ], ...data };
-const { swellDirection, ...presentationExperience } = presentation;
-const experience = { ...canonicalSource.experience, ...presentationExperience, behaviors };
+const experience = { ...canonicalSource.experience, ...presentation, behaviors };
 let updatedAt = '2026-10-01T00:00:00Z';
 try {
 	const previous = JSON.parse( await readFile( sourcePath, 'utf8' ) );
@@ -85,7 +87,8 @@ staticAssets.set( fishingRulesExtensionID, fishingRulesExtension );
 const generated = buildIslandProceduralContent( terrain );
 const terrainMaps = bakeTerrainMaps( terrain );
 const terrainDetail = getDetailImage();
-if ( ! Array.isArray( swellDirection ) || swellDirection.length !== 2 || swellDirection.some( value => ! Number.isFinite( value ) ) || Math.hypot( ...swellDirection ) < 1e-6 ) throw new Error( 'Tidewater presentation requires a finite non-zero swellDirection' );
+const swellDirection = surfaceProfile.swellDirection;
+if ( ! Array.isArray( swellDirection ) || swellDirection.length !== 2 || swellDirection.some( value => ! Number.isFinite( value ) ) || Math.hypot( ...swellDirection ) < 1e-6 ) throw new Error( 'Tidewater terrain surfaceProfile requires a finite non-zero swellDirection' );
 const swellMagnitude = Math.hypot( ...swellDirection );
 const shoreField = computeShoreField( terrain, {
 	res: 512,
@@ -316,7 +319,7 @@ const source = {
 		{ id: 'elsemesh-component:island-village-materials', type: 'elsemesh.village-materials/2', priority: 'visible', streamingBounds: villageBounds, assets: [ { assetId: villageMaterialsAssetId, kind: 'village-materials/1' } ], data: { profile: 'original-elsemesh-village-v1', dataAssetId: villageMaterialsAssetId, objectId: 'elsemesh-object:island-village' } },
 		{ id: 'elsemesh-component:island-vegetation', type: 'elsemesh.static-vegetation/1', priority: 'portal-preview', assets: [ { assetId: vegetationAssetId, kind: 'vegetation-placement/1' }, { assetId: grassDensityAssetId, kind: 'grass-density/1' } ], data: { placementAssetId: vegetationAssetId, grassMaskAssetId: grassDensityAssetId } },
 		...( generated.fishProps.length ? [ { id: 'elsemesh-component:island-fish-props', type: 'elsemesh.static-fish-props/1', priority: 'visible', streamingBounds: fishPropsBounds, assets: [ { assetId: fishPropsAssetId, kind: 'fish-props-placement/1' } ], data: { placementAssetId: fishPropsAssetId } } ] : [] ),
-		{ id: 'elsemesh-component:island-terrain', type: 'elsemesh.terrain-surface/1', priority: 'visible', assets: [ { assetId: terrainSurfaceAssetId, kind: 'terrain-surface/1' } ], data: { profile: 'example-island-v1', objectId: 'elsemesh-object:island-terrain', dataAssetId: terrainSurfaceAssetId } },
+		{ id: 'elsemesh-component:island-terrain', type: 'elsemesh.terrain-surface/1', priority: 'visible', assets: [ { assetId: terrainSurfaceAssetId, kind: 'terrain-surface/1' } ], data: { ...terrainSurfaceSource.data, profile: 'example-island-v1', objectId: 'elsemesh-object:island-terrain', dataAssetId: terrainSurfaceAssetId } },
 		{ id: 'elsemesh-component:island-wildlife', type: 'elsemesh.example-island-wildlife/1', priority: 'visible', streamingBounds: { center: [ 0, 0, - 40 ], radius: 300 }, assets: [], data: { profile: 'example-island-wildlife-v1', seed: 5, roofPerches: generated.roofPerches, footprints: generated.villageFootprints } },
 		{ id: 'elsemesh-component:island-humpback', type: 'elsemesh.humpback-whale/1', priority: 'visible', streamingBounds: { center: [ 0, - 4, 200 ], radius: 250 }, assets: [ { assetId: whaleAssetIDs[ 0 ], kind: 'whale-model/1' }, { assetId: whaleAssetIDs[ 1 ], kind: 'whale-geometry/1' }, { assetId: whaleAssetIDs[ 2 ], kind: 'whale-albedo/1' }, { assetId: whaleAssetIDs[ 3 ], kind: 'whale-height/1' } ], data: { profile: 'example-island-humpback-v1', modelAssetId: whaleAssetIDs[ 0 ], geometryAssetId: whaleAssetIDs[ 1 ], albedoAssetId: whaleAssetIDs[ 2 ], heightAssetId: whaleAssetIDs[ 3 ], seed: EXAMPLE_ISLAND_WHALE_PROFILE.seed, route: EXAMPLE_ISLAND_WHALE_PROFILE.route, surfaceAt: EXAMPLE_ISLAND_WHALE_PROFILE.surfaceAt, cruiseSpeed: EXAMPLE_ISLAND_WHALE_PROFILE.cruiseSpeed, surfaceSpeed: EXAMPLE_ISLAND_WHALE_PROFILE.surfaceSpeed } },
 		...reefComponents,
