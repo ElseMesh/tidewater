@@ -9,7 +9,8 @@ ElseMesh imports it at `worlds/tidewater`, validates its
 
 - `world-source.json` is the canonical unsigned world layout: identity, spawn,
   rules, placed objects, portals, versioned components, and asset references.
-  Its field definitions are in the [ElseMesh world-source schema](../../docs/schemas/world-source.schema.json).
+  ElseMesh validates the shared envelope in the [world-source schema](../../docs/schemas/world-source.schema.json);
+  Tidewater-specific payload contracts live in this repository's `docs/schemas/`.
 - `presentation.json` contains editable title copy, tips, and loading-stage text
   that the exporter copies into the source document's `experience` field.
 - `fishing.json` contains Tidewater's authored fish species and fishing behavior
@@ -22,6 +23,8 @@ ElseMesh imports it at `worlds/tidewater`, validates its
   bounded request queues, and Worker result handling. It is created through
   the registered behavior descriptor and is not part of the generic engine
   behavior registry.
+- Tidewater-specific placement and renderer contracts are documented in
+  `docs/schemas/`, including its tropical vegetation binary format.
 - `FishTable.js`, `Gear.js`, and `GameState.js` own Tidewater's authored fish
   catalog validation/calculations, upgrade economy, inventory, fuel, and
   browser-local per-ThruHold save state. `test/game-hud.html` is the standalone

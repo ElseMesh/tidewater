@@ -14,3 +14,4 @@ proposal schemas remain in the engine repository under `docs/schemas/`.
 - [Reef placements](reef-placement.md)
 - [Terrain package](terrain-package.md)
 - [Village materials](village-materials.md)
+- [Vegetation placements](vegetation-placement.md)
