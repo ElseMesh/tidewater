@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { PerspectiveCamera } from '../../../src/engine/index.js';
 import { FishingGameRuntime } from '../FishingGameRuntime.js';
@@ -13,6 +14,9 @@ import { SyntheticWaterQuery } from './synthetic-water-query.mjs';
 const experience = JSON.parse( await readFile( new URL( '../world-source.json', import.meta.url ), 'utf8' ) ).experience;
 const fishCatalog = experience.behaviors[ 'elsemesh.fishing-game/1' ].fishCatalog;
 const dt = 1 / 60;
+// Golden from the pre-split WebGPU FishingRod/Game cast path at 23c30bf.
+// It covers rod equip, charge, cast flight, water landing, and retrieval.
+const PRE_SPLIT_CAST_SHA256 = 'cb90357158b6b5a157aeb7a6c3e727f10a1fe51c24eede0411cc47352771687d';
 
 async function createScenario( backend ) {
 
@@ -131,4 +135,9 @@ try {
 }
 
 assert.deepEqual( webgl, webgpu, 'the actual WebGPU Game and WebGL adapter match rod, landing, bite-start, and cancel traces' );
+assert.equal(
+	createHash( 'sha256' ).update( JSON.stringify( webgpu.castResult.trace ) ).digest( 'hex' ),
+	PRE_SPLIT_CAST_SHA256,
+	'the current WebGPU Game cast trace matches the pre-split WebGPU FishingRod trace at 23c30bf',
+);
 console.log( `WebGPU/WebGL cast-to-water and cancel parity passed (${webgpu.castResult.trace.length} fixed-step frames)` );
