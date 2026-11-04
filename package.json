@@ -5,6 +5,7 @@
 		"export": "node tools/export-world.mjs",
 		"export:grass-density": "node tools/export-grass-density.mjs",
 		"test:gameplay-input": "node test/fishing-input-controller.mjs",
-		"test:webgl-shore-query-parity": "node test/webgl-shore-query-parity.mjs"
+		"test:webgl-shore-query-parity": "node test/webgl-shore-query-parity.mjs",
+		"test:live-fishing-extension-browser": "node --preserve-symlinks test/live-fishing-extension-browser.mjs"
   }
 }
