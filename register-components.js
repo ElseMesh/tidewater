@@ -9,6 +9,7 @@ import { VILLAGE_MATERIAL_MAPS, VILLAGE_MATERIAL_PROFILE, VILLAGE_MATERIAL_ROLES
 import { decodeVillageMaterialAsset, VILLAGE_MATERIAL_ASSET_KIND } from './VillageMaterialAsset.js';
 import { TIDEWATER_WORLD_COMPONENTS } from './world-provider.js';
 import './WorldPackageMaterialAdapter.js';
+import './renderers/WebGLVegetationComponentAdapter.js';
 import './renderers/WebGPUFishPropsComponentAdapter.js';
 import './renderers/WebGLFishPropsComponentAdapters.js';
 

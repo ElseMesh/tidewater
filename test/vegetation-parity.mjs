@@ -16,6 +16,7 @@ const source = JSON.parse( await readFile( path.join( worldRoot, 'world-source.j
 const component = source.components.find( item => item.type === 'elsemesh.static-vegetation/1' );
 const data = component?.data;
 assert.ok( data?.placementAssetId && data.grassMaskAssetId, 'Tidewater static vegetation keeps its authored asset IDs in opaque owner data' );
+assert.equal( data.seed, 7, 'Tidewater placement generation seed is world-authored component data' );
 assert.deepEqual( component.assets, [ { assetId: data.placementAssetId, kind: 'vegetation-placement/1' }, { assetId: data.grassMaskAssetId, kind: 'grass-density/1' } ], 'generic component references declare each asset kind separately' );
 
 const assetID = data.grassMaskAssetId.slice( 'sha256:'.length );
