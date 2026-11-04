@@ -86,10 +86,17 @@ export class Game {
 	setWorldActive( active ) {
 
 		this.active = active;
+		if ( ! active ) this.runtime.cancel();
 		this.stand.setActive( active );
 		this.chandlery.setActive( active, this.terrain );
 		this.display.mesh.visible = active;
 		if ( ! active ) this.hud?.closeStand();
+
+	}
+
+	setWorldExtensions( extensions ) {
+
+		return this.runtime.bindExtensions( extensions );
 
 	}
 

@@ -31,12 +31,7 @@ registerWorldBehavior( 'elsemesh.fishing-game/1', {
 		if ( ! validFishingAreas( data.fishingAreas ) ) throw new Error( 'Invalid Tidewater fishing areas' );
 	},
 	createRuntime: options => {
-		const runtime = new FishingGameRuntime( options );
-		if ( options.extensions?.has?.( 'elsemesh.fishing-game/1' ) ) {
-			runtime.extensionReady = options.extensions.ready( 'elsemesh.fishing-game/1' ).then( () => runtime );
-			runtime.extensionReady.catch( () => {} );
-		}
-		return runtime;
+		return new FishingGameRuntime( options );
 	},
 } );
 

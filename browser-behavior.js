@@ -63,7 +63,7 @@ export const browserBehaviorImplementations = Object.freeze( {
 		if ( ! game ) {
 			game = new Game( app, { query: app.hostedQuery, terrain: worldTerrain, colliders: app.hostedColliders, boatController: app.player.boat || app.boatCtl, experience: connector.manifest.experience, worldId: connector.worldId, extensions } );
 			app.worldGames.set( connector.worldId, game );
-		}
+		} else game.setWorldExtensions( extensions ).catch( error => console.error( 'Fishing Worker activation failed', error ) );
 		app.game = game;
 		game.setWorldContext( { query: app.hostedQuery, terrain: worldTerrain, colliders: app.hostedColliders, boatController: app.player.boat || app.boatCtl } );
 		game.setWorldActive( true );

@@ -17,6 +17,10 @@ export class FishingGameRuntime {
 		this.bite = null;
 		this.fight = null;
 		this.extensions = extensions;
+		this.extensionReady = extensions?.has?.( 'elsemesh.fishing-game/1' )
+			? Promise.resolve().then( () => extensions.ready( 'elsemesh.fishing-game/1' ) ).then( () => this )
+			: Promise.resolve( this );
+		this.extensionReady.catch( () => {} );
 		this.boatGameplay = new BoatGameplayRuntime( {
 			state: this.state,
 			controller,
@@ -32,6 +36,18 @@ export class FishingGameRuntime {
 		this.fightGeneration = 0;
 		this.fightQueue = [];
 		this.fightRunning = false;
+
+	}
+
+	bindExtensions( extensions ) {
+
+		if ( ! extensions?.has?.( 'elsemesh.fishing-game/1' ) ) throw new Error( 'Fishing behavior requires its signed JavaScript extension' );
+		this._resetTransientState();
+		this.boatGameplay.resetExtension();
+		this.extensions = extensions;
+		this.extensionReady = Promise.resolve().then( () => extensions.ready( 'elsemesh.fishing-game/1' ) ).then( () => this );
+		this.extensionReady.catch( () => {} );
+		return this.extensionReady.then( () => this.boatGameplay.applyGear() ).then( () => this );
 
 	}
 
@@ -187,13 +203,19 @@ export class FishingGameRuntime {
 
 	cancel() {
 
+		this._resetTransientState();
+		this._runExtension( { type: 'cancel' } ).catch( () => {} );
+
+	}
+
+	_resetTransientState() {
+
 		this.fightGeneration ++;
 		this.biteGeneration ++;
 		this.bite = null;
 		this.fight = null;
 		for ( const request of this.biteQueue.splice( 0 ) ) request.resolve( { bite: null, dip: 0, event: null } );
 		for ( const request of this.fightQueue.splice( 0 ) ) request.resolve( { state: null, fight: null } );
-		this._runExtension( { type: 'cancel' } ).catch( () => {} );
 
 	}
 

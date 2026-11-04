@@ -28,4 +28,18 @@ assert.equal( added.length, 2, 'activation is idempotent for a world' );
 const otherWorld = { behaviors: { 'elsemesh.shore-aware-boat/1': {} } };
 dispatchWorldBehaviorHooks( otherWorld, 'onBuiltinWorldActivated', { app, worldId: 'elsemesh:other-island', extensions: null } );
 assert.equal( added.length, 2, 'a world without the fishing behavior receives no Tidewater vendor lights' );
+
+const rebindings = [];
+const hostedGame = {
+	setWorldExtensions( extensions ) { rebindings.push( extensions ); return Promise.resolve(); },
+	setWorldContext() {},
+	setWorldActive() {},
+};
+const hostedApp = { worldGames: new Map( [ [ source.worldId, hostedGame ] ] ), game: hostedGame, player: { boat: null }, boatCtl: {} };
+const connector = { worldId: source.worldId, manifest: { experience: source.experience } };
+const extensions = { has: () => true, ready: () => Promise.resolve() };
+dispatchWorldBehaviorHooks( source.experience, 'onHostedWorldActivated', {
+	app: hostedApp, connector, root: { userData: { terrainData: {} } }, extensions,
+} );
+assert.deepEqual( rebindings, [ extensions ], 'hosted re-entry rebinds the retained game to the activation-scoped Worker set' );
 console.log( 'Tidewater vendor lights use active behavior data and install once per world' );

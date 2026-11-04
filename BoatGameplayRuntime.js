@@ -18,6 +18,7 @@ export class BoatGameplayRuntime {
 		this._configReady = Promise.resolve();
 		this._steps = [];
 		this._stepRunning = false;
+		this._extensionGeneration = 0;
 		this._idleWaiters = [];
 		this._lastStep = null;
 		this.setController( controller );
@@ -33,6 +34,18 @@ export class BoatGameplayRuntime {
 	}
 
 	setTerrain( terrain ) { this.terrain = terrain; }
+
+	resetExtension() {
+
+		this._extensionGeneration ++;
+		for ( const request of this._steps.splice( 0 ) ) request.resolve( null );
+		this._configuration = null;
+		this._configuredController = null;
+		this._configReady = Promise.resolve();
+		this._sonar = null;
+		this._lastStep = null;
+
+	}
 
 	applyGear() {
 
@@ -117,10 +130,20 @@ export class BoatGameplayRuntime {
 
 		if ( this._stepRunning || ! this._steps.length ) return;
 		this._stepRunning = true;
+		const extensionGeneration = this._extensionGeneration;
+		const configReady = this._configReady;
 		const batch = this._steps.splice( 0, 1 );
 		try {
-			await this._configReady;
+			await configReady;
+			if ( extensionGeneration !== this._extensionGeneration ) {
+				for ( const request of batch ) request.resolve( null );
+				return;
+			}
 			const response = await this.runExtension( { type: 'step-boat', steps: batch.map( request => request.step ) } );
+			if ( extensionGeneration !== this._extensionGeneration ) {
+				for ( const request of batch ) request.resolve( null );
+				return;
+			}
 			if ( ! Array.isArray( response?.results ) || response.results.length !== batch.length ) throw new Error( 'Invalid Tidewater boat Worker response' );
 			for ( let index = 0; index < batch.length; index ++ ) {
 				const result = response.results[ index ];
@@ -137,8 +160,10 @@ export class BoatGameplayRuntime {
 				request.resolve( result );
 			}
 		} catch ( error ) {
-			for ( const request of batch ) request.reject( error );
-			this.onError( error );
+			if ( extensionGeneration === this._extensionGeneration ) {
+				for ( const request of batch ) request.reject( error );
+				this.onError( error );
+			} else for ( const request of batch ) request.resolve( null );
 		} finally {
 			this._stepRunning = false;
 			if ( this._steps.length ) this._pumpSteps();

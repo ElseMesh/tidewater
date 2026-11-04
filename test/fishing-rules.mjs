@@ -87,4 +87,36 @@ const takeTime = runtime.bite.t;
 await runtime.stepBite( 1, { habitat: { shallows: 1 }, hour: 6 } );
 assert.equal( runtime.bite.t, takeTime - 1, 'the authored schedule changes waiting time only' );
 
+const reboundEvents = [];
+let holdNextBoatStep = true;
+let releaseOldBoatStep;
+let signalOldBoatStep;
+const oldBoatStepStarted = new Promise( resolve => { signalOldBoatStep = resolve; } );
+const reboundExtensions = {
+	has: id => id === 'elsemesh.fishing-game/1',
+	ready: () => Promise.resolve( runFishingRulesExtension( { type: 'initialize', behaviorData: fishingBehavior.data } ) ),
+	run: ( _id, event ) => {
+		reboundEvents.push( event.type );
+		if ( event.type === 'step-boat' && holdNextBoatStep ) {
+			holdNextBoatStep = false;
+			return new Promise( resolve => { releaseOldBoatStep = resolve; signalOldBoatStep(); } );
+		}
+		return Promise.resolve( runFishingRulesExtension( event ) );
+	},
+};
+await runtime.bindExtensions( reboundExtensions );
+assert.ok( reboundEvents.includes( 'configure-boat' ), 'a re-entered world configures its boat against the new Worker' );
+const fuelBeforeRebind = runtime.state.fuelL;
+const staleBoatStep = runtime.boatGameplay.stepQueued( { dt: 1 / 60, mode: 'walk', driven: false, rpm: 0, sonarSample: null } );
+await oldBoatStepStarted;
+await runtime.bindExtensions( reboundExtensions );
+releaseOldBoatStep( { results: [ { fuelL: 0, fuelBurned: fuelBeforeRebind, fuelOut: true, throttle: 0, sonar: null, saveFuel: true } ] } );
+assert.equal( await staleBoatStep, null, 'an in-flight boat result from the departed Worker is discarded' );
+assert.equal( runtime.state.fuelL, fuelBeforeRebind, 'a departed Worker cannot overwrite re-entered world state' );
+await runtime.startBite( { shallows: 1 }, 12, 67890 );
+assert.ok( reboundEvents.includes( 'start-bite' ), 'gameplay after re-entry uses the newly bound Worker' );
+runtime.cancel();
+assert.equal( runtime.bite, null, 'leaving a world clears client-side bite state before its Worker is disposed' );
+assert.equal( runtime.fight, null, 'leaving a world clears client-side fight state before its Worker is disposed' );
+
 console.log( 'Tidewater fishing rules: declarative schedule parity passed' );
