@@ -8,7 +8,9 @@ import { worldComponentBackendAdapter } from '../../../src/network/WorldComponen
 import { deformFishPropPoint, fishPropGeometry } from '../../../src/world/fish/FishProps.js';
 import * as fishPresentation from '../FishPresentation.js';
 import '../register-behavior.js';
-import { WebGLFishPropsAdapter } from '../renderers/WebGLFishPropsAdapter.js';
+import { WebGLFishPropsAdapter } from '../../../src/fallback/WebGLFishPropsAdapter.js';
+import '../../../src/fallback/WebGLFishPropsComponentAdapter.js';
+import '../../../src/world/fish/FishPropsWebGPUAdapter.js';
 
 const records = [
 	{ kind: 'whole', species: 'mullet', L: 0.4, x: 1.25, y: 3, z: -2.5, q: [ 0, 0.7071067811865475, 0, 0.7071067811865476 ], pattern: 14, seed: 0.972, curl: -0.1, sag: 0.15, jaw: 0.2, flags: [ 0.6, 0.6, 0, 0 ] },
@@ -38,8 +40,8 @@ assert.equal( scene.children.length, 0, 'disposing removes the hosted fish props
 
 const componentScene = new THREE.Scene();
 const componentType = 'elsemesh.static-fish-props/1';
-assert.equal( typeof worldComponentBackendAdapter( 'webgpu', componentType ), 'function', 'Tidewater registers its WebGPU renderer through the engine registry' );
-assert.equal( typeof worldComponentBackendAdapter( 'webgl', componentType ), 'function', 'Tidewater registers its WebGL renderer through the engine registry' );
+assert.equal( typeof worldComponentBackendAdapter( 'webgpu', componentType ), 'function', 'ElseMesh provides the WebGPU renderer through the engine registry' );
+assert.equal( typeof worldComponentBackendAdapter( 'webgl', componentType ), 'function', 'ElseMesh provides the WebGL renderer through the engine registry' );
 const componentAdapter = worldComponentBackendAdapter( 'webgl', componentType );
 const componentFallback = { THREE, scene: componentScene };
 assert.equal( componentAdapter( {

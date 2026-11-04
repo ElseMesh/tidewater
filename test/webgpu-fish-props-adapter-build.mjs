@@ -8,6 +8,7 @@ import { worldComponentBackendAdapter } from '../../../src/network/WorldComponen
 import { encodeFishPropPlacements } from '../FishPropPlacements.js';
 import * as fishPresentation from '../FishPresentation.js';
 import '../register-behavior.js';
+import '../../../src/world/fish/FishPropsWebGPUAdapter.js';
 
 const records = [
 	{ kind: 'whole', species: 'mullet', L: 0.4, x: 1.25, y: 3, z: -2.5, q: [ 0, 0.7071067811865475, 0, 0.7071067811865476 ], pattern: 14, seed: 0.972, curl: -0.1, sag: 0.15, jaw: 0.2, flags: [ 0.6, 0.6, 0, 0 ] },
@@ -16,7 +17,7 @@ const records = [
 const bytes = encodeFishPropPlacements( records, fishPresentation );
 const componentType = 'elsemesh.static-fish-props/1';
 const adapter = worldComponentBackendAdapter( 'webgpu', componentType );
-assert.equal( typeof adapter, 'function', 'Tidewater registers its WebGPU fish-prop adapter' );
+assert.equal( typeof adapter, 'function', 'ElseMesh provides the generic WebGPU fish-prop adapter' );
 
 await GPU.init( { headless: true } );
 const root = new Group();

@@ -13,8 +13,6 @@ import './WorldPackageMaterialAdapter.js';
 import './renderers/WebGLVegetationComponentAdapter.js';
 import './renderers/WebGLReefComponentAdapter.js';
 import './renderers/WebGLVillageMaterialComponentAdapter.js';
-import './renderers/WebGPUFishPropsComponentAdapter.js';
-import './renderers/WebGLFishPropsComponentAdapters.js';
 import './renderers/WebGLWildlifeComponentAdapter.js';
 
 registerWorldComponentAssetDecoder( FISH_PROP_PLACEMENT_ASSET_KIND, bytes => decodeFishPropPlacements( bytes, fishPresentation ) );
