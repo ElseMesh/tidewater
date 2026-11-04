@@ -1,6 +1,7 @@
 import { PerspectiveCamera } from '../../../src/engine/index.js';
+import { App } from '../../../src/App.js';
 import { WorldConnector } from '../../../src/network/WorldConnector.js';
-import { createWorldBehaviorExtensions, createWorldBehaviorRuntime } from '../../../src/network/WorldBehaviorRegistry.js';
+import { createWorldBehaviorExtensions, createWorldBehaviorRuntime, dispatchWorldBehaviorHooks } from '../../../src/network/WorldBehaviorRegistry.js';
 import { GameState } from '../GameState.js';
 import { FishingRod } from '../game/FishingRod.js';
 import { Game } from '../game/Game.js';
@@ -50,17 +51,22 @@ async function createScenario( backend, { experience, assets, worldId, fishCatal
 		return promise;
 	};
 	const fishBehavior = experience.behaviors[ behaviorId ];
-	let game, update, landing = null, landingReady = Promise.resolve( null );
+	let game, app, fallback, landing = null, landingReady = Promise.resolve( null );
 	if ( backend === 'webgpu' ) {
-		const app = { player, camera, input, settings: { timeOfDay: 12 }, audio, freeCam: false, ui: null };
+		app = Object.assign( Object.create( App.prototype ), {
+			player, camera, input, settings: { timeOfDay: 12 }, audio, freeCam: false, ui: null,
+			worldExtensionGeneration: 0, activeHostedExperience: experience, activeHostedExtensions: extensions,
+			localLights: { setWorldPackage() {} }, worldPresence: null, activeHostedBoat: null,
+		} );
 		game = Object.assign( Object.create( Game.prototype ), {
-			app, runtime, state, fishCatalog, fishingAreas: fishBehavior.fishingAreas,
-			rod, fishingInput, hud: { invOpen: false, standOpen: false, update() {}, showCatch() {} }, landing: null,
-			display: { shown: false, show() { this.shown = true; }, hide() { this.shown = false; } }, vendors: [],
+			app, runtime, state, fishCatalog, fishingAreas: fishBehavior.fishingAreas, active: true,
+			rod, fishingInput, hud: { invOpen: false, standOpen: false, update() {}, showCatch() {}, closeStand() {} }, landing: null,
+			stand: { setColliders() {}, setActive() {} }, chandlery: { setColliders() {}, setActive() {} },
+			display: { mesh: { visible: true }, shown: false, show() { this.shown = true; }, hide() { this.shown = false; } }, vendors: [],
 			boatGameplay: { step: () => ( { fuel: null, sonar: null } ) }, toast: ( ...args ) => toasts.push( args ),
 		} );
+		app.game = game;
 		rod.onLand = where => { landing = where; landingReady = game.onBobberLanded( where ); };
-		update = () => game.update( 1 / 60 );
 	} else {
 		const ui = {
 			root: { dataset: {} }, promptKey: { textContent: '' }, promptText: { textContent: '' },
@@ -73,7 +79,10 @@ async function createScenario( backend, { experience, assets, worldId, fishCatal
 			boatGameplay: { step: () => ( { fuel: null, sonar: null } ) }, toast: ( ...args ) => toasts.push( args ),
 		} );
 		rod.onLand = where => { landing = where; landingReady = game._onBobberLanded( where ); };
-		update = () => game.update( 1 / 60, player, input, { timeOfDay: 12 } );
+		fallback = {
+			app: { settings: { timeOfDay: 12 } }, camera, input, player, freeCam: false,
+			fishStand: null, chandlery: null, gameAdapter: game,
+		};
 	}
 	const pendingActions = [];
 	for ( const name of ( backend === 'webgpu' ? [ 'strike', 'updateFight' ] : [ '_strike', '_stepFight' ] ) ) {
@@ -88,7 +97,19 @@ async function createScenario( backend, { experience, assets, worldId, fishCatal
 		game, runtime, rod, player, input, pressed, audio, toasts,
 		landing: () => landing,
 		landingReady: () => landingReady,
-		frame() { waterQuery.update( 1 / 60 ); update(); },
+		frame() {
+			const dt = 1 / 60;
+			waterQuery.update( dt );
+			if ( backend === 'webgpu' ) dispatchWorldBehaviorHooks( experience, 'onWorldFrame', { app, mode: 'hosted', dt, extensions } );
+			else dispatchWorldBehaviorHooks( experience, 'onWebGLWorldFrame', { fallback, mode: 'hosted', dt, extensions } );
+		},
+		depart() {
+			if ( backend === 'webgpu' ) {
+				App.prototype.deactivateHostedWorld.call( app );
+				invariant( ! game.active, 'WebGPU departure did not deactivate Tidewater gameplay' );
+			} else extensions.dispose();
+			invariant( ! extensions.has( behaviorId ), `${backend} departure did not dispose its signed gameplay Worker` );
+		},
 		async flush() {
 			while ( pending.length || pendingActions.length ) await Promise.all( [ ...pending.splice( 0 ), ...pendingActions.splice( 0 ) ] );
 		},
@@ -144,6 +165,7 @@ async function playThroughSale( backend, context ) {
 	};
 	const sale = scenario.game.sellAll();
 	invariant( sale.count === 1 && scenario.runtime.state.inventory.length === 0 && scenario.runtime.state.money === sale.total, `${backend} sale did not credit money and empty inventory` );
+	scenario.depart();
 	return { trace, caught, sale, afterSale: { inventory: scenario.runtime.state.inventory, money: scenario.runtime.state.money, audio: scenario.audio.events, toasts: scenario.toasts } };
 }
 
@@ -173,7 +195,7 @@ try {
 		Math.random = previousRandom;
 	}
 	invariant( JSON.stringify( webgl ) === JSON.stringify( webgpu ), 'Live signed Worker gameplay differs between WebGPU and WebGL game paths' );
-	result.textContent = `PASS signed Tidewater module through gateway and dedicated Workers across both renderer game paths: ${JSON.stringify( { worldId, assetId: reference.assetId, biteFrames: webgpu.trace.bite.length, fightFrames: webgpu.trace.fight.length - 1, sale: webgpu.sale } )}`;
+	result.textContent = `PASS signed Tidewater module through gateway and dedicated Workers via registered WebGPU/WebGL frame hooks; WebGPU App departure disposed its Worker: ${JSON.stringify( { worldId, assetId: reference.assetId, biteFrames: webgpu.trace.bite.length, fightFrames: webgpu.trace.fight.length - 1, sale: webgpu.sale } )}`;
 	result.dataset.status = 'passed';
 } catch ( error ) {
 	result.textContent = `FAIL ${error.stack || error}`;

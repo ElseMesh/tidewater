@@ -118,7 +118,7 @@ try {
 	const placementBytes = await readFile( path.join( output, 'assets', placementID.slice( 'sha256:'.length ) ) );
 	assert.equal( `sha256:${createHash( 'sha256' ).update( placementBytes ).digest( 'hex' )}`, placementID, 'vegetation placement asset is content addressed' );
 	assert.ok( placementBytes.length < 3 * 1024 * 1024, 'compact binary placement encoding stays below three MiB' );
-	assert.deepEqual( decodeVegetationPlacements( new Uint8Array( placementBytes ) ), checkedInVegetation, 'exported placements match the checked-in portable vegetation data' );
+	assert.deepEqual( decodeVegetationPlacements( new Uint8Array( placementBytes ) ), checkedInVegetation, 'exported placements match the checked-in Tidewater vegetation data' );
 	for ( const [ id, bytes ] of firstAssets ) {
 		assert.deepEqual( await readFile( path.join( output, 'assets', id.slice( 'sha256:'.length ) ) ), bytes, `repeated generation must preserve bytes for ${id}` );
 		assert.equal( `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`, id, `content-addressed asset bytes must match ${id}` );
