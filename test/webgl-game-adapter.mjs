@@ -16,6 +16,7 @@ const fishCatalog = experience.behaviors[ 'elsemesh.fishing-game/1' ].fishCatalo
 const storage = { getItem: () => null, setItem: () => {} };
 const state = new GameState( storage, 'elsemesh:local', fishCatalog );
 state.addFish( 'grunt', 0.8 );
+const coinCues = [];
 let inRange = true, shopInRange = false;
 const vendor = { name: 'Joe · Fish buyer', kind: 'buyer', inRange: () => inRange };
 const shopVendor = { name: 'Marta · Chandlery', kind: 'shop', inRange: () => shopInRange };
@@ -35,7 +36,7 @@ const hud = {
 	update( status ) { this.lastStatus = status; },
 };
 const adapter = Object.create( WebGLGameAdapter.prototype );
-Object.assign( adapter, { state, vendor, vendors: [ vendor, shopVendor ], activeVendor: vendor, ui, hud, nearVendor: true } );
+Object.assign( adapter, { state, vendor, vendors: [ vendor, shopVendor ], activeVendor: vendor, ui, hud, nearVendor: true, audio: { coin: () => coinCues.push( 'coin' ) } } );
 
 assert.equal( adapter.handleKey( 'KeyE' ), true, 'E is consumed while the buyer is in range' );
 assert.equal( hud.standOpen, true, 'E opens the shared fish-buyer panel' );
@@ -49,12 +50,17 @@ assert.equal( ui.root.dataset.panel, 'closed' );
 assert.equal( adapter.handleKey( 'KeyI' ), true, 'I opens the shared inventory panel' );
 assert.equal( hud.invOpen, true );
 inRange = false;
-adapter.update( 1 / 60, { x: 0, y: 0, z: 0 } );
+adapter.update( 1 / 60, { position: { x: 0, y: 0, z: 0 }, mode: 'walk' } );
 assert.equal( ui.promptVisible, false, 'the buyer prompt hides out of range' );
 assert.equal( hud.lastStatus.fight, null, 'the adapter uses the shared HUD update contract' );
 
 shopInRange = true;
-adapter.update( 1 / 60, { x: 0, y: 0, z: 0 } );
+adapter.update( 1 / 60, { position: { x: 0, y: 0, z: 0 }, mode: 'deck' } );
+assert.equal( adapter.activeVendor, null, 'vendor interaction is unavailable while aboard, matching WebGPU' );
+assert.equal( ui.promptVisible, false, 'aboard players do not see the vendor prompt' );
+assert.equal( adapter.handleKey( 'KeyE' ), false, 'E does not open a vendor panel while aboard' );
+
+adapter.update( 1 / 60, { position: { x: 0, y: 0, z: 0 }, mode: 'walk' } );
 assert.equal( adapter.activeVendor, shopVendor, 'the shared game adapter selects the in-range chandlery vendor' );
 assert.equal( adapter.handleKey( 'KeyE' ), true, 'E opens the shop through the shared browser HUD' );
 assert.equal( hud.vendor, shopVendor, 'the shop menu binds to Marta instead of the fish buyer' );
@@ -64,6 +70,9 @@ adapter.sellAll();
 assert.equal( state.inventory.length, 0, 'selling through the adapter uses shared game inventory rules' );
 assert.equal( state.money, 6, 'shared fish pricing is preserved' );
 assert.match( ui.lastToast, /Sold 1 fish for \$6/ );
+assert.deepEqual( coinCues, [ 'coin' ], 'a successful sale plays the WebGPU coin cue exactly once' );
+adapter.sellAll();
+assert.deepEqual( coinCues, [ 'coin' ], 'an empty sale does not play a coin cue' );
 
 console.log( 'webgl game adapter passed (shared buyer controls, inventory, selling and HUD)' );
 

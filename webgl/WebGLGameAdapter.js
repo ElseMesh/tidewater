@@ -115,7 +115,7 @@ export class WebGLGameAdapter {
 	update( dt, player, input = null, { timeOfDay = 12, freeCam = false } = {} ) {
 
 		const position = player?.position || player;
-		this.activeVendor = this.vendors.find( vendor => vendor.inRange( position ) ) || null;
+		this.activeVendor = player?.mode === 'walk' ? this.vendors.find( vendor => vendor.inRange( position ) ) || null : null;
 		this.nearVendor = !! this.activeVendor;
 		if ( this.hud.standOpen && ! this.nearVendor ) {
 			this.hud.closeStand();
@@ -239,7 +239,12 @@ export class WebGLGameAdapter {
 	sellAll() {
 
 		const result = this.state.sell();
-		if ( result.count ) this.toast( `Sold ${ result.count } fish for $${ result.total }` );
+		if ( result.count ) {
+
+			this.toast( `Sold ${ result.count } fish for $${ result.total }` );
+			this.audio?.coin?.();
+
+		}
 		return result;
 
 	}
