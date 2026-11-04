@@ -121,7 +121,7 @@ const input = new InputStub();
 const camera = new E.PerspectiveCamera( 60, 2, 0.1, 5000 );
 const boat = new BoatController( { design: model, query, terrain, colliders, initialPosition: new E.Vector3( ...ISLAND_DEFINITION.boatDock.position ), initialHeading: ISLAND_DEFINITION.boatDock.heading } );
 boat.model = model;
-const player = new Player( { camera, input, terrain, colliders, query, boat } );
+const player = new Player( { camera, input, terrain, colliders, query, boat, worldLayout: WORLD } );
 
 const dt = 1 / 60;
 const run = ( sec, each = null ) => {
