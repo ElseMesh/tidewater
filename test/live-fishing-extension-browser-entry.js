@@ -35,17 +35,27 @@ try {
 	const started = await runtime.startBite( habitat, 7, 123456789 );
 	if ( !started || started.phase !== 'wait' ) throw new Error( `Fishing Worker did not initialize bite state: ${JSON.stringify( started )}` );
 	let bite = started;
-	for ( let frame = 0; frame < 320 && bite?.phase !== 'take'; frame += 32 ) {
-		const batch = Array.from( { length: 32 }, () => runtime.stepBite( 0.1, { habitat, hour: 7 } ) );
-		const states = await Promise.all( batch );
-		bite = states.at( -1 )?.bite;
+	let biteFrames = 0;
+	while ( bite?.phase !== 'take' && biteFrames < 1200 ) {
+		for ( let step = 0; step < 8 && bite?.phase !== 'take'; step ++ ) {
+			bite = ( await runtime.stepBite( 0.1, { habitat, hour: 7 } ) ).bite;
+			biteFrames ++;
+		}
 	}
 	if ( bite?.phase !== 'take' || !behaviorData.fishCatalog[ bite.species ] || !Number.isFinite( bite.kg ) ) throw new Error( `Tidewater fishing module did not produce a valid bite: ${JSON.stringify( bite )}` );
 	const startedFight = await runtime.strike( { lineKg: 5, reelSpeed: 3, distance: 20, seed: 246813579 } );
 	if ( !startedFight || startedFight.state !== 'fighting' ) throw new Error( `Tidewater fishing module did not start a fight: ${JSON.stringify( startedFight )}` );
-	const steppedFight = await runtime.stepFight( 0.1, false, 7 );
-	if ( steppedFight.state !== 'fighting' || steppedFight.fight.time !== 0.1 ) throw new Error( `Fishing Worker did not advance gameplay state: ${JSON.stringify( steppedFight )}` );
-	result.textContent = `PASS live signed Tidewater fishing module through gateway and dedicated Worker: ${JSON.stringify( { worldId, assetId: reference.assetId, bite: { species: bite.species, kg: bite.kg }, fight: steppedFight.fight } )}`;
+	let fightResult = null, fightFrames = 0;
+	while ( fightFrames < 60 * 180 && runtime.fight ) {
+		const fight = runtime.fight;
+		const reeling = fight.tension < 0.68 && fight.surge < 0.6;
+		fightResult = await runtime.stepFight( 1 / 60, reeling, 7 );
+		fightFrames ++;
+	}
+	if ( fightResult?.state !== 'caught' || runtime.fight || runtime.state.inventory.length !== 1 ) throw new Error( `Fishing Worker did not complete the catch: ${JSON.stringify( { state: fightResult?.state, inventory: runtime.state.inventory } )}` );
+	const sale = runtime.state.sell();
+	if ( sale.count !== 1 || runtime.state.inventory.length !== 0 || runtime.state.money !== sale.total ) throw new Error( `Fishing Worker catch could not complete sale: ${JSON.stringify( { sale, money: runtime.state.money, inventory: runtime.state.inventory } )}` );
+	result.textContent = `PASS live signed Tidewater fishing module through gateway and dedicated Worker: ${JSON.stringify( { worldId, assetId: reference.assetId, biteFrames, bite: { species: bite.species, kg: bite.kg }, fightFrames, outcome: fightResult.state, sale } )}`;
 	result.dataset.status = 'passed';
 } catch ( error ) {
 	result.textContent = `FAIL ${error.stack || error}`;
