@@ -7,6 +7,7 @@
 		"test:gameplay-input": "node test/fishing-input-controller.mjs",
 		"test:vegetation-codec": "node test/vegetation-placement-codec.mjs",
 		"test:webgl-vegetation-adapter": "node --preserve-symlinks test/webgl-vegetation-component-adapter.mjs && node --preserve-symlinks test/webgl-vegetation-presentation.mjs",
+		"test:webgl-village-material-adapter": "node --preserve-symlinks test/webgl-village-material-adapter.mjs",
 		"test:renderer-parity": "node --preserve-symlinks test/renderer-cast-parity.mjs && node --preserve-symlinks test/renderer-gameplay-parity.mjs && node --preserve-symlinks test/pre-split-fishing-parity.mjs",
 		"test:webgl-shore-query-parity": "node test/webgl-shore-query-parity.mjs",
 		"test:live-fishing-extension-browser": "node --preserve-symlinks test/live-fishing-extension-browser.mjs"
