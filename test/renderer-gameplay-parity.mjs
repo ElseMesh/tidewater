@@ -16,6 +16,7 @@ const createAudio = () => {
 		fishSplash: ( _, strength ) => events.push( [ 'splash', strength ] ),
 		fishFlop: () => events.push( [ 'flop' ] ),
 		lineSnap: () => events.push( [ 'snap' ] ),
+		coin: () => events.push( [ 'coin' ] ),
 	};
 };
 const fightSnapshot = runtime => {
@@ -82,4 +83,11 @@ assert.equal( webgpu.landing?.species, webgl.landing?.species, 'both renderers p
 assert.equal( webgpu.landing?.kg, webgl.landing?.kg, 'both renderers present the same landed weight' );
 assert.deepEqual( webgpu.landing?.card, webgl.landing?.card, 'both renderers present the same catch card' );
 
-console.log( `WebGPU/WebGL fishing trace parity passed (${frames} deterministic fight frames)` );
+const webgpuSale = webgpu.sellAll(), webglSale = webgl.sellAll();
+assert.deepEqual( webglSale, webgpuSale, 'both renderers report the same vendor sale' );
+assert.equal( webgl.state.money, webgpu.state.money, 'both renderers credit the same sale value' );
+assert.deepEqual( webgl.state.inventory, webgpu.state.inventory, 'both renderers clear the same sold catch' );
+assert.deepEqual( webglAudio.events, webgpuAudio.events, 'both renderers play the same sale audio cue' );
+assert.deepEqual( webglToasts, webgpuToasts, 'both renderers show the same sale message' );
+
+console.log( `WebGPU/WebGL fishing and sale trace parity passed (${frames} deterministic fight frames)` );
