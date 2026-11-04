@@ -35,10 +35,11 @@ registerWorldComponentBackendBatchAdapter( 'webgl', 'elsemesh.static-vegetation/
 	for ( const component of components ) {
 		const placementBytes = assets.get( component.placementAssetId );
 		const placementKind = component.assets?.find( asset => asset.assetId === component.placementAssetId )?.kind;
-		const grassMaskBytes = component.grassMaskAssetId && assets.get( component.grassMaskAssetId );
-		if ( ! placementBytes || component.grassMaskAssetId && ! grassMaskBytes ) continue;
+		const grassMaskAssetId = fallback.hostedTerrainData ? component.grassMaskAssetId : null;
+		const grassMaskBytes = grassMaskAssetId && assets.get( grassMaskAssetId );
+		if ( ! placementBytes || grassMaskAssetId && ! grassMaskBytes ) continue;
 		if ( typeof placementKind !== 'string' ) throw new Error( `Static vegetation component ${component.id} does not declare its placement asset kind` );
-		if ( component.grassMaskAssetId ) {
+		if ( grassMaskAssetId ) {
 			fallback.hostedGrassMask = decodeGrassDensityAsset( bytesOf( grassMaskBytes ) );
 			if ( ! fallback.hostedTerrainData ) throw new Error( `Static grass component ${component.id} requires its terrain surface` );
 			if ( fallback.hostedGrassMask.size !== fallback.hostedTerrainData.size || fallback.hostedGrassMask.origin !== fallback.hostedTerrainData.origin ) throw new Error( `Static grass component ${component.id} does not match its terrain surface` );
