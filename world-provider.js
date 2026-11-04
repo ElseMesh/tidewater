@@ -10,7 +10,7 @@ export const TIDEWATER_WORLD_COMPONENTS = Object.freeze( [
 	[ 'elsemesh.procedural-island-vegetation/1', { vegetation: true, installRank: 1 } ],
 	[ 'elsemesh.static-vegetation/1', { vegetation: true, installRank: 1 } ],
 	[ 'elsemesh.downeast-boat/1', { installRank: 1, vehicle: true, complexityTriangles: 46845 } ],
-	[ 'elsemesh.example-island-wildlife/1', { installRank: 2, wildlifeSimulation: true } ],
+	[ 'elsemesh.example-island-wildlife/1', { installRank: 2 } ],
 	[ 'elsemesh.island-ocean/1', { waterSurface: true } ],
 ] );
 
