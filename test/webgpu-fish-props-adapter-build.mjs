@@ -8,7 +8,7 @@ import { worldComponentBackendAdapter } from '../../../src/network/WorldComponen
 import { encodeFishPropPlacements } from '../FishPropPlacements.js';
 import * as fishPresentation from '../FishPresentation.js';
 import '../register-behavior.js';
-import '../../../src/world/fish/FishPropsWebGPUAdapter.js';
+import '../renderers/WebGPUFishPropsComponentAdapter.js';
 
 const records = [
 	{ kind: 'whole', species: 'mullet', L: 0.4, x: 1.25, y: 3, z: -2.5, q: [ 0, 0.7071067811865475, 0, 0.7071067811865476 ], pattern: 14, seed: 0.972, curl: -0.1, sag: 0.15, jaw: 0.2, flags: [ 0.6, 0.6, 0, 0 ] },

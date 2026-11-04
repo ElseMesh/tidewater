@@ -14,6 +14,8 @@ import './renderers/WebGLVegetationComponentAdapter.js';
 import './renderers/WebGLReefComponentAdapter.js';
 import './renderers/WebGLVillageMaterialComponentAdapter.js';
 import './renderers/WebGLWildlifeComponentAdapter.js';
+import './renderers/WebGLFishPropsComponentAdapter.js';
+import './renderers/WebGPUFishPropsComponentAdapter.js';
 
 registerWorldComponentAssetDecoder( FISH_PROP_PLACEMENT_ASSET_KIND, bytes => decodeFishPropPlacements( bytes, fishPresentation ) );
 registerWorldComponentAssetDecoder( 'vegetation-placement/1', decodeVegetationPlacements );

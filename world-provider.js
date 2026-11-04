@@ -1,5 +1,6 @@
 export const TIDEWATER_WORLD_COMPONENTS = Object.freeze( [
 	[ 'elsemesh.static-grass/1', {} ],
+	[ 'elsemesh.static-fish-props/1', {} ],
 	[ 'elsemesh.static-reef/1', {} ],
 	[ 'elsemesh.humpback-whale/1', {} ],
 	[ 'elsemesh.village-materials/1', {} ],
