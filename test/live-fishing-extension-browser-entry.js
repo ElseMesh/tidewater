@@ -1,14 +1,151 @@
+import { PerspectiveCamera } from '../../../src/engine/index.js';
 import { WorldConnector } from '../../../src/network/WorldConnector.js';
 import { createWorldBehaviorExtensions, createWorldBehaviorRuntime } from '../../../src/network/WorldBehaviorRegistry.js';
 import { GameState } from '../GameState.js';
+import { FishingRod } from '../game/FishingRod.js';
+import { Game } from '../game/Game.js';
+import { FishingInputController } from '../FishingInputController.js';
+import { WebGLGameAdapter } from '../webgl/WebGLGameAdapter.js';
+import { SyntheticWaterQuery } from './synthetic-water-query.mjs';
 import '../register-behavior.js';
 
 const result = document.querySelector( '#result' );
 const query = new URLSearchParams( location.search );
 const behaviorId = 'elsemesh.fishing-game/1';
 let connector;
-let extensions;
-let runtime;
+const extensionSets = [];
+
+function invariant( condition, message, detail = '' ) {
+	if ( ! condition ) throw new Error( `${message}${detail ? `: ${detail}` : ''}` );
+}
+
+async function createScenario( backend, { experience, assets, worldId, fishCatalog } ) {
+	const extensions = createWorldBehaviorExtensions( experience, assets );
+	extensionSets.push( extensions );
+	const storage = { getItem: () => null, setItem() {} };
+	const state = new GameState( storage, worldId, fishCatalog );
+	const runtime = createWorldBehaviorRuntime( experience, behaviorId, { state, load: false, worldId, extensions } );
+	await runtime.extensionReady;
+	const terrain = { heightAt: () => - 8 };
+	const waterQuery = new SyntheticWaterQuery( terrain );
+	const camera = new PerspectiveCamera( 62, 1, 0.1, 500 );
+	camera.position.set( 0, 2, 0 );
+	camera.updateMatrixWorld();
+	const rod = new FishingRod( { camera, query: waterQuery, terrain, render: false } );
+	const player = { position: camera.position.clone(), mode: 'walk', surface: 'wood', busy: false, prompt: null };
+	const pressed = new Set();
+	const input = { enabled: true, mouseDown: false, rightDown: false, hit: code => pressed.delete( code ) };
+	const fishingInput = new FishingInputController();
+	const audio = {
+		events: [],
+		fishSplash: ( _, strength ) => audio.events.push( [ 'splash', strength ] ),
+		fishFlop: () => audio.events.push( [ 'flop' ] ),
+		coin: () => audio.events.push( [ 'coin' ] ),
+	};
+	const toasts = [], pending = [];
+	const originalStepBite = runtime.stepBite.bind( runtime );
+	runtime.stepBite = ( ...args ) => {
+		const promise = originalStepBite( ...args );
+		pending.push( promise );
+		return promise;
+	};
+	const fishBehavior = experience.behaviors[ behaviorId ];
+	let game, update, landing = null, landingReady = Promise.resolve( null );
+	if ( backend === 'webgpu' ) {
+		const app = { player, camera, input, settings: { timeOfDay: 12 }, audio, freeCam: false, ui: null };
+		game = Object.assign( Object.create( Game.prototype ), {
+			app, runtime, state, fishCatalog, fishingAreas: fishBehavior.fishingAreas,
+			rod, fishingInput, hud: { invOpen: false, standOpen: false, update() {}, showCatch() {} }, landing: null,
+			display: { shown: false, show() { this.shown = true; }, hide() { this.shown = false; } }, vendors: [],
+			boatGameplay: { step: () => ( { fuel: null, sonar: null } ) }, toast: ( ...args ) => toasts.push( args ),
+		} );
+		rod.onLand = where => { landing = where; landingReady = game.onBobberLanded( where ); };
+		update = () => game.update( 1 / 60 );
+	} else {
+		const ui = {
+			root: { dataset: {} }, promptKey: { textContent: '' }, promptText: { textContent: '' },
+			prompt: { classList: { toggle() {} } }, toast() {},
+		};
+		const hud = { standOpen: false, invOpen: false, catchOpen: false, update() {}, showCatch() {}, closeStand() {}, hideCatch() {} };
+		game = Object.assign( Object.create( WebGLGameAdapter.prototype ), {
+			runtime, state, fishCatalog, fishingAreas: fishBehavior.fishingAreas, rod, fishingInput, hud, ui, audio,
+			landing: null, vendor: { name: 'Joe · Fish buyer' }, vendors: [],
+			boatGameplay: { step: () => ( { fuel: null, sonar: null } ) }, toast: ( ...args ) => toasts.push( args ),
+		} );
+		rod.onLand = where => { landing = where; landingReady = game._onBobberLanded( where ); };
+		update = () => game.update( 1 / 60, player, input, { timeOfDay: 12 } );
+	}
+	const pendingActions = [];
+	for ( const name of ( backend === 'webgpu' ? [ 'strike', 'updateFight' ] : [ '_strike', '_stepFight' ] ) ) {
+		const original = game[ name ].bind( game );
+		game[ name ] = ( ...args ) => {
+			const promise = original( ...args );
+			pendingActions.push( promise );
+			return promise;
+		};
+	}
+	return {
+		game, runtime, rod, player, input, pressed, audio, toasts,
+		landing: () => landing,
+		landingReady: () => landingReady,
+		frame() { waterQuery.update( 1 / 60 ); update(); },
+		async flush() {
+			while ( pending.length || pendingActions.length ) await Promise.all( [ ...pending.splice( 0 ), ...pendingActions.splice( 0 ) ] );
+		},
+	};
+}
+
+async function playThroughSale( backend, context ) {
+	const scenario = await createScenario( backend, context );
+	const frame = async () => { scenario.frame(); await scenario.flush(); };
+	const trace = { cast: [], bite: [], fight: [] };
+	const snapshotFight = fight => fight && Object.fromEntries( Object.entries( fight ).filter( ( [ key, value ] ) => key !== 'rng' && typeof value !== 'function' ) );
+	const snapshot = ( bucket, value ) => bucket.push( structuredClone( value ) );
+	scenario.pressed.add( 'KeyR' );
+	await frame();
+	scenario.input.mouseDown = true;
+	await frame();
+	for ( let i = 0; i < 120 && scenario.rod.power < 1; i ++ ) await frame();
+	scenario.input.mouseDown = false;
+	await frame();
+	for ( let i = 0; i < 480 && scenario.landing() === null; i ++ ) {
+		scenario.frame();
+		snapshot( trace.cast, { state: scenario.rod.state, bobber: scenario.rod.bobber.toArray(), velocity: scenario.rod.bobberVel.toArray() } );
+		await scenario.flush();
+	}
+	invariant( scenario.landing() === 'water', `${backend} cast did not land in water` );
+	await scenario.landingReady();
+	invariant( scenario.runtime.bite?.phase === 'wait', `${backend} signed Worker did not start a bite` );
+	for ( let i = 0; i < 60 * 90 && scenario.runtime.bite?.phase !== 'take'; i ++ ) {
+		scenario.frame();
+		await scenario.flush();
+		snapshot( trace.bite, scenario.runtime.bite );
+	}
+	invariant( scenario.runtime.bite?.phase === 'take', `${backend} signed Worker did not produce a take` );
+	scenario.input.mouseDown = true;
+	await frame();
+	invariant( !! scenario.runtime.fight, `${backend} input failed to hook the take` );
+	snapshot( trace.fight, snapshotFight( scenario.runtime.fight ) );
+	for ( let i = 0; i < 60 * 180 && scenario.runtime.fight; i ++ ) {
+		const fight = scenario.runtime.fight;
+		scenario.input.mouseDown = fight.tension < 0.68 && fight.surge < 0.6;
+		scenario.frame();
+		await scenario.flush();
+		snapshot( trace.fight, snapshotFight( scenario.runtime.fight ) );
+	}
+	invariant( ! scenario.runtime.fight && scenario.rod.state === 'landing', `${backend} fight did not complete as a catch` );
+	invariant( scenario.runtime.state.inventory.length === 1, `${backend} catch was not saved to inventory` );
+	const caught = {
+		landing: scenario.game.landing && ( ( { species, kg, card } ) => ( { species, kg, card } ) )( scenario.game.landing ),
+		inventory: scenario.runtime.state.inventory,
+		money: scenario.runtime.state.money,
+		audio: scenario.audio.events,
+		toasts: scenario.toasts,
+	};
+	const sale = scenario.game.sellAll();
+	invariant( sale.count === 1 && scenario.runtime.state.inventory.length === 0 && scenario.runtime.state.money === sale.total, `${backend} sale did not credit money and empty inventory` );
+	return { trace, caught, sale, afterSale: { inventory: scenario.runtime.state.inventory, money: scenario.runtime.state.money, audio: scenario.audio.events, toasts: scenario.toasts } };
+}
 
 try {
 	const worldId = query.get( 'worldId' );
@@ -25,42 +162,23 @@ try {
 	const experience = manifest.experience;
 	const behaviorData = experience.behaviors[ behaviorId ];
 	if ( ! behaviorData ) throw new Error( 'Signed Tidewater manifest has no fishing behavior data' );
-	const assets = new Map( [ [ reference.assetId, moduleBytes ] ] );
-	extensions = createWorldBehaviorExtensions( experience, assets );
-	runtime = createWorldBehaviorRuntime( experience, behaviorId, {
-		state: new GameState( undefined, worldId, behaviorData.fishCatalog ), load: false, worldId, extensions,
-	} );
-	await runtime.extensionReady;
-	const habitat = { pier: 1, shallows: 1, reef: 0, bay: 0, deep: 0 };
-	const started = await runtime.startBite( habitat, 7, 123456789 );
-	if ( !started || started.phase !== 'wait' ) throw new Error( `Fishing Worker did not initialize bite state: ${JSON.stringify( started )}` );
-	let bite = started;
-	let biteFrames = 0;
-	while ( bite?.phase !== 'take' && biteFrames < 1200 ) {
-		for ( let step = 0; step < 8 && bite?.phase !== 'take'; step ++ ) {
-			bite = ( await runtime.stepBite( 0.1, { habitat, hour: 7 } ) ).bite;
-			biteFrames ++;
-		}
+	const context = { experience, assets: new Map( [ [ reference.assetId, moduleBytes ] ] ), worldId, fishCatalog: behaviorData.fishCatalog };
+	const previousRandom = Math.random;
+	let webgpu, webgl;
+	try {
+		Math.random = () => 0x71de / 0x100000000;
+		webgpu = await playThroughSale( 'webgpu', context );
+		webgl = await playThroughSale( 'webgl', context );
+	} finally {
+		Math.random = previousRandom;
 	}
-	if ( bite?.phase !== 'take' || !behaviorData.fishCatalog[ bite.species ] || !Number.isFinite( bite.kg ) ) throw new Error( `Tidewater fishing module did not produce a valid bite: ${JSON.stringify( bite )}` );
-	const startedFight = await runtime.strike( { lineKg: 5, reelSpeed: 3, distance: 20, seed: 246813579 } );
-	if ( !startedFight || startedFight.state !== 'fighting' ) throw new Error( `Tidewater fishing module did not start a fight: ${JSON.stringify( startedFight )}` );
-	let fightResult = null, fightFrames = 0;
-	while ( fightFrames < 60 * 180 && runtime.fight ) {
-		const fight = runtime.fight;
-		const reeling = fight.tension < 0.68 && fight.surge < 0.6;
-		fightResult = await runtime.stepFight( 1 / 60, reeling, 7 );
-		fightFrames ++;
-	}
-	if ( fightResult?.state !== 'caught' || runtime.fight || runtime.state.inventory.length !== 1 ) throw new Error( `Fishing Worker did not complete the catch: ${JSON.stringify( { state: fightResult?.state, inventory: runtime.state.inventory } )}` );
-	const sale = runtime.state.sell();
-	if ( sale.count !== 1 || runtime.state.inventory.length !== 0 || runtime.state.money !== sale.total ) throw new Error( `Fishing Worker catch could not complete sale: ${JSON.stringify( { sale, money: runtime.state.money, inventory: runtime.state.inventory } )}` );
-	result.textContent = `PASS live signed Tidewater fishing module through gateway and dedicated Worker: ${JSON.stringify( { worldId, assetId: reference.assetId, biteFrames, bite: { species: bite.species, kg: bite.kg }, fightFrames, outcome: fightResult.state, sale } )}`;
+	invariant( JSON.stringify( webgl ) === JSON.stringify( webgpu ), 'Live signed Worker gameplay differs between WebGPU and WebGL game paths' );
+	result.textContent = `PASS signed Tidewater module through gateway and dedicated Workers across both renderer game paths: ${JSON.stringify( { worldId, assetId: reference.assetId, biteFrames: webgpu.trace.bite.length, fightFrames: webgpu.trace.fight.length - 1, sale: webgpu.sale } )}`;
 	result.dataset.status = 'passed';
 } catch ( error ) {
 	result.textContent = `FAIL ${error.stack || error}`;
 	result.dataset.status = 'failed';
 } finally {
-	extensions?.dispose();
+	for ( const extensions of extensionSets ) extensions.dispose();
 	connector?.close();
 }
