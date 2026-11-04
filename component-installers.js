@@ -6,7 +6,7 @@ import { TerrainGPU } from '../../src/world/TerrainGPU.js';
 import { Terrain } from '../../src/world/Terrain.js';
 import { Vegetation } from '../../src/world/Vegetation.js';
 import { Reef } from '../../src/world/Reef.js';
-import { Wildlife } from '../../src/world/wildlife/Wildlife.js';
+import { Wildlife } from './wildlife/Wildlife.js';
 import { Whale } from '../../src/world/marine/Whale.js';
 import { HostedBoat } from '../../src/network/HostedBoat.js';
 import { decodeWorldComponentAsset } from '../../src/network/WorldComponentAssetCodecRegistry.js';

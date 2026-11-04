@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { HeightfieldTerrainData } from '../../../src/world/HeightfieldTerrainData.js';
 import { decodeTerrainSurfaceAsset } from '../../../src/network/TerrainSurfaceAsset.js';
-import { Crabs } from '../../../src/world/wildlife/Crabs.js';
+import { Crabs } from '../wildlife/Crabs.js';
 
 const terrain = new HeightfieldTerrainData( {
 	size: 4,

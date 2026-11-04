@@ -1,5 +1,5 @@
 import { registerWorldComponentBackendBatchAdapter } from '../../../src/network/WorldComponentBackendRegistry.js';
-import { WildlifeSimulation, DEFAULT_WILDLIFE_ENVIRONMENT } from '../../../src/world/wildlife/WildlifeSimulation.js';
+import { WildlifeSimulation, DEFAULT_WILDLIFE_ENVIRONMENT } from '../wildlife/WildlifeSimulation.js';
 import { WebGLWildlifeAdapter } from './WebGLWildlifeAdapter.js';
 import { WebGLSwashProbe } from './WebGLSwashProbe.js';
 

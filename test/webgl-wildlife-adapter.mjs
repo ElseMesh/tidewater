@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import { SPECIES } from '../../../src/world/wildlife/BirdSpecies.js';
-import { buildBird } from '../../../src/world/wildlife/BirdShapes.js';
-import { createPose } from '../../../src/world/wildlife/BirdPose.js';
+import { SPECIES } from '../wildlife/BirdSpecies.js';
+import { buildBird } from '../wildlife/BirdShapes.js';
+import { createPose } from '../wildlife/BirdPose.js';
 import { WebGLWildlifeAdapter, deformWebGLBirdVertex } from '../renderers/WebGLWildlifeAdapter.js';
 
 const poses = SPECIES.map( ( _species, index ) => createPose( index, 0.4 ) );

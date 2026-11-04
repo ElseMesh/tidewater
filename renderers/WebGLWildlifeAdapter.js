@@ -1,6 +1,6 @@
-import { SPECIES } from '../../../src/world/wildlife/BirdSpecies.js';
-import { buildBird } from '../../../src/world/wildlife/BirdShapes.js';
-import { forEachVisibleWildlifeBird } from '../../../src/world/wildlife/WildlifeFrame.js';
+import { SPECIES } from '../wildlife/BirdSpecies.js';
+import { buildBird } from '../wildlife/BirdShapes.js';
+import { forEachVisibleWildlifeBird } from '../wildlife/WildlifeFrame.js';
 import { WebGLCrabAdapter } from './WebGLCrabAdapter.js';
 
 const speciesGeometry = SPECIES.map( buildBird );

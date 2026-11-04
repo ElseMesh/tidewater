@@ -1,6 +1,6 @@
-import { buildCritters, BODY_VERTS, LIMBS } from '../../../src/world/wildlife/CritterShapes.js';
-import { CRITTER } from '../../../src/world/wildlife/CritterSpecies.js';
-import { CrabPresentation } from '../../../src/world/wildlife/CrabPresentation.js';
+import { buildCritters, BODY_VERTS, LIMBS } from '../wildlife/CritterShapes.js';
+import { CRITTER } from '../wildlife/CritterSpecies.js';
+import { CrabPresentation } from '../wildlife/CrabPresentation.js';
 
 const CAPACITY = 160;
 
