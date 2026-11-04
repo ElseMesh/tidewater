@@ -9,7 +9,7 @@ import { Village } from '../../../src/world/Village.js';
 import { Colliders } from '../../../src/world/Colliders.js';
 import { createVegetationPlacement, buildGrassMask } from '../../../src/world/vegetation/Scatter.js';
 import { decodeGrassDensityAsset } from '../../../src/network/GrassDensityAsset.js';
-import { encodeVegetationPlacements } from '../../../src/network/VegetationPlacements.js';
+import { encodeVegetationPlacements } from '../VegetationPlacements.js';
 
 const worldRoot = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..' );
 const source = JSON.parse( await readFile( path.join( worldRoot, 'world-source.json' ), 'utf8' ) );

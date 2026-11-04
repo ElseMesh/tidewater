@@ -9,7 +9,7 @@ import { Reef } from '../../src/world/Reef.js';
 import { Wildlife } from '../../src/world/wildlife/Wildlife.js';
 import { Whale } from '../../src/world/marine/Whale.js';
 import { HostedBoat } from '../../src/network/HostedBoat.js';
-import { decodeVegetationPlacements } from '../../src/network/VegetationPlacements.js';
+import { decodeWorldComponentAsset } from '../../src/network/WorldComponentAssetCodecRegistry.js';
 import { decodeGrassDensityAsset } from '../../src/network/GrassDensityAsset.js';
 import { decodeTerrainSurfaceAsset } from '../../src/network/TerrainSurfaceAsset.js';
 import { decodeReefPlacements, MAX_REEF_PLACEMENTS, REEF_PLACEMENT_HEADER_BYTES, REEF_PLACEMENT_RECORD_BYTES } from '../../src/network/ReefPlacements.js';
@@ -164,7 +164,7 @@ async function installBoat( { root, connector, installed }, component ) {
 function readVegetationPlacements( connector, component ) {
 	const bytes = connector.assets.get( component.placementAssetId );
 	if ( ! bytes ) throw new Error( `Vegetation component ${component.id} is missing its placement asset` );
-	return decodeVegetationPlacements( bytes, component.seed );
+	return decodeWorldComponentAsset( 'vegetation-placement/1', bytes, component.seed );
 }
 
 function readReefPlacements( connector, component ) {

@@ -13,7 +13,7 @@ import { VILLAGE_MATERIAL_MAPS, VILLAGE_MATERIAL_PROFILE, VILLAGE_MATERIAL_RENDE
 import { validateWorldSource } from '../../../src/network/WorldSource.js';
 import { Colliders } from '../../../src/world/Colliders.js';
 import { standard } from '../../../src/materials/Materials.js';
-import { decodeVegetationPlacements } from '../../../src/network/VegetationPlacements.js';
+import { decodeVegetationPlacements } from '../VegetationPlacements.js';
 import { decodeReefPlacements } from '../../../src/network/ReefPlacements.js';
 import { decodeFishPropPlacements } from '../FishPropPlacements.js';
 import { decodeTerrainSurfaceAsset } from '../../../src/network/TerrainSurfaceAsset.js';

@@ -21,7 +21,7 @@ import { InstancedProps } from '../../../src/world/Props.js';
 import { DebrisPlacer } from '../../../src/world/debris/DebrisPlacement.js';
 import { SCAN_ASSETS } from '../../../src/world/debris/ScannedDebris.js';
 import { createVegetationPlacement, buildGrassMask } from '../../../src/world/vegetation/Scatter.js';
-import { encodeVegetationPlacements } from '../../../src/network/VegetationPlacements.js';
+import { encodeVegetationPlacements } from '../VegetationPlacements.js';
 import { encodeGrassDensityAsset } from '../../../src/network/GrassDensityAsset.js';
 import { Reef } from '../../../src/world/Reef.js';
 import { encodeReefPlacements } from '../../../src/network/ReefPlacements.js';
