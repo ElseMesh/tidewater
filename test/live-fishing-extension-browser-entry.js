@@ -59,7 +59,7 @@ async function createScenario( backend, { experience, assets, worldId, fishCatal
 			localLights: { setWorldPackage() {} }, worldPresence: null, activeHostedBoat: null,
 			worldGames: new Map(), hostedWaterSurface: {}, hostedQueries: new WeakMap(),
 			hostedColliders: {}, hostedQuery: waterQuery, hostedPlayerSlot: 0,
-			query: waterQuery, terrainData: terrain, colliders: {},
+			query: waterQuery, colliders: {},
 		} );
 		game = Object.assign( Object.create( Game.prototype ), {
 			app, runtime, state, fishCatalog, fishingAreas: fishBehavior.fishingAreas, active: true,
@@ -76,6 +76,8 @@ async function createScenario( backend, { experience, assets, worldId, fishCatal
 		rod.onLand = where => { landing = where; landingReady = game.onBobberLanded( where ); };
 		const root = { userData: { worldComponents: [], terrainData: terrain } };
 		app.activateHostedWorld( root, connector, { dispose() {} } );
+		invariant( ! ( 'terrainData' in app ), 'hosted WebGPU fixture must not provide built-in terrainData' );
+		invariant( game.terrain === terrain, 'Tidewater did not receive the hosted world terrain' );
 		extensions = app.activeHostedExtensions;
 		extensionSets.push( extensions );
 		await runtime.extensionReady;
