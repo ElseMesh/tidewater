@@ -148,6 +148,9 @@ const debris = generated.debris;
 const vegetationDocument = Buffer.from( encodeVegetationPlacements( generated.vegetation, 7 ) );
 const vegetationAssetId = `sha256:${createHash( 'sha256' ).update( vegetationDocument ).digest( 'hex' )}`;
 staticAssets.set( vegetationAssetId, vegetationDocument );
+const groundDetailDensityDocument = deflateSync( generated.groundDetailDensity.data, { level: 9 } );
+const groundDetailDensityAssetId = `sha256:${createHash( 'sha256' ).update( groundDetailDensityDocument ).digest( 'hex' )}`;
+staticAssets.set( groundDetailDensityAssetId, groundDetailDensityDocument );
 const grassMask = buildGrassMask( generated.vegetationSite );
 const grassDensityDocument = Buffer.from( encodeGrassDensityAsset( { ...grassMask, size: terrain.size, origin: terrain.origin } ) );
 const grassDensityAssetId = `sha256:${createHash( 'sha256' ).update( grassDensityDocument ).digest( 'hex' )}`;
@@ -252,7 +255,7 @@ const source = {
 		avatarComplexity: 20000,
 		physicsProfile: 'elsemesh-default',
 		vehiclePolicy: { enabled: true, maxSpeed: 8, maxCombinedComplexity: 100000 },
-		requiredFeatures: [ 'elsemesh.static-glb/1', 'elsemesh.static-glb-quaternion/1', 'elsemesh.village-materials/1', 'elsemesh.village-materials/2', 'elsemesh.terrain-surface/1', 'elsemesh.static-vegetation/1', 'elsemesh.static-grass/1', 'elsemesh.static-reef/1', 'elsemesh.static-fish-props/1', 'elsemesh.example-island-wildlife/1', 'elsemesh.humpback-whale/1', 'elsemesh.island-ocean/1', 'elsemesh.downeast-boat/1', 'elsemesh.ambient-audio/1', 'elsemesh.portal-handoff/1', 'elsemesh.portal-preview-static/1' ],
+		requiredFeatures: [ 'elsemesh.static-glb/1', 'elsemesh.static-glb-quaternion/1', 'elsemesh.village-materials/1', 'elsemesh.village-materials/2', 'elsemesh.terrain-surface/1', 'elsemesh.ground-detail-field/1', 'elsemesh.static-vegetation/1', 'elsemesh.static-grass/1', 'elsemesh.static-reef/1', 'elsemesh.static-fish-props/1', 'elsemesh.example-island-wildlife/1', 'elsemesh.humpback-whale/1', 'elsemesh.island-ocean/1', 'elsemesh.downeast-boat/1', 'elsemesh.ambient-audio/1', 'elsemesh.portal-handoff/1', 'elsemesh.portal-preview-static/1' ],
 		maxPackageBytes: 128 * 1024 * 1024,
 	},
 	hosts: [],
@@ -320,6 +323,7 @@ const source = {
 		{ id: 'elsemesh-component:island-vegetation', type: 'elsemesh.static-vegetation/1', priority: 'portal-preview', assets: [ { assetId: vegetationAssetId, kind: 'vegetation-placement/1' }, { assetId: grassDensityAssetId, kind: 'grass-density/1' } ], data: { placementAssetId: vegetationAssetId, grassMaskAssetId: grassDensityAssetId, seed: 7 } },
 		...( generated.fishProps.length ? [ { id: 'elsemesh-component:island-fish-props', type: 'elsemesh.static-fish-props/1', priority: 'visible', streamingBounds: fishPropsBounds, assets: [ { assetId: fishPropsAssetId, kind: 'fish-props-placement/1' } ], data: { placementAssetId: fishPropsAssetId } } ] : [] ),
 		{ id: 'elsemesh-component:island-terrain', type: 'elsemesh.terrain-surface/1', priority: 'visible', assets: [ { assetId: terrainSurfaceAssetId, kind: 'terrain-surface/1' } ], data: { ...terrainSurfaceSource.data, profile: 'example-island-v1', objectId: 'elsemesh-object:island-terrain', dataAssetId: terrainSurfaceAssetId } },
+		{ id: 'elsemesh-component:ground-detail-field', type: 'elsemesh.ground-detail-field/1', priority: 'visible', assets: [ { assetId: groundDetailDensityAssetId, kind: 'ground-detail-density/1' } ], data: { resolution: generated.groundDetailDensity.res, texel: generated.groundDetailDensity.texel } },
 		{ id: 'elsemesh-component:island-wildlife', type: 'elsemesh.example-island-wildlife/1', priority: 'visible', streamingBounds: { center: [ 0, 0, - 40 ], radius: 300 }, assets: [], data: { profile: 'example-island-wildlife-v1', seed: 5, roofPerches: generated.roofPerches, footprints: generated.villageFootprints } },
 		{ id: 'elsemesh-component:island-humpback', type: 'elsemesh.humpback-whale/1', priority: 'visible', streamingBounds: { center: [ 0, - 4, 200 ], radius: 250 }, assets: [ { assetId: whaleAssetIDs[ 0 ], kind: 'whale-model/1' }, { assetId: whaleAssetIDs[ 1 ], kind: 'whale-geometry/1' }, { assetId: whaleAssetIDs[ 2 ], kind: 'whale-albedo/1' }, { assetId: whaleAssetIDs[ 3 ], kind: 'whale-height/1' } ], data: { profile: 'example-island-humpback-v1', modelAssetId: whaleAssetIDs[ 0 ], geometryAssetId: whaleAssetIDs[ 1 ], albedoAssetId: whaleAssetIDs[ 2 ], heightAssetId: whaleAssetIDs[ 3 ], seed: EXAMPLE_ISLAND_WHALE_PROFILE.seed, route: EXAMPLE_ISLAND_WHALE_PROFILE.route, surfaceAt: EXAMPLE_ISLAND_WHALE_PROFILE.surfaceAt, cruiseSpeed: EXAMPLE_ISLAND_WHALE_PROFILE.cruiseSpeed, surfaceSpeed: EXAMPLE_ISLAND_WHALE_PROFILE.surfaceSpeed } },
 		...reefComponents,
@@ -455,6 +459,7 @@ function buildIslandProceduralContent( terrainData ) {
 		villageFootprints: village.getFootprints().map( ( { x, z, r } ) => ( { x, z, r } ) ),
 		fishProps: village.B.fishProps?.items || [],
 		vegetationSite: vegetation.site,
+		groundDetailDensity: placer.mask,
 		boatBatches: buildBoatBatches(),
 		debris: placer.scanned,
 		vegetation: vegetation.records,

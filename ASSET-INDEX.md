@@ -1,11 +1,12 @@
 # Example Island asset index
 
-Generated from [world-source.json](world-source.json) (61 verified content-addressed assets).
+Generated from [world-source.json](world-source.json) (62 verified content-addressed assets).
 Each filename is the SHA-256 of the exact packaged bytes. Keep these names immutable; use the descriptions and use sites below to identify the assets.
 
 | Description / use | Format | Size | SHA-256 asset |
 | --- | --- | ---: | --- |
 | Behavior elsemesh.fishing-game/1 — javascript/1 | Binary (javascript/1) | 14.6 KiB | [`0a21b6defb6c6c72caee5cea60dd782bbd2e44e0dcb83673cc94e7f6c9b9aa48`](assets/0a21b6defb6c6c72caee5cea60dd782bbd2e44e0dcb83673cc94e7f6c9b9aa48) |
+| Component elsemesh-component:ground-detail-field — ground-detail-density/1 | Binary (ground-detail-density/1) | 228.9 KiB | [`d6bad383b1169d8789a548749807f2a9e27a2f54a789b7efa2cbb2b19cb100c8`](assets/d6bad383b1169d8789a548749807f2a9e27a2f54a789b7efa2cbb2b19cb100c8) |
 | Component elsemesh-component:island-ambience — audio/ogg<br>Editable source: source/audio/crickets.ogg | Ogg audio | 333.5 KiB | [`01b41d7e8fc719373f77f41f3936e8ccfdfee4aadea1a1dd1120206b2115d76c`](assets/01b41d7e8fc719373f77f41f3936e8ccfdfee4aadea1a1dd1120206b2115d76c) |
 | Component elsemesh-component:island-ambience — audio/ogg<br>Editable source: source/audio/under_reef.ogg | Ogg audio | 402.7 KiB | [`121952cc2e09a3a30712e2d1038a00366e2cbad3dccf1fa2388261487028249f`](assets/121952cc2e09a3a30712e2d1038a00366e2cbad3dccf1fa2388261487028249f) |
 | Component elsemesh-component:island-ambience — audio/ogg<br>Editable source: source/audio/palms.ogg | Ogg audio | 348.7 KiB | [`33c89a41d0e0592cb2b6fd5592fab4e7333b090dace7fd755334cc145ef51820`](assets/33c89a41d0e0592cb2b6fd5592fab4e7333b090dace7fd755334cc145ef51820) |

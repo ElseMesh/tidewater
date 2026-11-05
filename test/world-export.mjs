@@ -18,6 +18,7 @@ import { decodeReefPlacements } from '../../../src/network/ReefPlacements.js';
 import { decodeFishPropPlacements } from '../FishPropPlacements.js';
 import { decodeTerrainSurfaceAsset } from '../../../src/network/TerrainSurfaceAsset.js';
 import { decodeGrassDensityAsset } from '../../../src/network/GrassDensityAsset.js';
+import { decodeGroundDetailDensityAsset, GROUND_DETAIL_DENSITY_ASSET_KIND } from '../../../src/network/GroundDetailDensityAsset.js';
 import { decodeVillageMaterialAsset } from '../VillageMaterialAsset.js';
 import { BANK } from '../../../src/audio/soundBank.js';
 import { transformBoundsCenter } from '../../../src/network/WorldStreaming.js';
@@ -49,6 +50,13 @@ try {
 		assert.equal( `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`, id, `checked-in package asset bytes must match ${id}` );
 	}
 	assert.ok( checkedInBytes <= checkedInSource.rules.maxPackageBytes, 'checked-in assets fit the world package budget' );
+	const checkedInGroundDetail = checkedInSource.components.find( component => component.type === 'elsemesh.ground-detail-field/1' );
+	assert.ok( checkedInGroundDetail, 'Tidewater package declares renderer-neutral ground detail' );
+	const groundDetailReference = checkedInGroundDetail.assets.find( asset => asset.kind === GROUND_DETAIL_DENSITY_ASSET_KIND );
+	assert.ok( groundDetailReference, 'ground detail references its density asset by the generic asset kind' );
+	const groundDetail = await decodeGroundDetailDensityAsset( await readFile( path.join( checkedInDir, 'assets', groundDetailReference.assetId.slice( 'sha256:'.length ) ) ), componentData( checkedInGroundDetail ) );
+	assert.equal( groundDetail.data.byteLength, groundDetail.res * groundDetail.res * 4, 'ground detail carries the authored RGBA density mask' );
+	assert.ok( groundDetail.data.some( value => value > 0 ), 'ground detail density mask contains authored placement regions' );
 	assert.ok( checkedInSource.objects.some( ( object ) => object.id === 'elsemesh-object:island-village' ), 'checked-in island source contains the static village GLB instance' );
 	const checkedInWhale = checkedInSource.components.find( component => component.type === 'elsemesh.humpback-whale/1' );
 	assert.ok( checkedInWhale, 'checked-in Example Island declares its humpback simulation' );
@@ -85,6 +93,8 @@ try {
 	const sourceBytes = await readFile( sourcePath );
 	const terrainReportSecond = await readFile( terrainReportPath );
 	const source = validateWorldSource( JSON.parse( sourceBytes ) );
+	const generatedGroundDetail = source.components.find( component => component.type === 'elsemesh.ground-detail-field/1' );
+	assert.deepEqual( componentData( generatedGroundDetail ), componentData( checkedInGroundDetail ), 'generated package preserves the authored ground-detail field resolution and texel size' );
 	const manifestPath = path.join( output, 'manifest.json' );
 	execFileSync( process.execPath, [ '--import', './worlds/tidewater/register-behavior.js', 'tools/world-source-to-manifest.mjs', '--source', sourcePath, '--owner', 'a'.repeat( 40 ), '--assets', path.join( output, 'assets' ), '--out', manifestPath ], { cwd: repositoryRoot, encoding: 'utf8' } );
 	const manifest = JSON.parse( await readFile( manifestPath, 'utf8' ) );
@@ -143,9 +153,9 @@ try {
 	assert.ok( boatObject, 'export includes the static moored boat preview' );
 	assert.equal( boatObject.lods?.length, 1, 'moored boat preview has a distant geometry variant' );
 	assert.ok( firstAssets.has( boatObject.lods[ 0 ].assetId ), 'moored boat LOD is part of the portable package' );
-	assert.deepEqual( source.rules.requiredFeatures, [ 'elsemesh.static-glb/1', 'elsemesh.static-glb-quaternion/1', 'elsemesh.village-materials/1', 'elsemesh.village-materials/2', 'elsemesh.terrain-surface/1', 'elsemesh.static-vegetation/1', 'elsemesh.static-grass/1', 'elsemesh.static-reef/1', 'elsemesh.static-fish-props/1', 'elsemesh.example-island-wildlife/1', 'elsemesh.humpback-whale/1', 'elsemesh.island-ocean/1', 'elsemesh.downeast-boat/1', 'elsemesh.ambient-audio/1', 'elsemesh.portal-handoff/1', 'elsemesh.portal-preview-static/1' ], 'portable content declares the renderer capabilities it requires' );
+	assert.deepEqual( source.rules.requiredFeatures, [ 'elsemesh.static-glb/1', 'elsemesh.static-glb-quaternion/1', 'elsemesh.village-materials/1', 'elsemesh.village-materials/2', 'elsemesh.terrain-surface/1', 'elsemesh.ground-detail-field/1', 'elsemesh.static-vegetation/1', 'elsemesh.static-grass/1', 'elsemesh.static-reef/1', 'elsemesh.static-fish-props/1', 'elsemesh.example-island-wildlife/1', 'elsemesh.humpback-whale/1', 'elsemesh.island-ocean/1', 'elsemesh.downeast-boat/1', 'elsemesh.ambient-audio/1', 'elsemesh.portal-handoff/1', 'elsemesh.portal-preview-static/1' ], 'portable content declares the renderer capabilities it requires' );
 	assert.deepEqual( source.portals, [], 'the island package contains no undeclared external world links' );
-	assert.equal( source.components.length, 9 + source.components.filter( ( component ) => component.type === 'elsemesh.static-reef/1' ).length, 'portable island declares village materials, vegetation, reef tiles, fish props, terrain renderer, wildlife, humpback, ocean, boat, and ambient components' );
+	assert.equal( source.components.length, 10 + source.components.filter( ( component ) => component.type === 'elsemesh.static-reef/1' ).length, 'portable island declares village materials, vegetation, reef tiles, fish props, ground detail, terrain renderer, wildlife, humpback, ocean, boat, and ambient components' );
 	assert.equal( vegetationComponent.type, 'elsemesh.static-vegetation/1', 'portable island uses terrain-independent, authored world-space vegetation placements' );
 	assert.match( componentData( vegetationComponent ).placementAssetId, /^sha256:[0-9a-f]{64}$/, 'vegetation placement data is content addressed' );
 	assert.match( componentData( vegetationComponent ).grassMaskAssetId, /^sha256:[0-9a-f]{64}$/, 'grass density data is content addressed' );

@@ -531,6 +531,7 @@
       "elsemesh.village-materials/1",
       "elsemesh.village-materials/2",
       "elsemesh.terrain-surface/1",
+      "elsemesh.ground-detail-field/1",
       "elsemesh.static-vegetation/1",
       "elsemesh.static-grass/1",
       "elsemesh.static-reef/1",
@@ -12969,6 +12970,21 @@
         },
         "objectId": "elsemesh-object:island-terrain",
         "dataAssetId": "sha256:b26986a190a36734acfe3004d0ddd3663e3c467d2764b30b60a8afee655d76e8"
+      }
+    },
+    {
+      "id": "elsemesh-component:ground-detail-field",
+      "type": "elsemesh.ground-detail-field/1",
+      "priority": "visible",
+      "assets": [
+        {
+          "assetId": "sha256:d6bad383b1169d8789a548749807f2a9e27a2f54a789b7efa2cbb2b19cb100c8",
+          "kind": "ground-detail-density/1"
+        }
+      ],
+      "data": {
+        "resolution": 1024,
+        "texel": 2
       }
     },
     {
