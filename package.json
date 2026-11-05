@@ -5,6 +5,7 @@
 		"export": "node tools/export-world.mjs",
 		"export:grass-density": "node tools/export-grass-density.mjs",
 		"test:gameplay-input": "node test/fishing-input-controller.mjs",
+		"test:minimap-hosted-terrain": "node test/minimap-hosted-terrain.mjs",
 		"test:vegetation-codec": "node test/vegetation-placement-codec.mjs",
 		"test:webgl-vegetation-adapter": "node --preserve-symlinks test/webgl-vegetation-component-adapter.mjs && node --preserve-symlinks test/webgl-vegetation-presentation.mjs",
 		"test:webgl-village-material-adapter": "node --preserve-symlinks test/webgl-village-material-adapter.mjs",

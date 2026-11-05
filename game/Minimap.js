@@ -71,7 +71,7 @@ export class Minimap {
 
 		const B = this._bake;
 		if ( B.done ) return;
-		const T = this.game.app.terrainData;
+		const T = this.game.terrain;
 		const res = T.res, tex = T.texel, org = T.origin;
 		const idx = ( x, z ) => {
 
@@ -95,8 +95,8 @@ export class Minimap {
 				c = dep < 6 ? mix( C.shallow, C.mid, smooth( 0.3, 6, dep ) ) : mix( C.mid, C.deep, smooth( 6, 40, dep ) );
 				if ( k >= 0 ) {
 
-					c = mix( c, C.grassSea, ( T.seagrass[ k ] / 255 ) * 0.55 );
-					c = mix( c, C.rubble, ( T.rubble[ k ] / 255 ) * 0.6 );
+					c = mix( c, C.grassSea, ( ( T.seagrass?.[ k ] || 0 ) / 255 ) * 0.55 );
+					c = mix( c, C.rubble, ( ( T.rubble?.[ k ] || 0 ) / 255 ) * 0.6 );
 
 				}
 
@@ -104,7 +104,7 @@ export class Minimap {
 
 			} else {
 
-				const rock = k >= 0 ? T.rock[ k ] : 0, sand = k >= 0 ? T.sand[ k ] / 255 : 0;
+				const rock = k >= 0 ? T.rock?.[ k ] || 0 : 0, sand = k >= 0 ? ( T.sand?.[ k ] || 0 ) / 255 : 0;
 				c = mix( C.grass, C.scrub, smooth( 4, 16, hgt ) );
 				c = mix( c, C.forest, smooth( 12, 40, hgt ) );
 				c = mix( c, C.sand, Math.max( sand, smooth( 1.6, 0.4, hgt ) ) );
@@ -112,8 +112,8 @@ export class Minimap {
 				c = mix( c, C.rock, smooth( 0.35, 0.7, rock ) );
 				if ( k >= 0 ) {
 
-					c = mix( c, C.path, ( T.path[ k ] / 255 ) * 0.85 );
-					c = mix( c, C.scarp, ( T.scarp[ k ] / 255 ) * 0.5 );
+					c = mix( c, C.path, ( ( T.path?.[ k ] || 0 ) / 255 ) * 0.85 );
+					c = mix( c, C.scarp, ( ( T.scarp?.[ k ] || 0 ) / 255 ) * 0.5 );
 
 				}
 
@@ -225,7 +225,7 @@ export class Minimap {
 	// the two richest points on a coarse polar grid around (x, z), at least 25 m apart
 	_richest( x, z, r ) {
 
-		const g = this.game, T = g.app.terrainData;
+		const g = this.game, T = g.terrain;
 		const pts = [];
 		for ( let ring = 1; ring <= 3; ring ++ ) for ( let a = 0; a < 12; a ++ ) {
 
