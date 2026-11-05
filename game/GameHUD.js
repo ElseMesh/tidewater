@@ -112,8 +112,8 @@ const CSS = /* css */`
 .gm-catch-stage { position: relative; width: min(94vw, 1400px, calc(46vh * 2.4)); aspect-ratio: 2.4 / 1; }
 .gm-catch-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%;
 	-webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 14%, #000 86%, transparent 100%); mask-image: linear-gradient(90deg, transparent 0%, #000 14%, #000 86%, transparent 100%); }
-/* the card owns the screen: the minimap and the settings rail step aside */
-.em-root:has(.gm-catch.is-on) .gm-map, .em-root:has(.gm-catch.is-on) .em-rail { opacity: 0; pointer-events: none; transition: opacity 300ms; }
+/* the card owns the screen: the navigation HUD and settings rail step aside */
+.em-root:has(.gm-catch.is-on) .em-world-nav, .em-root:has(.gm-catch.is-on) .em-rail { opacity: 0; pointer-events: none; transition: opacity 300ms; }
 .gm-catch-stage::before { content: ''; position: absolute; left: 12%; right: 12%; bottom: 6%; height: 16%; border-radius: 50%;
 	background: radial-gradient(closest-side, rgba(0, 0, 0, 0.5), transparent); opacity: 0; }
 .gm-catch.is-on .gm-catch-stage::before { animation: gm-fade 900ms var(--em-ease) 350ms forwards; }

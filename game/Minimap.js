@@ -1,4 +1,5 @@
 import { Vector3 } from '../../../src/engine/math/index.js';
+import { WorldNavigator } from '../../../src/ui/WorldNavigator.js';
 
 // Minimap, lower right: the island baked once from the terrain data into a 2D canvas (depth-tinted
 // sea, reef and seagrass, sand, grass and forest by height, rock, paths, village pads, the pier,
@@ -17,65 +18,10 @@ const PPM = N / EXT; // canvas px per metre
 const ROWS_PER_FRAME = 48;
 const _vehicleForward = new Vector3();
 
-const CSS = /* css */`
-.gm-map { position: absolute; right: var(--em-edge); bottom: var(--em-edge); width: calc(184 * var(--em-u)); height: calc(184 * var(--em-u));
-	border-radius: 50%; padding: calc(5 * var(--em-u)); pointer-events: none;
-	transition: right var(--em-slow) var(--em-ease), opacity var(--em-med) var(--em-ease); }
-.em-root[data-panel='open'] .gm-map { right: calc(var(--em-panel-w) + 2 * var(--em-3)); }
-.gm-map-view { position: relative; width: 100%; height: 100%; border-radius: 50%; overflow: hidden; background: #0b2c48;
-	box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08), inset 0 0 18px rgba(0,0,0,0.45); }
-.gm-map-view canvas { position: absolute; left: 0; top: 0; width: ${ N }px; height: ${ N }px; transform-origin: 0 0; image-rendering: auto; }
-.gm-map-vig { position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
-	background: radial-gradient(circle at 50% 50%, transparent 58%, rgba(4, 12, 20, 0.45) 100%); }
-.gm-map-marks { position: absolute; inset: 0; }
-.gm-mk { position: absolute; left: 0; top: 0; width: 0; height: 0; }
-.gm-mk > i { position: absolute; left: 0; top: 0; display: grid; place-items: center; width: calc(20 * var(--em-u)); height: calc(20 * var(--em-u));
-	margin: calc(-10 * var(--em-u)) 0 0 calc(-10 * var(--em-u)); border-radius: 50%; font: 700 calc(10 * var(--em-u)) var(--em-font); font-style: normal;
-	color: #0b1418; box-shadow: 0 1px 3px rgba(0,0,0,0.55), 0 0 0 1.5px rgba(255,255,255,0.85); }
-.gm-mk > i svg { width: 64%; height: 64%; }
-.gm-mk.is-joe > i { background: var(--em-sun); }
-.gm-mk.is-marta > i { background: var(--em-aqua); }
-.gm-mk.is-boat > i { background: #f2efe6; }
-.gm-mk > b { position: absolute; left: 0; top: 0; width: 0; height: 0; border-left: calc(5 * var(--em-u)) solid transparent; border-right: calc(5 * var(--em-u)) solid transparent;
-	border-bottom: calc(7 * var(--em-u)) solid rgba(255,255,255,0.9); margin: calc(-19 * var(--em-u)) 0 0 calc(-5 * var(--em-u)); transform-origin: calc(5 * var(--em-u)) calc(19 * var(--em-u)); display: none; }
-.gm-mk.is-edge > b { display: block; }
-.gm-mk.is-edge > i { transform: scale(0.82); }
-.gm-mk.is-hot > i { animation: gm-map-pulse 1.3s var(--em-ease-io) infinite; }
-@keyframes gm-map-pulse { 0%, 100% { box-shadow: 0 1px 3px rgba(0,0,0,0.55), 0 0 0 1.5px rgba(255,255,255,0.85), 0 0 0 0 rgba(255,255,255,0.6); }
-	60% { box-shadow: 0 1px 3px rgba(0,0,0,0.55), 0 0 0 1.5px rgba(255,255,255,0.85), 0 0 0 calc(10 * var(--em-u)) rgba(255,255,255,0); } }
-.gm-map-me { position: absolute; left: 50%; top: 50%; width: 0; height: 0; }
-.gm-map-me svg { position: absolute; width: calc(18 * var(--em-u)); height: calc(18 * var(--em-u)); left: calc(-9 * var(--em-u)); top: calc(-10 * var(--em-u));
-	filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6)); }
-.gm-map-n { position: absolute; left: 0; top: 0; width: calc(14 * var(--em-u)); height: calc(14 * var(--em-u)); margin: calc(-7 * var(--em-u)) 0 0 calc(-7 * var(--em-u));
-	border-radius: 50%; display: grid; place-items: center; font: 700 calc(9 * var(--em-u)) var(--em-font); color: #0b1418; background: rgba(255,255,255,0.9);
-	box-shadow: 0 1px 2px rgba(0,0,0,0.5); }
-.gm-map-fish { position: absolute; left: 0; top: 0; width: 0; height: 0; opacity: 0; transition: opacity 600ms var(--em-ease); }
-.gm-map-fish.is-on { opacity: 0.9; }
-.gm-map-fish > i { position: absolute; left: calc(-12 * var(--em-u)); top: calc(-12 * var(--em-u)); width: calc(24 * var(--em-u)); height: calc(24 * var(--em-u));
-	border-radius: 50%; border: 1.5px solid rgba(var(--em-aqua-rgb), 0.9); animation: gm-map-ring 2.2s var(--em-ease-io) infinite; }
-.gm-map-fish > i + i { animation-delay: -1.1s; }
-@keyframes gm-map-ring { 0% { transform: scale(0.45); } 100% { transform: scale(1.15); border-color: rgba(var(--em-aqua-rgb), 0); } }
-.gm-map-label { position: absolute; left: 50%; bottom: calc(-2 * var(--em-u)); transform: translate(-50%, 100%); padding-top: calc(4 * var(--em-u));
-	font: 500 var(--em-fs-xs) var(--em-mono); color: var(--em-ink-3); white-space: nowrap; text-shadow: 0 1px 2px rgba(0,0,0,0.7); display: none; }
-/* short windows: the settings rail (right, vertically centred) reaches down to the corner */
-@media (max-height: 860px) { .gm-map { right: calc(var(--em-edge) + 58 * var(--em-u)); } }
-@media (max-width: 640px) { .gm-map { width: calc(128 * var(--em-u)); height: calc(128 * var(--em-u)); } }
-@media (prefers-reduced-motion: reduce) { .gm-mk.is-hot > i, .gm-map-fish > i { animation: none; } }
-`;
-
 const ICON = {
 	fish: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 12c3-4 7-6 11-6 3 0 5 2 7 4l-2 2 2 2c-2 2-4 4-7 4-4 0-8-2-11-6Zm12-1.2a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4Z"/></svg>',
 	anchor: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="5" r="2"/><path d="M12 7v13M7 11h10M4 14c1 4 4 6 8 6s7-2 8-6"/></svg>',
 	boat: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v9H6l6-9Zm1 2 5 7h-5V5ZM3 14h18l-3 5H6l-3-5Z"/></svg>',
-};
-
-const h = ( tag, cls, html ) => {
-
-	const e = document.createElement( tag );
-	if ( cls ) e.className = cls;
-	if ( html !== undefined ) e.innerHTML = html;
-	return e;
-
 };
 
 const mix = ( a, b, t ) => [ a[ 0 ] + ( b[ 0 ] - a[ 0 ] ) * t, a[ 1 ] + ( b[ 1 ] - a[ 1 ] ) * t, a[ 2 ] + ( b[ 2 ] - a[ 2 ] ) * t ];
@@ -100,94 +46,23 @@ export class Minimap {
 	constructor( parent, game ) {
 
 		this.game = game;
-		const style = h( 'style' );
-		style.textContent = CSS;
-		document.head.append( style );
-
-		this.el = h( 'div', 'gm-map em-glass', `<div class="gm-map-view"><canvas width="${ N }" height="${ N }"></canvas><div class="gm-map-vig"></div>
-			<div class="gm-map-marks"></div>
-			<div class="gm-map-me"><svg viewBox="0 0 24 24"><path d="M12 2 20 21 12 16.5 4 21Z" fill="#fff" stroke="#0b1418" stroke-width="1.4" stroke-linejoin="round"/></svg></div></div>` );
-		this.el.setAttribute( 'aria-hidden', 'true' );
-		this.view = this.el.querySelector( '.gm-map-view' );
-		this.canvas = this.el.querySelector( 'canvas' );
-		this.marks = this.el.querySelector( '.gm-map-marks' );
-		parent.append( this.el );
-
-		const mk = ( kind, icon ) => {
-
-			const e = h( 'div', 'gm-mk is-' + kind, `<b></b><i>${ icon }</i>` );
-			this.marks.append( e );
-			return { el: e, arrow: e.firstChild };
-
-		};
-
-		this.markers = [
-			{ id: 'joe', ...mk( 'joe', ICON.fish ), pos: () => game.vendorPosition( 'joe' ) },
-			{ id: 'marta', ...mk( 'marta', ICON.anchor ), pos: () => game.vendorPosition( 'marta' ) },
-			{ id: 'boat', ...mk( 'boat', ICON.boat ), pos: () => {
-
-				const b = game.app.boatCtl;
-				return b ? { x: b.position.x, z: b.position.z } : null;
-
-			}, hideWhen: () => {
-
-				const p = game.app.player;
-				return p.mode === 'boat' || p.mode === 'deck';
-
-			} },
-		];
-		this.north = h( 'div', 'gm-map-n', 'N' );
-		this.marks.append( this.north );
-		this.fish = [ h( 'div', 'gm-map-fish', '<i></i><i></i>' ), h( 'div', 'gm-map-fish', '<i></i><i></i>' ) ];
-		this.fish.forEach( ( f ) => this.marks.prepend( f ) );
+		this.navigator = new WorldNavigator( parent, { radius: 110, labels: [ { text: 'N', x: 0, z: - 1 } ] } );
+		this.el = this.navigator.el;
+		this.mapCanvas = document.createElement( 'canvas' ); this.mapCanvas.width = N; this.mapCanvas.height = N;
 		this._fishPts = [];
 		this._fishT = 0;
 
 		this.radiusM = 110; // world radius shown (m), eased between on foot and at sea
 		this._hot = new Set();
-		this._size = 0;
-		this._bake = { row: 0, ctx: this.canvas.getContext( '2d' ), img: null, h: null, done: false };
+		this._bake = { row: 0, ctx: this.mapCanvas.getContext( '2d' ), img: null, h: null, done: false };
 		this._bake.img = this._bake.ctx.createImageData( N, N );
 		this._bake.h = new Float32Array( N * N );
-		// the view's size, kept by a ResizeObserver (reading clientWidth per frame forces a style +
-		// layout pass right after last frame's transform writes)
-		this._viewSize = - 1;
-		if ( typeof ResizeObserver !== 'undefined' ) {
-
-			this._ro = new ResizeObserver( () => {
-
-				this._viewSize = this.view.clientWidth;
-
-			} );
-			this._ro.observe( this.view );
-
-		}
-
-	}
-
-	// style writes only when the value changes
-	_setStyle( el, prop, value ) {
-
-		const k = '__gm_' + prop;
-		if ( el[ k ] === value ) return;
-		el[ k ] = value;
-		el.style[ prop ] = value;
-
-	}
-
-	_toggle( el, cls, on ) {
-
-		const k = '__gm_c_' + cls;
-		if ( el[ k ] === on ) return;
-		el[ k ] = on;
-		el.classList.toggle( cls, on );
 
 	}
 
 	highlight( ids = [] ) {
 
 		this._hot = new Set( ids );
-		for ( const m of this.markers ) this._toggle( m.el, 'is-hot', this._hot.has( m.id ) );
 
 	}
 
@@ -302,6 +177,7 @@ export class Minimap {
 		ctx.strokeRect( hx0, hz0, hx1 - hx0, hz1 - hz0 );
 		B.done = true;
 		B.img = null;
+		this.navigator.setMap( this.mapCanvas, { minX: X0, maxX: X0 + EXT, minZ: Z0, maxZ: Z0 + EXT } );
 
 	}
 
@@ -310,13 +186,8 @@ export class Minimap {
 
 		this._bakeStep();
 		const app = this.game.app, cam = app.camera, p = app.player;
-		if ( this._viewSize < 0 || ! this._ro ) this._viewSize = this.view.clientWidth;
-		const size = this._viewSize;
-		if ( ! size ) return;
-		const R = size / 2;
-
-		// On foot and while swimming, the map follows the view. A vehicle has its own
-		// heading, so looking around must not rotate the navigation reference.
+		// The world provides its current position/heading and authored points; ElseMesh
+		// owns the reusable map, compass-label, marker and edge-arrow presentation.
 		const e = cam.matrixWorld.elements;
 		let fx = - e[ 8 ], fz = - e[ 10 ];
 		if ( ( p.mode === 'boat' || p.mode === 'deck' ) && p.boat?.forward ) {
@@ -324,60 +195,11 @@ export class Minimap {
 			fx = forward.x;
 			fz = forward.z;
 		}
-		const fl = Math.hypot( fx, fz );
-		if ( fl < 1e-4 ) {
-
-			fx = 0; fz = - 1;
-
-		} else {
-
-			fx /= fl; fz /= fl;
-
-		}
-
-		const rx = - fz, rz = fx; // right
 		const x = cam.position.x, z = cam.position.z;
 
 		// zoom: close on foot, wider at sea
 		const want = p.mode === 'boat' || p.mode === 'deck' || p.mode === 'swim' ? 240 : 110;
 		this.radiusM += ( want - this.radiusM ) * ( 1 - Math.exp( - dt * 1.5 ) );
-		const kpm = R / this.radiusM; // css px per metre
-
-		// map: player at the centre, forward up
-		const rot = - Math.PI / 2 - Math.atan2( fz, fx );
-		const s = kpm / PPM;
-		this._setStyle( this.canvas, 'transform', `translate(${ R }px, ${ R }px) rotate(${ rot }rad) scale(${ s }) translate(${ - ( x - X0 ) * PPM }px, ${ - ( z - Z0 ) * PPM }px)` );
-
-		const place = ( el, dx, dz, edgeInset, arrow ) => {
-
-			let sx = ( dx * rx + dz * rz ) * kpm, sy = - ( dx * fx + dz * fz ) * kpm;
-			const r = Math.hypot( sx, sy ), max = R - edgeInset;
-			const edge = r > max;
-			if ( edge ) {
-
-				sx *= max / r; sy *= max / r;
-
-			}
-
-			this._setStyle( el, 'transform', `translate(${ R + sx }px, ${ R + sy }px)` );
-			if ( arrow && edge ) this._setStyle( arrow, 'transform', `rotate(${ Math.atan2( sx, - sy ) }rad)` );
-			return edge;
-
-		};
-
-		for ( const m of this.markers ) {
-
-			const q = m.pos();
-			const hide = ! q || ( m.hideWhen && m.hideWhen() );
-			this._setStyle( m.el, 'display', hide ? 'none' : '' );
-			if ( hide ) continue;
-			const edge = place( m.el, q.x - x, q.z - z, 12, m.arrow );
-			this._toggle( m.el, 'is-edge', edge );
-
-		}
-
-		// the N on the rim
-		place( this.north, 0, - 1e6, 9 );
 
 		// fish finder: the richest water nearby, refreshed now and then
 		const finder = this.game.state.stats.finder;
@@ -389,13 +211,14 @@ export class Minimap {
 
 		}
 
-		for ( let i = 0; i < this.fish.length; i ++ ) {
-
-			const q = finder ? this._fishPts[ i ] : null;
-			this._toggle( this.fish[ i ], 'is-on', !! q );
-			if ( q ) place( this.fish[ i ], q.x - x, q.z - z, 14 );
-
-		}
+		const boat = app.boatCtl;
+		const markers = [
+			{ id: 'joe', icon: ICON.fish, color: 'var(--em-sun)', position: this.game.vendorPosition( 'joe' ) },
+			{ id: 'marta', icon: ICON.anchor, color: 'var(--em-aqua)', position: this.game.vendorPosition( 'marta' ) },
+			{ id: 'boat', icon: ICON.boat, position: boat ? { x: boat.position.x, z: boat.position.z } : null, hidden: p.mode === 'boat' || p.mode === 'deck' },
+		].filter( marker => marker.position ).map( marker => ( { ...marker, highlighted: this._hot.has( marker.id ) } ) );
+		const forward = { x: fx, z: fz };
+		this.navigator.update( { dt, position: { x, z }, forward, radius: this.radiusM, markers, overlays: finder ? this._fishPts : [] } );
 
 	}
 
