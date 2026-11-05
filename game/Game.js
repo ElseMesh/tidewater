@@ -182,7 +182,8 @@ export class Game {
 	get canFish() {
 
 		const app = this.app, p = app.player;
-		return ! app.freeCam && ( p.mode === 'walk' || p.mode === 'deck' ) && ! ( app.ui && app.ui.ui && app.ui.ui._photo );
+		const ui = app.ui?.ui || app.hud;
+		return ! app.freeCam && ( p.mode === 'walk' || p.mode === 'deck' ) && ! ui?._photo;
 
 	}
 
@@ -191,9 +192,9 @@ export class Game {
 
 		const app = this.app, p = app.player, inp = app.input, rod = this.rod;
 		this._cardDismissed = false;
-		if ( ! this.hud && app.ui && app.ui.ui && typeof document !== 'undefined' && document.head ) {
+		const ui = app.ui?.ui || app.hud;
+		if ( ! this.hud && ui && typeof document !== 'undefined' && document.head ) {
 
-			const ui = app.ui.ui;
 			this.hud = new GameHUD( ui, this );
 			// the minimap (lower right) and the first-play guide (intro, one-time tips; replay from F1)
 			this.minimap = new Minimap( ui.hud || ui.root, this );
