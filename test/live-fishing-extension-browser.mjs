@@ -170,8 +170,8 @@ try {
 	browserProcess = browser.child;
 	const result = await inspectPage( browser.page, url.href );
 	assert.equal( result.status, 'passed', `live Tidewater fishing extension passed: ${result.text}` );
-	assert.match( result.text, /signed Tidewater module through gateway and dedicated Workers via registered WebGPU\/WebGL frame hooks/ );
-	console.log( 'Tidewater fishing parity: signed world manifest, ephemeral worldd/Vite/DevTools ports, registered WebGPU/WebGL frame hooks, and WebGPU App departure Worker disposal passed' );
+	assert.match( result.text, /signed Tidewater module through gateway and dedicated Workers via registered WebGPU\/WebGL frame hooks; WebGPU App activation, gameplay frames, departure, and re-entry/ );
+	console.log( 'Tidewater fishing parity: signed manifest, live WebGPU App activation/gameplay/departure/re-entry, WebGL hooks, and dedicated Workers passed' );
 } finally {
 	if ( browserProcess ) await stopGroup( browserProcess );
 	for ( const child of processes.reverse() ) await stopDaemon( child );

@@ -21,8 +21,8 @@ function invariant( condition, message, detail = '' ) {
 }
 
 async function createScenario( backend, { experience, assets, worldId, fishCatalog } ) {
-	const extensions = createWorldBehaviorExtensions( experience, assets );
-	extensionSets.push( extensions );
+	let extensions = backend === 'webgl' ? createWorldBehaviorExtensions( experience, assets ) : null;
+	if ( extensions ) extensionSets.push( extensions );
 	const storage = { getItem: () => null, setItem() {} };
 	const state = new GameState( storage, worldId, fishCatalog );
 	const runtime = createWorldBehaviorRuntime( experience, behaviorId, { state, load: false, worldId, extensions } );
@@ -51,22 +51,34 @@ async function createScenario( backend, { experience, assets, worldId, fishCatal
 		return promise;
 	};
 	const fishBehavior = experience.behaviors[ behaviorId ];
-	let game, app, fallback, landing = null, landingReady = Promise.resolve( null );
+	let game, app, fallback, landing = null, landingReady = Promise.resolve( null ), gameFrames = 0;
 	if ( backend === 'webgpu' ) {
 		app = Object.assign( Object.create( App.prototype ), {
 			player, camera, input, settings: { timeOfDay: 12 }, audio, freeCam: false, ui: null,
-			worldExtensionGeneration: 0, activeHostedExperience: experience, activeHostedExtensions: extensions,
+			worldExtensionGeneration: 0, activeHostedExperience: null, activeHostedExtensions: null,
 			localLights: { setWorldPackage() {} }, worldPresence: null, activeHostedBoat: null,
+			worldGames: new Map(), hostedWaterSurface: {}, hostedQueries: new WeakMap(),
+			hostedColliders: {}, hostedQuery: waterQuery, hostedPlayerSlot: 0,
+			query: waterQuery, terrainData: terrain, colliders: {},
 		} );
 		game = Object.assign( Object.create( Game.prototype ), {
 			app, runtime, state, fishCatalog, fishingAreas: fishBehavior.fishingAreas, active: true,
 			rod, fishingInput, hud: { invOpen: false, standOpen: false, update() {}, showCatch() {}, closeStand() {} }, landing: null,
 			stand: { setColliders() {}, setActive() {} }, chandlery: { setColliders() {}, setActive() {} },
 			display: { mesh: { visible: true }, shown: false, show() { this.shown = true; }, hide() { this.shown = false; } }, vendors: [],
-			boatGameplay: { step: () => ( { fuel: null, sonar: null } ) }, toast: ( ...args ) => toasts.push( args ),
+			boatGameplay: { step: () => ( { fuel: null, sonar: null } ), setTerrain() {}, setController() {} }, toast: ( ...args ) => toasts.push( args ),
 		} );
 		app.game = game;
+		app.worldGames.set( worldId, game );
+		app.hostedQueries.set( app.hostedWaterSurface, waterQuery );
+		const updateGame = game.update.bind( game );
+		game.update = dt => { gameFrames ++; updateGame( dt ); };
 		rod.onLand = where => { landing = where; landingReady = game.onBobberLanded( where ); };
+		const root = { userData: { worldComponents: [], terrainData: terrain } };
+		app.activateHostedWorld( root, connector, { dispose() {} } );
+		extensions = app.activeHostedExtensions;
+		extensionSets.push( extensions );
+		await runtime.extensionReady;
 	} else {
 		const ui = {
 			root: { dataset: {} }, promptKey: { textContent: '' }, promptText: { textContent: '' },
@@ -97,18 +109,36 @@ async function createScenario( backend, { experience, assets, worldId, fishCatal
 		game, runtime, rod, player, input, pressed, audio, toasts,
 		landing: () => landing,
 		landingReady: () => landingReady,
+		gameFrames: () => backend === 'webgpu' ? gameFrames : null,
 		frame() {
 			const dt = 1 / 60;
 			waterQuery.update( dt );
-			if ( backend === 'webgpu' ) dispatchWorldBehaviorHooks( experience, 'onWorldFrame', { app, mode: 'hosted', dt, extensions } );
+			if ( backend === 'webgpu' ) dispatchWorldBehaviorHooks( app.activeHostedExperience, 'onWorldFrame', { app, mode: 'hosted', dt, extensions: app.activeHostedExtensions } );
 			else dispatchWorldBehaviorHooks( experience, 'onWebGLWorldFrame', { fallback, mode: 'hosted', dt, extensions } );
 		},
 		depart() {
 			if ( backend === 'webgpu' ) {
-				App.prototype.deactivateHostedWorld.call( app );
+				app.deactivateHostedWorld();
 				invariant( ! game.active, 'WebGPU departure did not deactivate Tidewater gameplay' );
 			} else extensions.dispose();
 			invariant( ! extensions.has( behaviorId ), `${backend} departure did not dispose its signed gameplay Worker` );
+		},
+		async reenter() {
+			invariant( backend === 'webgpu', 'only the hosted App path has an App activation lifecycle' );
+			const previousExtensions = extensions;
+			app.activateHostedWorld( { userData: { worldComponents: [], terrainData: terrain } }, connector, { dispose() {} } );
+			extensions = app.activeHostedExtensions;
+			extensionSets.push( extensions );
+			await runtime.extensionReady;
+			invariant( previousExtensions !== extensions && ! previousExtensions.has( behaviorId ), 'WebGPU re-entry did not replace and dispose the previous Worker set' );
+			rod.state = 'idle';
+			rod.equipped = false;
+			const before = gameFrames;
+			pressed.add( 'KeyR' );
+			this.frame();
+			await this.flush();
+			invariant( gameFrames > before, 'WebGPU re-entry did not advance Tidewater gameplay through App frame hooks' );
+			invariant( rod.equipped, 'WebGPU re-entry did not route rod-toggle input through Tidewater gameplay' );
 		},
 		async flush() {
 			while ( pending.length || pendingActions.length ) await Promise.all( [ ...pending.splice( 0 ), ...pendingActions.splice( 0 ) ] );
@@ -158,15 +188,20 @@ async function playThroughSale( backend, context ) {
 	invariant( scenario.runtime.state.inventory.length === 1, `${backend} catch was not saved to inventory` );
 	const caught = {
 		landing: scenario.game.landing && ( ( { species, kg, card } ) => ( { species, kg, card } ) )( scenario.game.landing ),
-		inventory: scenario.runtime.state.inventory,
+		inventory: structuredClone( scenario.runtime.state.inventory ),
 		money: scenario.runtime.state.money,
-		audio: scenario.audio.events,
-		toasts: scenario.toasts,
+		audio: structuredClone( scenario.audio.events ),
+		toasts: structuredClone( scenario.toasts ),
 	};
 	const sale = scenario.game.sellAll();
 	invariant( sale.count === 1 && scenario.runtime.state.inventory.length === 0 && scenario.runtime.state.money === sale.total, `${backend} sale did not credit money and empty inventory` );
+	const afterSale = structuredClone( { inventory: scenario.runtime.state.inventory, money: scenario.runtime.state.money, audio: scenario.audio.events, toasts: scenario.toasts } );
 	scenario.depart();
-	return { trace, caught, sale, afterSale: { inventory: scenario.runtime.state.inventory, money: scenario.runtime.state.money, audio: scenario.audio.events, toasts: scenario.toasts } };
+	if ( backend === 'webgpu' ) {
+		await scenario.reenter();
+		scenario.depart();
+	}
+	return { trace, caught, sale, afterSale };
 }
 
 try {
@@ -195,7 +230,7 @@ try {
 		Math.random = previousRandom;
 	}
 	invariant( JSON.stringify( webgl ) === JSON.stringify( webgpu ), 'Live signed Worker gameplay differs between WebGPU and WebGL game paths' );
-	result.textContent = `PASS signed Tidewater module through gateway and dedicated Workers via registered WebGPU/WebGL frame hooks; WebGPU App departure disposed its Worker: ${JSON.stringify( { worldId, assetId: reference.assetId, biteFrames: webgpu.trace.bite.length, fightFrames: webgpu.trace.fight.length - 1, sale: webgpu.sale } )}`;
+	result.textContent = `PASS signed Tidewater module through gateway and dedicated Workers via registered WebGPU/WebGL frame hooks; WebGPU App activation, gameplay frames, departure, and re-entry: ${JSON.stringify( { worldId, assetId: reference.assetId, biteFrames: webgpu.trace.bite.length, fightFrames: webgpu.trace.fight.length - 1, sale: webgpu.sale } )}`;
 	result.dataset.status = 'passed';
 } catch ( error ) {
 	result.textContent = `FAIL ${error.stack || error}`;
