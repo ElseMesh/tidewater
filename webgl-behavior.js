@@ -2,11 +2,18 @@ import { WebGLFishStandAdapter } from './webgl/WebGLFishStandAdapter.js';
 import { WebGLChandleryAdapter } from './webgl/WebGLChandleryAdapter.js';
 import { WebGLGameAdapter } from './webgl/WebGLGameAdapter.js';
 import { fishStandColliderVolumes } from './game/FishStandContent.js';
+import { Minimap } from './game/Minimap.js';
 
 export const webglBehaviorImplementations = Object.freeze( {
 	fishingGame: Object.freeze( {
 	onWebGLWorldActivated( { active, data, experience, fallback, mode, THREE } ) {
-		if ( ! active ) return;
+		if ( ! active ) {
+
+			fallback.gameAdapter?.minimap?.dispose();
+			if ( fallback.gameAdapter ) fallback.gameAdapter.minimap = null;
+			return;
+
+		}
 		const builtIn = mode === 'builtin';
 		const terrain = builtIn ? fallback.terrain : fallback.hostedTerrainData || { heightAt: () => Number( fallback.spawn.position[ 1 ] ) - 1.7 };
 		const colliders = builtIn ? fallback.app.worldState.colliders : fallback.app.hostedColliders;
@@ -24,6 +31,19 @@ export const webglBehaviorImplementations = Object.freeze( {
 			THREE, scene: fallback.scene, camera: fallback.camera, query: fallback.waterQuery, extensions: fallback.activeWorldExtensions,
 			terrain, boatController: fallback.boat?.controller || null, boatRoot: fallback.boat?.group || null, audio: fallback.app.audio,
 		} );
+		if ( Number.isInteger( terrain?.res ) && Number.isFinite( terrain.texel ) && Number.isFinite( terrain.origin ) ) {
+
+			const game = fallback.gameAdapter;
+			const vendorByID = { joe: fishStand.vendor, marta: chandlery.vendor };
+			game.minimap = new Minimap( game.ui.hud, {
+				terrain,
+				fishingAreas: game.fishingAreas,
+				state: game.state,
+				vendorPosition: id => vendorByID[ id ]?.position || null,
+				habitatAtPoint: ( x, z, depth ) => game._habitatAtPoint( x, z, depth ),
+			}, { camera: fallback.camera, player: fallback.player, boat: fallback.boat?.controller || null } );
+
+		}
 		if ( builtIn ) {
 			const stand = data.fishStand;
 			const y = terrain.heightAt( stand.position[ 0 ], stand.position[ 1 ] );

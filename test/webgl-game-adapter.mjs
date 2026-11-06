@@ -36,7 +36,13 @@ const hud = {
 	update( status ) { this.lastStatus = status; },
 };
 const adapter = Object.create( WebGLGameAdapter.prototype );
-Object.assign( adapter, { state, vendor, vendors: [ vendor, shopVendor ], activeVendor: vendor, ui, hud, nearVendor: true, audio: { coin: () => coinCues.push( 'coin' ) } } );
+const webglCamera = { backend: 'webgl' }, webglBoat = { backend: 'webgl' }, mapFrames = [];
+Object.assign( adapter, {
+	state, vendor, vendors: [ vendor, shopVendor ], activeVendor: vendor, ui, hud, nearVendor: true,
+	camera: webglCamera, boatController: webglBoat,
+	minimap: { update( dt, view ) { mapFrames.push( { dt, view } ); } },
+	audio: { coin: () => coinCues.push( 'coin' ) },
+} );
 
 assert.equal( adapter.handleKey( 'KeyE' ), true, 'E is consumed while the buyer is in range' );
 assert.equal( hud.standOpen, true, 'E opens the shared fish-buyer panel' );
@@ -53,6 +59,9 @@ inRange = false;
 adapter.update( 1 / 60, { position: { x: 0, y: 0, z: 0 }, mode: 'walk' } );
 assert.equal( ui.promptVisible, false, 'the buyer prompt hides out of range' );
 assert.equal( hud.lastStatus.fight, null, 'the adapter uses the shared HUD update contract' );
+assert.equal( mapFrames.length, 1, 'the WebGL game loop advances the engine navigator' );
+assert.equal( mapFrames[ 0 ].view.camera, webglCamera, 'the navigator receives the WebGL camera' );
+assert.equal( mapFrames[ 0 ].view.boat, webglBoat, 'the navigator receives the WebGL boat' );
 
 shopInRange = true;
 adapter.update( 1 / 60, { position: { x: 0, y: 0, z: 0 }, mode: 'deck' } );

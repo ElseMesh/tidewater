@@ -43,9 +43,10 @@ const C = {
 
 export class Minimap {
 
-	constructor( parent, game ) {
+	constructor( parent, game, view = {} ) {
 
 		this.game = game;
+		this.view = view;
 		this.navigator = new WorldNavigator( parent, { radius: 110, labels: [ { text: 'N', x: 0, z: - 1 } ] } );
 		this.el = this.navigator.el;
 		this.mapCanvas = document.createElement( 'canvas' ); this.mapCanvas.width = N; this.mapCanvas.height = N;
@@ -185,7 +186,9 @@ export class Minimap {
 	update( dt ) {
 
 		this._bakeStep();
-		const app = this.game.app, cam = app.camera, p = app.player;
+		const app = this.view.app || this.game.app;
+		const cam = this.view.camera || app?.camera, p = this.view.player || app?.player;
+		if ( ! cam || ! p ) return;
 		// The world provides its current position/heading and authored points; ElseMesh
 		// owns the reusable map, compass-label, marker and edge-arrow presentation.
 		const e = cam.matrixWorld.elements;
@@ -211,7 +214,7 @@ export class Minimap {
 
 		}
 
-		const boat = app.boatCtl;
+		const boat = this.view.boat ?? app?.boatCtl;
 		const markers = [
 			{ id: 'joe', icon: ICON.fish, color: 'var(--em-sun)', position: this.game.vendorPosition( 'joe' ) },
 			{ id: 'marta', icon: ICON.anchor, color: 'var(--em-aqua)', position: this.game.vendorPosition( 'marta' ) },
@@ -219,6 +222,13 @@ export class Minimap {
 		].filter( marker => marker.position ).map( marker => ( { ...marker, highlighted: this._hot.has( marker.id ) } ) );
 		const forward = { x: fx, z: fz };
 		this.navigator.update( { dt, position: { x, z }, forward, radius: this.radiusM, markers, overlays: finder ? this._fishPts : [] } );
+
+	}
+
+	dispose() {
+
+		this.navigator.destroy();
+		this.mapCanvas.width = this.mapCanvas.height = 0;
 
 	}
 

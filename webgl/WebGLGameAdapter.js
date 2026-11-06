@@ -56,6 +56,9 @@ export class WebGLGameAdapter {
 	constructor( vendor, { vendors = [ vendor ], experience, worldId = 'elsemesh:local', extensions = null, THREE, scene, camera, query, terrain, boatController = null, boatRoot = null, audio = null } = {} ) {
 
 		this.fishingAreas = worldBehaviorData( experience, 'elsemesh.fishing-game/1' ).fishingAreas;
+		this.camera = camera;
+		this.boatController = boatController;
+		this.minimap = null;
 		this.runtime = createWorldBehaviorRuntime( experience, 'elsemesh.fishing-game/1', {
 			worldId, extensions, controller: boatController, terrain,
 			habitatAt: ( x, z, depth ) => this._habitatAtPoint( x, z, depth ),
@@ -161,6 +164,7 @@ export class WebGLGameAdapter {
 			player.busy = rod.lineInWater || rod.state === 'windup';
 		}
 		this.hud.update( { ...boatGauges, fight: this.runtime?.fight || null, casting: rod?.state === 'windup', power: rod?.power || 0, bite: this.runtime?.bite?.phase === 'take', aiming: rod?.equipped || this.nearVendor && ! this.hud.standOpen } );
+		this.minimap?.update( dt, { camera: this.camera, player, boat: this.boatController } );
 		if ( dt < 0 ) throw new Error( 'WebGL game adapter received a negative frame delta' );
 
 	}
