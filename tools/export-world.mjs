@@ -13,7 +13,6 @@ import { parseGLB } from '../../../src/engine/loaders/GLTF.js';
 import { Euler, Quaternion } from '../../../src/engine/index.js';
 import { Village } from '../../../src/world/Village.js';
 import { BoatModel } from '../../../src/world/BoatModel.js';
-import { WORLD } from '../../../src/world/WorldLayout.js';
 import { Rocks } from '../../../src/world/Rocks.js';
 import { Colliders } from '../../../src/world/Colliders.js';
 import { Builder, Batch } from '../../../src/world/village/GeoBuilder.js';
@@ -214,9 +213,9 @@ const ambientBedSpecs = [
 	{ name: 'wind', target: MIX.wind, condition: 'always' },
 	{ name: 'palms', target: MIX.palms, condition: 'always' },
 	{ name: 'crickets', target: MIX.crickets, condition: 'night' },
-	{ name: 'pier_lap', target: MIX.pierLap, condition: 'always', position: [ WORLD.pier.x, 0, 35 ], refDistance: 3, rolloff: 1.3 },
+	{ name: 'pier_lap', target: MIX.pierLap, condition: 'always', position: [ TIDEWATER_LAYOUT.pier.x, 0, 35 ], refDistance: 3, rolloff: 1.3 },
 	{ name: 'under_reef', target: MIX.reef, condition: 'underwater' },
-	{ name: 'boat_lap', target: MIX.boatLap, condition: 'always', position: [ WORLD.boatDock.position.x, WORLD.boatDock.position.y, WORLD.boatDock.position.z ], refDistance: 3, rolloff: 1 },
+	{ name: 'boat_lap', target: MIX.boatLap, condition: 'always', position: [ TIDEWATER_LAYOUT.boatDock.position.x, TIDEWATER_LAYOUT.boatDock.position.y, TIDEWATER_LAYOUT.boatDock.position.z ], refDistance: 3, rolloff: 1 },
 	{ name: 'birds_dawn', target: MIX.birdChorus, condition: 'dawn' },
 ];
 for ( const spec of ambientBedSpecs ) {
@@ -300,7 +299,7 @@ const source = {
 		lods: [ { assetId: boatLODAssetId, maxScreenFraction: 0.45 } ],
 		priority: 'portal-preview',
 		streamingBounds: boatBounds,
-		transform: { position: [ WORLD.boatDock.position.x, WORLD.boatDock.position.y, WORLD.boatDock.position.z ], yaw: WORLD.boatDock.heading },
+		transform: { position: [ TIDEWATER_LAYOUT.boatDock.position.x, TIDEWATER_LAYOUT.boatDock.position.y, TIDEWATER_LAYOUT.boatDock.position.z ], yaw: TIDEWATER_LAYOUT.boatDock.heading },
 		scale: [ 1, 1, 1 ],
 		collision: { shape: 'none', enabled: false },
 	}, ...debris.map( ( instance, index ) => {
@@ -432,7 +431,7 @@ function buildIslandProceduralContent( terrainData ) {
 		tag: box.tag === 'pierRail' ? 'pierRail' : undefined,
 	} ) );
 	const B = new Builder();
-	const placer = new DebrisPlacer( { B, inst: new InstancedProps( B ), terrain: terrainData, village, vegetation, rocks, colliders } ).run();
+	const placer = new DebrisPlacer( { B, inst: new InstancedProps( B ), terrain: terrainData, village, vegetation, rocks, colliders, worldLayout: TIDEWATER_LAYOUT } ).run();
 	foldVillageMaterialBatches( village.B );
 	const batches = Object.entries( village.B.batches )
 		.filter( ( [ , batch ] ) => batch.vcount > 0 )
@@ -452,7 +451,7 @@ function buildIslandProceduralContent( terrainData ) {
 		if ( batch?.vcount > 0 ) batches.push( { name: `lantern-${name}`, batch } );
 	}
 	return {
-		spawn: { position: [ WORLD.start.position.x, Math.max( terrainData.heightAt( WORLD.start.position.x, WORLD.start.position.z ), colliders.groundHeightAt( WORLD.start.position.x, WORLD.start.position.z, 50 ) ) + 1.62, WORLD.start.position.z ], yaw: WORLD.start.yaw, pitch: - 0.05 },
+		spawn: { position: [ TIDEWATER_LAYOUT.start.position.x, Math.max( terrainData.heightAt( TIDEWATER_LAYOUT.start.position.x, TIDEWATER_LAYOUT.start.position.z ), colliders.groundHeightAt( TIDEWATER_LAYOUT.start.position.x, TIDEWATER_LAYOUT.start.position.z, 50 ) ) + 1.62, TIDEWATER_LAYOUT.start.position.z ], yaw: TIDEWATER_LAYOUT.start.yaw, pitch: - 0.05 },
 		villageBatches: batches,
 		villageTriangles: batches.reduce( ( total, { batch } ) => total + batch.triangles, 0 ),
 		villageColliders,

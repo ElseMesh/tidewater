@@ -11,7 +11,6 @@ import { Colliders } from '../../../src/world/Colliders.js';
 import { Village } from '../../../src/world/Village.js';
 import { BoatModel } from '../../../src/world/BoatModel.js';
 import { computeShoreField } from '../../../src/world/ShoreField.js';
-import { WORLD } from '../../../src/world/WorldLayout.js';
 import { installGroundBounce } from '../../../src/materials/GroundBounce.js';
 import * as fishPresentation from '../FishPresentation.js';
 import source from '../world-source.json' with { type: 'json' };
@@ -29,14 +28,14 @@ terrain.material.appliesHillShadow = true;
 const rocks = new Rocks( { scene: H.scene, terrain, worldLayout: TIDEWATER_LAYOUT, village, colliders } );
 rocks.material.appliesHillShadow = true;
 const boat = new BoatModel();
-boat.group.position.copy( WORLD.boatDock.position );
-boat.group.rotation.y = WORLD.boatDock.heading;
+boat.group.position.copy( TIDEWATER_LAYOUT.boatDock.position );
+boat.group.rotation.y = TIDEWATER_LAYOUT.boatDock.heading;
 H.scene.add( boat.group );
 let debris = null;
 if ( ! process.argv.includes( '--no-debris' ) ) {
 
 	const { Debris } = await import( '../../../src/world/Debris.js' );
-	debris = new Debris( { scene: H.scene, terrain, village, vegetation: null, rocks, colliders } );
+	debris = new Debris( { scene: H.scene, terrain, village, vegetation: null, rocks, colliders, worldLayout: TIDEWATER_LAYOUT } );
 
 }
 
