@@ -1,6 +1,5 @@
 import { FishingGameRuntime } from './FishingGameRuntime.js';
 import { isFishCatalog } from './FishTable.js';
-import { createWebGLShoreSurfaceOffset } from './webgl-shore-surface.js';
 import { registerWorldBehavior, registerWorldBehaviorImplementation } from '../../src/network/WorldBehaviorRegistry.js';
 import { browserBehaviorImplementations } from './browser-behavior.js';
 import { webglBehaviorImplementations } from './webgl-behavior.js';
@@ -37,23 +36,5 @@ registerWorldBehavior( 'elsemesh.fishing-game/1', {
 
 registerWorldFishPresentation( 'elsemesh.fishing-game/1', fishPresentation );
 
-registerWorldBehavior( 'elsemesh.shore-aware-boat/1', {
-	validateExperienceData: data => {
-		if ( Object.keys( data ).length ) throw new Error( 'Invalid shore-aware boat data' );
-	},
-} );
-
-registerWorldBehaviorImplementation( 'elsemesh.shore-aware-boat/1', {
-	onWebGLWorldActivated( { active, fallback, mode } ) {
-		if ( ! active || ! fallback.waterQuery ) return;
-		const terrain = mode === 'builtin' ? fallback.terrain : fallback.hostedTerrainData;
-		const shoreField = mode === 'builtin' ? fallback.shoreField : fallback.hostedTerrainSurface?.shoreField;
-		fallback.waterQuery.setSurfaceOffsetSampler( createWebGLShoreSurfaceOffset( {
-			terrain, seaLevel: fallback.worldSeaLevel, field: shoreField,
-		} ) );
-	},
-} );
-
-registerWorldBehaviorImplementation( 'elsemesh.shore-aware-boat/1', browserBehaviorImplementations.shoreAwareBoat );
 registerWorldBehaviorImplementation( 'elsemesh.fishing-game/1', browserBehaviorImplementations.fishingGame );
 registerWorldBehaviorImplementation( 'elsemesh.fishing-game/1', webglBehaviorImplementations.fishingGame );

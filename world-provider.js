@@ -14,7 +14,7 @@ export const TIDEWATER_WORLD_COMPONENTS = Object.freeze( [
 	[ 'elsemesh.island-ocean/1', { waterSurface: true } ],
 ] );
 
-const behaviorIDs = new Set( [ 'elsemesh.fishing-game/1', 'elsemesh.shore-aware-boat/1' ] );
+const behaviorIDs = new Set( [ 'elsemesh.fishing-game/1' ] );
 const componentTypes = new Set( TIDEWATER_WORLD_COMPONENTS.map( ( [ type ] ) => type ) );
 
 export function supportsWorldManifest( manifest ) {

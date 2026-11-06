@@ -1,5 +1,4 @@
 import { Game } from './game/Game.js';
-import { ShoreWaves } from '../../src/ocean/ShoreWaves.js';
 import { Color, Vector3 } from '../../src/engine/math/index.js';
 
 const litWorlds = new WeakMap();
@@ -27,20 +26,6 @@ export function installFishingVenueLights( app, worldId, data ) {
 }
 
 export const browserBehaviorImplementations = Object.freeze( {
-	shoreAwareBoat: Object.freeze( {
-	onHostedWorldActivated( { app, terrain, active } ) {
-		if ( ! active || ! terrain ) return;
-		// The boat's hosted hydrostatics use the destination terrain and shore model.
-		terrain.shore ||= new ShoreWaves( terrain.terrainGPU );
-		if ( terrain.terrain && app.terrain?.wetness ) {
-			terrain.terrain.wetness = app.terrain.wetness;
-			terrain.terrain.finalizeMaterial();
-		}
-		app.hostedWaterSurface.terrain = terrain.terrainGPU;
-		app.hostedWaterSurface.shore = terrain.shore;
-	},
-	} ),
-
 	fishingGame: Object.freeze( {
 	onBuiltinWorldActivated( { app, experience, worldId, extensions, data, active } ) {
 		if ( ! active ) return;

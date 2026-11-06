@@ -7,17 +7,14 @@ import { BoatDesign } from '../../../src/world/boat/BoatDesign.js';
 import { ISLAND_DEFINITION } from '../../../src/world/IslandDefinition.js';
 import { IslandWorldState } from '../../../src/world/IslandWorldState.js';
 import { computeShoreField } from '../../../src/world/ShoreField.js';
-import '../register-behavior.js';
-import { dispatchWorldBehaviorHooks } from '../../../src/network/WorldBehaviorRegistry.js';
+import { createWebGLShoreSurfaceOffset } from '../../../src/fallback/WebGLShoreSurface.js';
 
 const world = new IslandWorldState();
 const source = JSON.parse( readFileSync( new URL( '../world-source.json', import.meta.url ), 'utf8' ) );
 const seaLevel = source.rules.seaLevel;
 const shoreField = computeShoreField( world.terrain, { res: 512, swellDir: [ - 0.12, - 1 ], seaLevel } );
 const query = new SyntheticWaterQuery( world.terrain, seaLevel );
-dispatchWorldBehaviorHooks( { behaviors: { 'elsemesh.shore-aware-boat/1': {} } }, 'onWebGLWorldActivated', {
-	fallback: { waterQuery: query, terrain: world.terrain, shoreField, worldSeaLevel: seaLevel }, mode: 'builtin',
-} );
+query.setSurfaceOffsetSampler( createWebGLShoreSurfaceOffset( { terrain: world.terrain, seaLevel, field: shoreField } ) );
 
 const boat = new BoatController( { design: new BoatDesign(), query, terrain: world.terrain, colliders: world.colliders, initialPosition: new Vector3( ...ISLAND_DEFINITION.boatDock.position ), initialHeading: ISLAND_DEFINITION.boatDock.heading } );
 const start = boat.position.clone();

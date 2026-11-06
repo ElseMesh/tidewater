@@ -5,7 +5,7 @@ import { HeightfieldTerrainData } from '../../../src/world/HeightfieldTerrainDat
 import { BoatController } from '../../../src/player/BoatController.js';
 import { BoatDesign } from '../../../src/world/boat/BoatDesign.js';
 import { Vector3 } from '../../../src/engine/math/Vector3.js';
-import { createWebGLShoreSurfaceOffset } from '../webgl-shore-surface.js';
+import { createWebGLShoreSurfaceOffset } from '../../../src/fallback/WebGLShoreSurface.js';
 
 const result = document.querySelector( '#result' );
 let renderer, query;
