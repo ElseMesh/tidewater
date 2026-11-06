@@ -4,12 +4,12 @@ import { createWebGLVillageMaterials, applyWebGLVillageMaterials } from './WebGL
 
 registerWorldComponentBackendAdapter( 'webgl', 'elsemesh.village-materials/2', installVillageMaterials );
 
-function installVillageMaterials( { fallback, assets }, component ) {
+async function installVillageMaterials( { fallback, assets }, component ) {
 	const packed = assets.get( component.dataAssetId );
 	if ( ! packed ) return false;
 	let materials;
 	try {
-		const decoded = decodeWorldComponentAsset( 'village-materials/1', packed );
+		const decoded = await decodeWorldComponentAsset( 'village-materials/1', packed );
 		materials = createWebGLVillageMaterials( fallback.THREE, decoded, {
 			anisotropy: fallback.renderer.capabilities.getMaxAnisotropy(),
 		} );
