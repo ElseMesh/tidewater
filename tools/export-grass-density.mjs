@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import '../register-behavior.js';
 import * as fishPresentation from '../FishPresentation.js';
 import { TerrainData } from '../../../src/world/TerrainData.js';
+import { TIDEWATER_LAYOUT } from '../layout.js';
 import { Village } from '../../../src/world/Village.js';
 import { Colliders } from '../../../src/world/Colliders.js';
 import { createVegetationPlacement, buildGrassMask } from '../../../src/world/vegetation/Scatter.js';
@@ -21,7 +22,7 @@ for ( let i = 0; i < args.length; i ++ ) {
 	output = path.resolve( args[ ++ i ] );
 }
 
-const terrain = new TerrainData( 7 );
+const terrain = new TerrainData( { seed: 7, worldLayout: TIDEWATER_LAYOUT } );
 const colliders = new Colliders();
 const scene = { add() {}, remove() {} };
 class PackageVillage extends Village {

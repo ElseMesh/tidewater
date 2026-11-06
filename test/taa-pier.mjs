@@ -10,6 +10,7 @@ import '../../../test/smaa-shim.mjs';
 import fs from 'node:fs';
 import { worldHarness } from '../../../test/world-harness.mjs';
 import { TerrainData } from '../../../src/world/TerrainData.js';
+import { TIDEWATER_LAYOUT } from '../layout.js';
 import { Colliders } from '../../../src/world/Colliders.js';
 import { Village } from '../../../src/world/Village.js';
 import { Material } from '../../../src/engine/render/Material.js';
@@ -29,7 +30,7 @@ const W = Number( process.env.W || 1280 ), H = Number( process.env.H || 634 );
 const Hs = await worldHarness( { width: W, height: H, sun: [ - 0.55, 0.45, 0.5 ] } );
 const { E, GPU, scene, camera, mr, shadows, rt } = Hs;
 
-const terrain = new TerrainData();
+const terrain = new TerrainData( { worldLayout: TIDEWATER_LAYOUT } );
 const village = new Village( { scene, terrain, colliders: new Colliders(), fishPresentation } );
 {
 

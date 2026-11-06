@@ -5,6 +5,7 @@
 //   node --preserve-symlinks worlds/tidewater/test/life-player.mjs
 import * as E from '../../../src/engine/index.js';
 import { TerrainData } from '../../../src/world/TerrainData.js';
+import { TIDEWATER_LAYOUT } from '../layout.js';
 import { WORLD } from '../../../src/world/WorldLayout.js';
 import { Player } from '../../../src/player/Player.js';
 import { BoatController } from '../../../src/player/BoatController.js';
@@ -20,7 +21,7 @@ const check = ( ok, msg ) => {
 };
 const finite = ( v ) => [ v.x, v.y, v.z ].every( Number.isFinite );
 
-const terrain = new TerrainData();
+const terrain = new TerrainData( { worldLayout: TIDEWATER_LAYOUT } );
 
 // ---- WaterQuery stub: swell h = 0.25 sin( k x + w t ) + 0.15 sin( k2 z - w2 t ); cpu = ( h, nx, nz, 0 )
 let time = 0;

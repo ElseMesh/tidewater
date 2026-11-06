@@ -5,6 +5,7 @@
 import '../../../test/headless.mjs';
 import { worldHarness, done } from '../../../test/world-harness.mjs';
 import { TerrainData } from '../../../src/world/TerrainData.js';
+import { TIDEWATER_LAYOUT } from '../layout.js';
 import { Colliders } from '../../../src/world/Colliders.js';
 import { Village } from '../../../src/world/Village.js';
 import { Material } from '../../../src/engine/render/Material.js';
@@ -17,7 +18,7 @@ const H = await worldHarness( { width: 2560, height: 1267, sun: [ 0.55, 0.5, 0.4
 const { E, G } = H;
 
 let t0 = performance.now();
-const terrain = new TerrainData();
+const terrain = new TerrainData( { worldLayout: TIDEWATER_LAYOUT } );
 console.log( 'terrain data', ( performance.now() - t0 ).toFixed( 0 ), 'ms' );
 const colliders = new Colliders();
 t0 = performance.now();

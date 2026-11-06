@@ -3,6 +3,7 @@
 //   node worlds/tidewater/test/world-all.mjs [outDir] [--view=name] [--time] [--no-debris]
 import { worldHarness, done } from '../../../test/world-harness.mjs';
 import { TerrainData } from '../../../src/world/TerrainData.js';
+import { TIDEWATER_LAYOUT } from '../layout.js';
 import { TerrainGPU } from '../../../src/world/TerrainGPU.js';
 import { Terrain, normalizeTerrainSurfaceProfile } from '../../../src/world/Terrain.js';
 import { Rocks } from '../../../src/world/Rocks.js';
@@ -17,7 +18,7 @@ import source from '../world-source.json' with { type: 'json' };
 
 const out = process.argv[ 2 ] && ! process.argv[ 2 ].startsWith( '--' ) ? process.argv[ 2 ] : '/var/tmp';
 const H = await worldHarness( { sun: [ 0.5, 0.5, 0.45 ] } );
-const data = new TerrainData();
+const data = new TerrainData( { worldLayout: TIDEWATER_LAYOUT } );
 const colliders = new Colliders();
 const village = new Village( { scene: H.scene, terrain: data, colliders, fishPresentation } );
 const surfaceProfile = normalizeTerrainSurfaceProfile( source.components.find( component => component.type === 'elsemesh.terrain-surface/1' ).data.surfaceProfile );

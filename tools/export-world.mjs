@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import '../register-behavior.js';
 import * as fishPresentation from '../FishPresentation.js';
 import { TerrainData } from '../../../src/world/TerrainData.js';
+import { TIDEWATER_LAYOUT } from '../layout.js';
 import { computeShoreField } from '../../../src/world/ShoreField.js';
 import { parseGLB } from '../../../src/engine/loaders/GLTF.js';
 import { Euler, Quaternion } from '../../../src/engine/index.js';
@@ -77,7 +78,7 @@ if ( process.env.SOURCE_DATE_EPOCH !== undefined ) {
 	updatedAt = new Date( epoch * 1000 ).toISOString();
 }
 
-const terrain = new TerrainData( 7 );
+const terrain = new TerrainData( { seed: 7, worldLayout: TIDEWATER_LAYOUT } );
 const glb = exportTerrain( terrain, 512 );
 const assetId = `sha256:${createHash( 'sha256' ).update( glb ).digest( 'hex' )}`;
 const terrainPreviewGLB = exportTerrain( terrain, 128 );
