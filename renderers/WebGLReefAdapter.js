@@ -1,5 +1,6 @@
 import { Reef, REEF_CULLING, reefLODAtDistance } from '../../../src/world/Reef.js';
 import { reefSwellGLSL } from '../../../src/world/reef/ReefMaterials.js';
+import { TIDEWATER_LAYOUT } from '../layout.js';
 
 const { cellSize: CELL_SIZE, underwaterRange: UNDERWATER_RANGE, aboveRange: ABOVE_RANGE, maxAboveRange: MAX_ABOVE_RANGE } = REEF_CULLING;
 
@@ -12,7 +13,7 @@ export class WebGLReefAdapter {
 
 		this.THREE = THREE;
 		this.scene = scene;
-		this.layout = new Reef( { layoutOnly: true, placementRecords: records, maxInstances: Math.max( 1, records.length ) } );
+		this.layout = new Reef( { layoutOnly: true, worldLayout: TIDEWATER_LAYOUT, placementRecords: records, maxInstances: Math.max( 1, records.length ) } );
 		this.layout.buildCells();
 		this.materials = {
 			hard: this._material( false ),

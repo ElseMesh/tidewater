@@ -161,7 +161,7 @@ if ( fishPropsDocument.length > MAX_FISH_PROP_PLACEMENT_BYTES ) throw new Error(
 const fishPropsAssetId = `sha256:${createHash( 'sha256' ).update( fishPropsDocument ).digest( 'hex' )}`;
 staticAssets.set( fishPropsAssetId, fishPropsDocument );
 const fishPropsBounds = boundsForFishProps( generated.fishProps );
-const reefLayout = new Reef( { terrain, layoutOnly: true } );
+const reefLayout = new Reef( { terrain, worldLayout: TIDEWATER_LAYOUT, layoutOnly: true } );
 const reefRecords = reefLayout.placements();
 const reefModelRadius = Math.max( ...[ ...reefLayout.kinds.hard, ...reefLayout.kinds.soft ].filter( ( kind ) => kind.lod === 0 ).map( ( kind ) => {
 	const bounds = kind.geometry.boundingBox;

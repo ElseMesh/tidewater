@@ -6,6 +6,7 @@ import { TerrainGPU } from '../../src/world/TerrainGPU.js';
 import { Terrain } from '../../src/world/Terrain.js';
 import { Vegetation } from '../../src/world/Vegetation.js';
 import { Reef } from '../../src/world/Reef.js';
+import { TIDEWATER_LAYOUT } from './layout.js';
 import { Wildlife } from './wildlife/Wildlife.js';
 import { Whale } from '../../src/world/marine/Whale.js';
 import { HostedBoat } from '../../src/network/HostedBoat.js';
@@ -101,7 +102,7 @@ async function installReef( { app, root, connector, installed }, component ) {
 	let reef = root.userData.staticReef;
 	if ( reef ) reef.appendPlacements( records );
 	else {
-		reef = new Reef( { scene: root, terrain: null, placementRecords: records, maxInstances: reefPlacementCapacity( connector ) } );
+		reef = new Reef( { scene: root, terrain: null, worldLayout: TIDEWATER_LAYOUT, placementRecords: records, maxInstances: reefPlacementCapacity( connector ) } );
 		reef.setOcean( app.fft );
 		root.userData.staticReef = reef;
 		installed.push( {
