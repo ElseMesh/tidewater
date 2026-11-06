@@ -31,7 +31,7 @@ const Hs = await worldHarness( { width: W, height: H, sun: [ - 0.55, 0.45, 0.5 ]
 const { E, GPU, scene, camera, mr, shadows, rt } = Hs;
 
 const terrain = new TerrainData( { worldLayout: TIDEWATER_LAYOUT } );
-const village = new Village( { scene, terrain, colliders: new Colliders(), fishPresentation } );
+const village = new Village( { scene, terrain, colliders: new Colliders(), worldLayout: TIDEWATER_LAYOUT, fishPresentation } );
 {
 
 	// water below the pier (flat), so the plank gaps show it

@@ -30,7 +30,7 @@ class PackageVillage extends Village {
   _buildSign() {}
   _buildLanterns() {}
 }
-const village = new PackageVillage( { scene, terrain, colliders, fishPresentation } );
+const village = new PackageVillage( { scene, terrain, colliders, worldLayout: TIDEWATER_LAYOUT, fishPresentation } );
 const sourceVegetation = createVegetationPlacement( terrain, village );
 const sourceMask = buildGrassMask( sourceVegetation.site );
 const sourcePlacements = encodeVegetationPlacements( sourceVegetation.records, 7 );

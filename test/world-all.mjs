@@ -20,7 +20,7 @@ const out = process.argv[ 2 ] && ! process.argv[ 2 ].startsWith( '--' ) ? proces
 const H = await worldHarness( { sun: [ 0.5, 0.5, 0.45 ] } );
 const data = new TerrainData( { worldLayout: TIDEWATER_LAYOUT } );
 const colliders = new Colliders();
-const village = new Village( { scene: H.scene, terrain: data, colliders, fishPresentation } );
+const village = new Village( { scene: H.scene, terrain: data, colliders, worldLayout: TIDEWATER_LAYOUT, fishPresentation } );
 const surfaceProfile = normalizeTerrainSurfaceProfile( source.components.find( component => component.type === 'elsemesh.terrain-surface/1' ).data.surfaceProfile );
 const shore = computeShoreField( data, { res: 512, swellDir: surfaceProfile.swellDirection } );
 const gpu = new TerrainGPU( data, shore );
