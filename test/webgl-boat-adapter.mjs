@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { WebGLBoatAdapter } from '../../../src/fallback/WebGLBoatAdapter.js';
-import { ISLAND_DEFINITION } from '../../../src/world/IslandDefinition.js';
+import { ISLAND_DEFINITION } from '../IslandDefinition.js';
 import { Vector3 as EngineVector3 } from '../../../src/engine/index.js';
 
 const scene = new THREE.Scene();

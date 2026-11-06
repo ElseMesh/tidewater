@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { BoatController } from '../../../src/player/BoatController.js';
-import { ISLAND_DEFINITION } from '../../../src/world/IslandDefinition.js';
+import { ISLAND_DEFINITION } from '../IslandDefinition.js';
 import { BoatDesign } from '../../../src/world/boat/BoatDesign.js';
 import { Vector3 } from '../../../src/engine/math/Vector3.js';
 import { Group } from '../../../src/engine/scene/Group.js';

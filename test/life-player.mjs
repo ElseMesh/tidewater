@@ -8,7 +8,7 @@ import { TerrainData } from '../../../src/world/TerrainData.js';
 import { WORLD } from '../../../src/world/WorldLayout.js';
 import { Player } from '../../../src/player/Player.js';
 import { BoatController } from '../../../src/player/BoatController.js';
-import { ISLAND_DEFINITION } from '../../../src/world/IslandDefinition.js';
+import { ISLAND_DEFINITION } from '../IslandDefinition.js';
 import { FlyCamera } from '../../../src/player/FlyCamera.js';
 
 let fails = 0;

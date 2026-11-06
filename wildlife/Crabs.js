@@ -1,4 +1,4 @@
-import { ISLAND_DEFINITION as WORLD } from '../../../src/world/IslandDefinition.js';
+import { ISLAND_DEFINITION as WORLD } from '../IslandDefinition.js';
 import { mulberry32 } from '../../../src/util/Noise.js';
 import { CRITTER } from './CritterSpecies.js';
 import { TAU, clamp, smooth, angleDiff, approach } from './WildlifeMath.js';

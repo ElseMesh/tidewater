@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { Vector3 } from '../../../src/engine/math/index.js';
 import { BoatController } from '../../../src/player/BoatController.js';
 import { BoatDesign } from '../../../src/world/boat/BoatDesign.js';
-import { ISLAND_DEFINITION } from '../../../src/world/IslandDefinition.js';
+import { ISLAND_DEFINITION } from '../IslandDefinition.js';
 
 const query = { allocate: () => 1 };
 const design = new BoatDesign();

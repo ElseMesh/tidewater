@@ -1,5 +1,5 @@
 import * as M from '../../../src/engine/math/index.js';
-import { ISLAND_DEFINITION as WORLD } from '../../../src/world/IslandDefinition.js';
+import { ISLAND_DEFINITION as WORLD } from '../IslandDefinition.js';
 import { SPRAY } from '../../../src/fx/SprayTypes.js';
 import { mulberry32 } from '../../../src/util/Noise.js';
 import { BIRD } from './BirdSpecies.js';

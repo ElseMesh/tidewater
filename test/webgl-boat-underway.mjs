@@ -4,7 +4,7 @@ import { Vector3 } from '../../../src/engine/math/Vector3.js';
 import { SyntheticWaterQuery } from './synthetic-water-query.mjs';
 import { BoatController } from '../../../src/player/BoatController.js';
 import { BoatDesign } from '../../../src/world/boat/BoatDesign.js';
-import { ISLAND_DEFINITION } from '../../../src/world/IslandDefinition.js';
+import { ISLAND_DEFINITION } from '../IslandDefinition.js';
 import { IslandWorldState } from '../../../src/world/IslandWorldState.js';
 import { computeShoreField } from '../../../src/world/ShoreField.js';
 import { createWebGLShoreSurfaceOffset } from '../../../src/fallback/WebGLShoreSurface.js';
