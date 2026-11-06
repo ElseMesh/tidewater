@@ -5,11 +5,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import '../register-behavior.js';
 import * as fishPresentation from '../FishPresentation.js';
-import { TerrainData } from '../../../src/world/TerrainData.js';
+import { TerrainData } from '../terrain/TerrainData.js';
 import { TIDEWATER_LAYOUT } from '../layout.js';
 import { Village } from '../../../src/world/Village.js';
 import { Colliders } from '../../../src/world/Colliders.js';
-import { createVegetationPlacement, buildGrassMask } from '../../../src/world/vegetation/Scatter.js';
+import { createVegetationPlacement, buildGrassMask } from '../renderers/webgpu-vegetation/Scatter.js';
 import { encodeGrassDensityAsset } from '../../../src/network/GrassDensityAsset.js';
 import { writeWorldAssetIndex } from '../../../tools/world-asset-index.mjs';
 
@@ -31,7 +31,7 @@ class PackageVillage extends Village {
 	_buildLanterns() {}
 }
 const village = new PackageVillage( { scene, terrain, colliders, worldLayout: TIDEWATER_LAYOUT, fishPresentation } );
-const vegetation = createVegetationPlacement( terrain, village );
+const vegetation = createVegetationPlacement( terrain, village, TIDEWATER_LAYOUT );
 const mask = buildGrassMask( vegetation.site );
 const bytes = Buffer.from( encodeGrassDensityAsset( { ...mask, size: terrain.size, origin: terrain.origin } ) );
 const id = `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`;

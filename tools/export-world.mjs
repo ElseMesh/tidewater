@@ -6,7 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import '../register-behavior.js';
 import * as fishPresentation from '../FishPresentation.js';
-import { TerrainData } from '../../../src/world/TerrainData.js';
+import { TerrainData } from '../terrain/TerrainData.js';
 import { TIDEWATER_LAYOUT } from '../layout.js';
 import { computeShoreField } from '../../../src/world/ShoreField.js';
 import { parseGLB } from '../../../src/engine/loaders/GLTF.js';
@@ -20,7 +20,7 @@ import { VILLAGE_MATERIAL_PROFILE, VILLAGE_MATERIAL_ROLES } from '../VillageMate
 import { InstancedProps } from '../../../src/world/Props.js';
 import { DebrisPlacer } from '../../../src/world/debris/DebrisPlacement.js';
 import { SCAN_ASSETS } from '../../../src/world/debris/ScannedDebris.js';
-import { createVegetationPlacement, buildGrassMask } from '../../../src/world/vegetation/Scatter.js';
+import { createVegetationPlacement, buildGrassMask } from '../renderers/webgpu-vegetation/Scatter.js';
 import { encodeVegetationPlacements } from '../VegetationPlacements.js';
 import { encodeGrassDensityAsset } from '../../../src/network/GrassDensityAsset.js';
 import { Reef } from '../../../src/world/Reef.js';
@@ -420,7 +420,7 @@ function buildIslandProceduralContent( terrainData ) {
 	}
 	const colliders = new Colliders();
 	const village = new PackageVillage( { scene, terrain: terrainData, colliders, worldLayout: TIDEWATER_LAYOUT, fishPresentation } );
-	const vegetation = createVegetationPlacement( terrainData, village );
+	const vegetation = createVegetationPlacement( terrainData, village, TIDEWATER_LAYOUT );
 	const rocks = new Rocks( { scene, terrain: terrainData, worldLayout: TIDEWATER_LAYOUT, village, colliders, castShadow: false, sunShadow: false } );
 	const villageColliders = colliders.boxes.map( ( box ) => ( {
 		center: box.center.toArray(),

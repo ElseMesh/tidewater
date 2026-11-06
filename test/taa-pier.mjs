@@ -9,7 +9,7 @@ import '../../../test/headless.mjs';
 import '../../../test/smaa-shim.mjs';
 import fs from 'node:fs';
 import { worldHarness } from '../../../test/world-harness.mjs';
-import { TerrainData } from '../../../src/world/TerrainData.js';
+import { TerrainData } from '../terrain/TerrainData.js';
 import { TIDEWATER_LAYOUT } from '../layout.js';
 import { Colliders } from '../../../src/world/Colliders.js';
 import { Village } from '../../../src/world/Village.js';
@@ -20,7 +20,7 @@ import { readTexture } from '../../../src/engine/gpu/Readback.js';
 import { setFrameCamera, FrameUniforms } from '../../../src/engine/render/Frame.js';
 import { TemporalUpscale } from '../../../src/post/TemporalUpscale.js';
 import { AntiAlias } from '../../../src/post/AntiAlias.js';
-import { WORLD } from '../../../src/world/WorldLayout.js';
+import { TIDEWATER_LAYOUT as WORLD } from '../layout.js';
 import * as fishPresentation from '../FishPresentation.js';
 
 const OUT = process.argv[ 2 ] || '/var/tmp/taa-pier';

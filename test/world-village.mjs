@@ -4,7 +4,7 @@
 //   node worlds/tidewater/test/world-village.mjs [outPrefix=/var/tmp/tidewater-village-] [only=name,name]
 import '../../../test/headless.mjs';
 import { worldHarness, done } from '../../../test/world-harness.mjs';
-import { TerrainData } from '../../../src/world/TerrainData.js';
+import { TerrainData } from '../terrain/TerrainData.js';
 import { TIDEWATER_LAYOUT } from '../layout.js';
 import { Colliders } from '../../../src/world/Colliders.js';
 import { Village } from '../../../src/world/Village.js';

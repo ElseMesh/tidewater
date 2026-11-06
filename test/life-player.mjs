@@ -4,9 +4,9 @@
 // asserts finite, plausible states.
 //   node --preserve-symlinks worlds/tidewater/test/life-player.mjs
 import * as E from '../../../src/engine/index.js';
-import { TerrainData } from '../../../src/world/TerrainData.js';
+import { TerrainData } from '../terrain/TerrainData.js';
 import { TIDEWATER_LAYOUT } from '../layout.js';
-import { WORLD } from '../../../src/world/WorldLayout.js';
+import { TIDEWATER_LAYOUT as WORLD } from '../layout.js';
 import { Player } from '../../../src/player/Player.js';
 import { BoatController } from '../../../src/player/BoatController.js';
 import { ISLAND_DEFINITION } from '../IslandDefinition.js';

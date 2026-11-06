@@ -5,11 +5,11 @@ import { SyntheticWaterQuery } from './synthetic-water-query.mjs';
 import { BoatController } from '../../../src/player/BoatController.js';
 import { BoatDesign } from '../../../src/world/boat/BoatDesign.js';
 import { ISLAND_DEFINITION } from '../IslandDefinition.js';
-import { IslandWorldState } from '../../../src/world/IslandWorldState.js';
+import { WorldState } from '../WorldState.js';
 import { computeShoreField } from '../../../src/world/ShoreField.js';
 import { createWebGLShoreSurfaceOffset } from '../../../src/fallback/WebGLShoreSurface.js';
 
-const world = new IslandWorldState();
+const world = new WorldState();
 const worldSource = JSON.parse( readFileSync( new URL( '../world-source.json', import.meta.url ), 'utf8' ) );
 const seaLevel = worldSource.rules.seaLevel;
 const shoreField = computeShoreField( world.terrain, { res: 512, swellDir: [ - 0.12, - 1 ], seaLevel } );

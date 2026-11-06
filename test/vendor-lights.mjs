@@ -25,7 +25,7 @@ dispatchWorldBehaviorHooks( source.experience, 'onBuiltinWorldActivated', {
 	app, worldId: source.worldId, extensions: { has: () => true },
 } );
 assert.equal( added.length, 2, 'activation is idempotent for a world' );
-const otherWorld = { behaviors: { 'elsemesh.shore-aware-boat/1': {} } };
+const otherWorld = { behaviors: {} };
 dispatchWorldBehaviorHooks( otherWorld, 'onBuiltinWorldActivated', { app, worldId: 'elsemesh:other-island', extensions: null } );
 assert.equal( added.length, 2, 'a world without the fishing behavior receives no Tidewater vendor lights' );
 

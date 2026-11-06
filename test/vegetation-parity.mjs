@@ -4,11 +4,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import '../register-behavior.js';
 import * as fishPresentation from '../FishPresentation.js';
-import { TerrainData } from '../../../src/world/TerrainData.js';
+import { TerrainData } from '../terrain/TerrainData.js';
 import { TIDEWATER_LAYOUT } from '../layout.js';
 import { Village } from '../../../src/world/Village.js';
 import { Colliders } from '../../../src/world/Colliders.js';
-import { createVegetationPlacement, buildGrassMask } from '../../../src/world/vegetation/Scatter.js';
+import { createVegetationPlacement, buildGrassMask } from '../renderers/webgpu-vegetation/Scatter.js';
 import { decodeGrassDensityAsset } from '../../../src/network/GrassDensityAsset.js';
 import { encodeVegetationPlacements } from '../VegetationPlacements.js';
 
@@ -31,7 +31,7 @@ class PackageVillage extends Village {
   _buildLanterns() {}
 }
 const village = new PackageVillage( { scene, terrain, colliders, worldLayout: TIDEWATER_LAYOUT, fishPresentation } );
-const sourceVegetation = createVegetationPlacement( terrain, village );
+const sourceVegetation = createVegetationPlacement( terrain, village, TIDEWATER_LAYOUT );
 const sourceMask = buildGrassMask( sourceVegetation.site );
 const sourcePlacements = encodeVegetationPlacements( sourceVegetation.records, 7 );
 const placementID = data.placementAssetId.slice( 'sha256:'.length );

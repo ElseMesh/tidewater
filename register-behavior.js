@@ -5,6 +5,8 @@ import { browserBehaviorImplementations } from './browser-behavior.js';
 import { webglBehaviorImplementations } from './webgl-behavior.js';
 import * as fishPresentation from './FishPresentation.js';
 import { registerWorldFishPresentation } from '../../src/network/WorldFishPresentation.js';
+import { FISH_SCHOOL_POPULATION } from './FishSchoolPopulation.js';
+import { registerWorldFishPopulation } from '../../src/network/WorldFishPopulation.js';
 import './register-components.js';
 
 function validFishingAreas( areas ) {
@@ -35,6 +37,7 @@ registerWorldBehavior( 'elsemesh.fishing-game/1', {
 } );
 
 registerWorldFishPresentation( 'elsemesh.fishing-game/1', fishPresentation );
+registerWorldFishPopulation( 'elsemesh.fishing-game/1', FISH_SCHOOL_POPULATION );
 
 registerWorldBehaviorImplementation( 'elsemesh.fishing-game/1', browserBehaviorImplementations.fishingGame );
 registerWorldBehaviorImplementation( 'elsemesh.fishing-game/1', webglBehaviorImplementations.fishingGame );

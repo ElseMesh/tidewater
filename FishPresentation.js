@@ -1,3 +1,5 @@
+export { SCHOOL_BEHAVIOUR as SCHOOLS } from './FishSchoolProfile.js';
+
 // Anatomy of the fish species, normalized to a total length of 1 (snout tip to the tip of the
 // tail fin). The geometry (FishGeometry.js) and the skin shader (FishMaterial.js) read these.
 //

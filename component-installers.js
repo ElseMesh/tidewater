@@ -4,7 +4,7 @@ import { LAYERS } from '../../src/core/SceneRenderer.js';
 import { HeightfieldTerrainData } from '../../src/world/HeightfieldTerrainData.js';
 import { TerrainGPU } from '../../src/world/TerrainGPU.js';
 import { Terrain } from '../../src/world/Terrain.js';
-import { Vegetation } from '../../src/world/Vegetation.js';
+import { Vegetation } from './renderers/WebGPUVegetation.js';
 import { Reef } from '../../src/world/Reef.js';
 import { TIDEWATER_LAYOUT } from './layout.js';
 import { Wildlife } from './wildlife/Wildlife.js';
@@ -43,7 +43,7 @@ async function installVegetation( { app, root, connector, installed }, component
 		root.add( app.vegetation.group );
 		installed.push( app.vegetation );
 	} else {
-		installed.push( new Vegetation( { scene: root, terrain: staticVegetation ? grassTerrain : app.terrainData, village: staticVegetation ? null : app.village, includeGrass: staticVegetation ? !! grassMask : true, grassMask, placementRecords } ) );
+		installed.push( new Vegetation( { scene: root, terrain: staticVegetation ? grassTerrain : app.terrainData, village: staticVegetation ? null : app.village, worldLayout: TIDEWATER_LAYOUT, includeGrass: staticVegetation ? !! grassMask : true, grassMask, placementRecords } ) );
 	}
 	return true;
 }

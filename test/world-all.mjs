@@ -2,7 +2,7 @@
 // with the ground bounce and contact shadow hooks, at 2560x1267 with the engine's sun shadows.
 //   node worlds/tidewater/test/world-all.mjs [outDir] [--view=name] [--time] [--no-debris]
 import { worldHarness, done } from '../../../test/world-harness.mjs';
-import { TerrainData } from '../../../src/world/TerrainData.js';
+import { TerrainData } from '../terrain/TerrainData.js';
 import { TIDEWATER_LAYOUT } from '../layout.js';
 import { TerrainGPU } from '../../../src/world/TerrainGPU.js';
 import { Terrain, normalizeTerrainSurfaceProfile } from '../../../src/world/Terrain.js';

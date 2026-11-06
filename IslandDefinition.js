@@ -14,4 +14,9 @@ export const ISLAND_DEFINITION = Object.freeze( {
 	start: Object.freeze( { position: Object.freeze( [ 53.6, 0, - 77 ] ), yaw: Math.PI } ),
 	// Incoming swell direction (unit, travel direction).
 	swellDir: Object.freeze( [ - 0.12, - 1 ] ),
+	vegetation: Object.freeze( {
+		bay: Object.freeze( { centerX: 10, halfWidth: 235, zMin: - 245, zMax: - 30 } ),
+		protectedPaths: Object.freeze( [ Object.freeze( { points: Object.freeze( [ Object.freeze( [ 55, - 130 ] ), Object.freeze( [ 55, - 40 ] ) ] ) } ) ] ),
+		fallbackPaths: Object.freeze( [ Object.freeze( { width: 1.8, points: Object.freeze( [ Object.freeze( [ 55, - 65 ] ), Object.freeze( [ 54.6, - 72 ] ), Object.freeze( [ 52.4, - 82 ] ), Object.freeze( [ 48.4, - 92 ] ), Object.freeze( [ 44.8, - 100.5 ] ), Object.freeze( [ 42.6, - 107.2 ] ) ] ) } ) ] ),
+	} ),
 } );
