@@ -26,7 +26,7 @@ const shore = computeShoreField( data, { res: 512, swellDir: surfaceProfile.swel
 const gpu = new TerrainGPU( data, shore );
 const terrain = new Terrain( { scene: H.scene, terrainData: data, terrainGPU: gpu, surfaceProfile } );
 terrain.material.appliesHillShadow = true;
-const rocks = new Rocks( { scene: H.scene, terrain, village, colliders } );
+const rocks = new Rocks( { scene: H.scene, terrain, worldLayout: TIDEWATER_LAYOUT, village, colliders } );
 rocks.material.appliesHillShadow = true;
 const boat = new BoatModel();
 boat.group.position.copy( WORLD.boatDock.position );

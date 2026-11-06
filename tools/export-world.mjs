@@ -422,7 +422,7 @@ function buildIslandProceduralContent( terrainData ) {
 	const colliders = new Colliders();
 	const village = new PackageVillage( { scene, terrain: terrainData, colliders, fishPresentation } );
 	const vegetation = createVegetationPlacement( terrainData, village );
-	const rocks = new Rocks( { scene, terrain: terrainData, village, colliders, castShadow: false, sunShadow: false } );
+	const rocks = new Rocks( { scene, terrain: terrainData, worldLayout: TIDEWATER_LAYOUT, village, colliders, castShadow: false, sunShadow: false } );
 	const villageColliders = colliders.boxes.map( ( box ) => ( {
 		center: box.center.toArray(),
 		halfExtents: box.half.toArray(),
