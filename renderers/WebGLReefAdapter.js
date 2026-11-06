@@ -45,7 +45,7 @@ export class WebGLReefAdapter {
 		material.onBeforeCompile = shader => {
 			shader.uniforms.reefTime = material.userData.reefTime;
 			shader.uniforms.reefSeaLevel = material.userData.reefSeaLevel;
-			shader.vertexShader = shader.vertexShader.replace( '#include <common>', `#include <common>\nattribute vec4 aData;\nattribute vec3 reefColor2;\nattribute vec3 reefAnchor;\nattribute float reefSeed;\nattribute float reefFlex;\nuniform float reefTime;\nuniform float reefSeaLevel;\nvarying vec3 vReefColor2;\nvarying float vReefGradient;\n${reefSwellGLSL()}` );
+			shader.vertexShader = shader.vertexShader.replace( '#include <common>', `#include <common>\nattribute vec4 aData;\nattribute vec3 reefColor2;\nattribute vec3 reefAnchor;\nattribute float reefSeed;\nattribute float reefFlex;\nuniform float reefTime;\nuniform float reefSeaLevel;\nvarying vec3 vReefColor2;\nvarying float vReefGradient;\n${reefSwellGLSL( TIDEWATER_LAYOUT )}` );
 			shader.vertexShader = shader.vertexShader.replace( '#include <begin_vertex>', `#include <begin_vertex>\nvReefColor2 = reefColor2;\nvReefGradient = clamp( aData.x * 0.45, 0.0, 0.45 );
 				if ( reefFlex < 0.0 ) {
 					vec3 w = position * 3.1 + reefSeed * 17.0;
