@@ -7,7 +7,7 @@ export class SyntheticWaterQuery {
 
 		this.terrain = terrain;
 		this.seaLevel = seaLevel;
-		this.surfaceOffsetAt = null;
+		this.surfaceOffsetSamplers = new Map();
 		this.inputs = new Float32Array( 64 * 4 );
 		this.cpu = new Float32Array( 64 * 4 );
 		this.resultInputs = new Float32Array( 64 * 4 );
@@ -21,7 +21,12 @@ export class SyntheticWaterQuery {
 
 	}
 
-	setSurfaceOffsetSampler( sampler ) { this.surfaceOffsetAt = sampler; }
+	setSurfaceOffsetSampler( name, sampler ) {
+		if ( sampler === null ) this.surfaceOffsetSamplers.delete( name );
+		else this.surfaceOffsetSamplers.set( name, sampler );
+	}
+	getSurfaceOffsetSampler( name ) { return this.surfaceOffsetSamplers.get( name ) || null; }
+	sampleSurfaceOffset( x, z, time ) { let offset = 0; for ( const sampler of this.surfaceOffsetSamplers.values() ) offset += sampler( x, z, time ) || 0; return offset; }
 	setPoint( i, x, z ) { this.inputs[ i * 4 ] = x; this.inputs[ i * 4 + 1 ] = z; }
 	setCamera( x, z ) { this.setPoint( 0, x, z ); }
 
@@ -47,7 +52,7 @@ export class SyntheticWaterQuery {
 			+ 0.08 * Math.sin( x * 0.21 - z * 0.16 + t * 0.7 )
 			+ 0.03 * Math.sin( x * 0.42 + z * 0.09 + t * 1.3 )
 			+ 0.01 * Math.sin( x * 0.72 - z * 0.48 + t * 1.6 )
-			+ ( this.surfaceOffsetAt?.( x, z, t ) || 0 );
+			+ this.sampleSurfaceOffset( x, z, t );
 	}
 
 	update( dt, simulationTime = null ) {

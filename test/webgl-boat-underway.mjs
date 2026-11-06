@@ -14,7 +14,7 @@ const source = JSON.parse( readFileSync( new URL( '../world-source.json', import
 const seaLevel = source.rules.seaLevel;
 const shoreField = computeShoreField( world.terrain, { res: 512, swellDir: [ - 0.12, - 1 ], seaLevel } );
 const query = new SyntheticWaterQuery( world.terrain, seaLevel );
-query.setSurfaceOffsetSampler( createWebGLShoreSurfaceOffset( { terrain: world.terrain, seaLevel, field: shoreField } ) );
+query.setSurfaceOffsetSampler( 'shore', createWebGLShoreSurfaceOffset( { terrain: world.terrain, seaLevel, field: shoreField } ) );
 
 const boat = new BoatController( { design: new BoatDesign(), query, terrain: world.terrain, colliders: world.colliders, initialPosition: new Vector3( ...ISLAND_DEFINITION.boatDock.position ), initialHeading: ISLAND_DEFINITION.boatDock.heading } );
 const start = boat.position.clone();

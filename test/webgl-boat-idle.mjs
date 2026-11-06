@@ -14,14 +14,14 @@ const worldSource = JSON.parse( readFileSync( new URL( '../world-source.json', i
 const seaLevel = worldSource.rules.seaLevel;
 const shoreField = computeShoreField( world.terrain, { res: 512, swellDir: [ - 0.12, - 1 ], seaLevel } );
 const query = new SyntheticWaterQuery( world.terrain, seaLevel );
-query.setSurfaceOffsetSampler( createWebGLShoreSurfaceOffset( { terrain: world.terrain, seaLevel, field: shoreField } ) );
+query.setSurfaceOffsetSampler( 'shore', createWebGLShoreSurfaceOffset( { terrain: world.terrain, seaLevel, field: shoreField } ) );
 query.update( 0, 3.25 );
 const baseQuery = new SyntheticWaterQuery( world.terrain, seaLevel );
 baseQuery.update( 0, 3.25 );
 assert.ok( Math.abs( query._height( 64.5, 36.5 ) - baseQuery._height( 64.5, 36.5 ) ) > 0.2, 'WebGL gameplay query includes depth-aware shore displacement at the default berth' );
 assert.ok( Math.abs( query._height( 64.5, 36.5 ) - ( - 0.9965546952995952 ) ) < 1e-6, 'the dock query matches the f32-matched, crest-depth shore-wave height at a fixed simulation time' );
 const hostedQuery = new SyntheticWaterQuery( world.terrain, seaLevel );
-hostedQuery.setSurfaceOffsetSampler( createWebGLShoreSurfaceOffset( { terrain: world.terrain, seaLevel, field: shoreField } ) );
+hostedQuery.setSurfaceOffsetSampler( 'shore', createWebGLShoreSurfaceOffset( { terrain: world.terrain, seaLevel, field: shoreField } ) );
 hostedQuery.update( 0, 3.25 );
 assert.ok( Math.abs( hostedQuery._height( 64.5, 36.5 ) - query._height( 64.5, 36.5 ) ) < 1e-6, 'hosted WebGL boat queries use the signed hosted shore field' );
 query.time = 0;

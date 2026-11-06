@@ -32,10 +32,10 @@ try {
 		return Promise.resolve( buffer );
 	};
 	query = new WebGLWaterQuery( THREE, renderer, terrain, reference.seaLevel );
-	query.setSurfaceOffsetSampler( createWebGLShoreSurfaceOffset( { terrain, seaLevel: reference.seaLevel, field: maps.shoreField } ) );
+	query.setSurfaceOffsetSampler( 'shore', createWebGLShoreSurfaceOffset( { terrain, seaLevel: reference.seaLevel, field: maps.shoreField } ) );
 	let shoreOffsetError = 0, maxShoreOffsetError = 0, shorePointError = 0, maxShorePointError = 0;
 	for ( let i = 0; i < reference.points.length; i ++ ) {
-		const actual = query.surfaceOffsetAt( ...reference.points[ i ], reference.time );
+		const actual = query.sampleSurfaceOffset( ...reference.points[ i ], reference.time );
 		const expected = reference.shoreOnly[ i ][ 0 ] - reference.seaLevel;
 		const error = Math.abs( actual - expected );
 		shoreOffsetError += error;
@@ -140,11 +140,11 @@ try {
 	}
 	traceWaterHeightError /= reference.boatTrace.length;
 	traceWaterNormalError /= reference.boatTrace.length * 2;
-	const surfaceOffsetSampler = query.surfaceOffsetAt;
+	const surfaceOffsetSampler = query.getSurfaceOffsetSampler( 'shore' );
 	let fftOnlyHeightError = 0, maxFFTOnlyHeightError = 0, fftOnlyNormalError = 0;
 	const fftOnlySamples = [];
 	try {
-		query.setSurfaceOffsetSampler( null );
+		query.setSurfaceOffsetSampler( 'shore', null );
 		for ( let i = 0; i < reference.boatTrace.length; i ++ ) {
 			const expected = reference.boatTrace[ i ], time = i + 1;
 			query.setPoint( traceProbeSlot, ...expected.waterPoint );
@@ -165,7 +165,7 @@ try {
 			fftOnlySamples.push( { second: time, point: expected.waterPoint, webgpu: expectedFFT, webgl: actual, heightDelta, normalDelta } );
 		}
 	} finally {
-		query.setSurfaceOffsetSampler( surfaceOffsetSampler );
+		query.setSurfaceOffsetSampler( 'shore', surfaceOffsetSampler );
 	}
 	fftOnlyHeightError /= reference.boatTrace.length;
 	fftOnlyNormalError /= reference.boatTrace.length * 2;
