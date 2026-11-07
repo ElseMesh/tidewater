@@ -328,7 +328,7 @@ const source = {
 		{ id: 'elsemesh-component:island-humpback', type: 'elsemesh.humpback-whale/1', priority: 'visible', streamingBounds: { center: [ 0, - 4, 200 ], radius: 250 }, assets: [ { assetId: whaleAssetIDs[ 0 ], kind: 'whale-model/1' }, { assetId: whaleAssetIDs[ 1 ], kind: 'whale-geometry/1' }, { assetId: whaleAssetIDs[ 2 ], kind: 'whale-albedo/1' }, { assetId: whaleAssetIDs[ 3 ], kind: 'whale-height/1' } ], data: { profile: 'example-island-humpback-v1', modelAssetId: whaleAssetIDs[ 0 ], geometryAssetId: whaleAssetIDs[ 1 ], albedoAssetId: whaleAssetIDs[ 2 ], heightAssetId: whaleAssetIDs[ 3 ], ...TIDEWATER_WHALE_PROFILE } },
 		...reefComponents,
 		{ id: 'elsemesh-component:island-ocean', type: 'elsemesh.island-ocean/1', priority: 'portal-preview', assets: [], data: {} },
-		{ id: 'elsemesh-component:island-lobster-boat', type: 'elsemesh.downeast-boat/1', priority: 'portal-preview', assets: [], data: { objectId: 'elsemesh-object:moored-lobster-boat' } },
+		{ id: 'elsemesh-component:island-lobster-boat', type: 'elsemesh.downeast-boat/1', priority: 'portal-preview', assets: [], data: { objectId: 'elsemesh-object:moored-lobster-boat', complexityTriangles: triangleCount( boatBaseData ) } },
 		{ id: 'elsemesh-component:island-ambience', type: 'elsemesh.ambient-audio/1', priority: 'portal-preview', assets: ambientBeds.map( bed => ( { assetId: bed.assetId, kind: 'audio/ogg' } ) ), data: { beds: ambientBeds } },
 	],
 	portals: [],

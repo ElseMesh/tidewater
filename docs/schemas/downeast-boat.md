@@ -6,7 +6,10 @@
 {
   "id": "elsemesh-component:island-lobster-boat",
   "type": "elsemesh.downeast-boat/1",
-  "objectId": "elsemesh-object:moored-lobster-boat",
+  "data": {
+    "objectId": "elsemesh-object:moored-lobster-boat",
+    "complexityTriangles": 46845
+  },
   "priority": "portal-preview"
 }
 ```
@@ -25,8 +28,11 @@ Cross-world transfer is opt-in at the destination. Set `rules.vehiclePolicy` to
 `{"enabled":true,"maxSpeed":8,"maxCombinedComplexity":100000}` and include a
 `elsemesh.downeast-boat/1` component with a valid berth. The bundled client maps
 boat pose and motion through the portal, restores helm or deck mode, and enforces
-the destination speed ceiling. The signed v1 boat complexity is 46,845 triangles;
-the client and `worldd` verify the budget against that versioned value. The owner
+the destination speed ceiling. The signed component declares its vehicle cost in
+`data.complexityTriangles`. Tidewater's exporter derives that value from the
+generated boat mesh, and the client checks it against the registered boat
+contract. `worldd` reads the signed component metadata generically when enforcing
+the combined budget. The owner
 daemon also rejects boat/deck presence when the destination refuses the vehicle,
 lacks a compatible berth, or exceeds the combined avatar-plus-boat budget. A
 destination that rejects the vehicle holds the visitor at the threshold and hides

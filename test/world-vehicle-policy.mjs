@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { BoatModel } from '../../../src/world/BoatModel.js';
 import { worldComponentDescriptor } from '../../../src/network/WorldComponentRegistry.js';
 import '../register-components.js';
@@ -8,6 +9,9 @@ try {
 	const vehicle = worldComponentDescriptor( 'elsemesh.downeast-boat/1' );
 	assert.equal( vehicle?.vehicle, true, 'Tidewater registers its boat as a vehicle component' );
 	assert.equal( vehicle.complexityTriangles, model.triangleCount, 'Tidewater owns a complexity budget matching its bundled boat model' );
+	const source = JSON.parse( readFileSync( new URL( '../world-source.json', import.meta.url ), 'utf8' ) );
+	const component = source.components.find( item => item.type === vehicle.type );
+	assert.equal( component?.data?.complexityTriangles, vehicle.complexityTriangles, 'signed Tidewater component carries its world-owned complexity contract' );
 } finally {
 	model.dispose();
 }

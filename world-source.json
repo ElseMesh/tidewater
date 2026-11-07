@@ -13914,7 +13914,8 @@
       "priority": "portal-preview",
       "assets": [],
       "data": {
-        "objectId": "elsemesh-object:moored-lobster-boat"
+        "objectId": "elsemesh-object:moored-lobster-boat",
+        "complexityTriangles": 46845
       }
     },
     {
