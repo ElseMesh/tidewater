@@ -30,6 +30,7 @@ export const webglBehaviorImplementations = Object.freeze( {
 			...( builtIn ? {} : { worldId: fallback.connector.worldId } ),
 			THREE, scene: fallback.scene, camera: fallback.camera, query: fallback.waterQuery, extensions: fallback.activeWorldExtensions,
 			terrain, boatController: fallback.boat?.controller || null, boatRoot: fallback.boat?.group || null, audio: fallback.app.audio,
+			engineRoot: fallback.app.hud?.root || null,
 		} );
 		if ( Number.isInteger( terrain?.res ) && Number.isFinite( terrain.texel ) && Number.isFinite( terrain.origin ) ) {
 

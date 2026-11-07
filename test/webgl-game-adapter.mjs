@@ -5,13 +5,32 @@ import { FishingGameRuntime } from '../FishingGameRuntime.js';
 import { FishingRod } from '../game/FishingRod.js';
 import { PerspectiveCamera } from '../../../src/engine/index.js';
 import { SyntheticWaterQuery } from './synthetic-water-query.mjs';
-import { WebGLGameAdapter, createDeckFloodlights } from '../webgl/WebGLGameAdapter.js';
+import { WebGLGameAdapter, createDeckFloodlights, createGameUI } from '../webgl/WebGLGameAdapter.js';
 import { FishingInputController } from '../FishingInputController.js';
 import * as THREE from 'three';
 import { createFishingTestRuntime } from './fishing-test-extension.mjs';
 
 const experience = JSON.parse( readFileSync( new URL( '../world-source.json', import.meta.url ), 'utf8' ) ).experience;
 const fishCatalog = experience.behaviors[ 'elsemesh.fishing-game/1' ].fishCatalog;
+
+class FakeElement {
+	constructor( tag ) { this.tag = tag; this.children = []; this.dataset = {}; this.attributes = {}; }
+	append( ...children ) { for ( const child of children ) { child.parent = this; this.children.push( child ); } }
+	setAttribute( name, value ) { this.attributes[ name ] = value; }
+	remove() { this.parent?.children.splice( this.parent.children.indexOf( this ), 1 ); }
+}
+
+const savedDocument = globalThis.document;
+globalThis.document = { createElement: tag => new FakeElement( tag ), body: new FakeElement( 'body' ) };
+const engineRoot = new FakeElement( 'engine-root' );
+const worldUI = createGameUI( engineRoot );
+assert.equal( engineRoot.children[ 0 ], worldUI.root, 'WebGL world HUD is mounted under the engine UI root' );
+assert.equal( worldUI.root.className, 'em-root em-world-ui', 'the world HUD uses the engine-managed world UI layer' );
+assert.equal( worldUI.hud.parent, worldUI.root, 'the Tidewater HUD remains in its own removable subtree' );
+worldUI.dispose();
+assert.equal( engineRoot.children.length, 0, 'disposing Tidewater UI removes only its own subtree' );
+if ( savedDocument === undefined ) delete globalThis.document;
+else globalThis.document = savedDocument;
 
 const storage = { getItem: () => null, setItem: () => {} };
 const state = new GameState( storage, 'elsemesh:local', fishCatalog );

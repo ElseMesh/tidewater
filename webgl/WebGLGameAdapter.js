@@ -7,10 +7,10 @@ import { FishingInputController } from '../FishingInputController.js';
 
 const CATCH_CARD_MS = 9000;
 
-function createGameUI() {
+export function createGameUI( engineRoot = null ) {
 
 	const root = document.createElement( 'div' );
-	root.className = 'em-root';
+	root.className = engineRoot ? 'em-root em-world-ui' : 'em-root';
 	root.dataset.panel = 'closed';
 	const hud = document.createElement( 'div' );
 	hud.className = 'em-hud';
@@ -25,7 +25,7 @@ function createGameUI() {
 	prompt.append( key, text );
 	hud.append( toasts, prompt );
 	root.append( hud );
-	document.body.append( root );
+	( engineRoot || document.body ).append( root );
 	const timers = new Set();
 	return {
 		root, hud, prompt, promptKey: key, promptText: text,
@@ -53,7 +53,7 @@ function createGameUI() {
 // presents the shared rod simulation with Three.js while keeping world/input/render work local.
 export class WebGLGameAdapter {
 
-	constructor( vendor, { vendors = [ vendor ], experience, worldId = 'elsemesh:local', extensions = null, THREE, scene, camera, query, terrain, boatController = null, boatRoot = null, audio = null } = {} ) {
+	constructor( vendor, { vendors = [ vendor ], experience, worldId = 'elsemesh:local', extensions = null, THREE, scene, camera, query, terrain, boatController = null, boatRoot = null, audio = null, engineRoot = null } = {} ) {
 
 		this.fishingAreas = worldBehaviorData( experience, 'elsemesh.fishing-game/1' ).fishingAreas;
 		this.camera = camera;
@@ -67,7 +67,7 @@ export class WebGLGameAdapter {
 		this.boatGameplay = this.runtime.boatGameplay;
 		this.boatGameplay.onFuelOut = () => this.toast( 'Out of fuel · buy diesel at the chandlery by the boathouse', 4000 );
 		this.fishCatalog = this.runtime.fishCatalog;
-		this.ui = createGameUI();
+		this.ui = createGameUI( engineRoot );
 		this.vendor = vendor;
 		this.audio = audio;
 		this.vendors = vendors;
