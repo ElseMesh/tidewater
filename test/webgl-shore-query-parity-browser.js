@@ -6,14 +6,16 @@ import { BoatController } from '../../../src/player/BoatController.js';
 import { BoatDesign } from '../../../src/world/boat/BoatDesign.js';
 import { Vector3 } from '../../../src/engine/math/Vector3.js';
 import { createWebGLShoreSurfaceOffset } from '../../../src/fallback/WebGLShoreSurface.js';
+import { WebGLWakeSim } from '../../../src/ocean/WebGLWakeSim.js';
 
 const result = document.querySelector( '#result' );
-let renderer, query;
+const WAKE_TRACE_SECONDS = 3;
+let renderer, query, wakeQuery, wake;
 try {
 	const referenceResponse = await fetch( './webgpu-shore-query-reference.json', { cache: 'no-store' } );
 	if ( ! referenceResponse.ok ) throw new Error( 'Generate webgpu-shore-query-reference.json with the Tidewater WebGPU reference writer first' );
 	const reference = await referenceResponse.json();
-	if ( reference.protocol !== 'elsemesh.tidewater-shore-query-parity/1' ) throw new Error( 'Invalid Tidewater shoreline parity reference protocol' );
+	if ( reference.protocol !== 'elsemesh.tidewater-shore-query-parity/2' ) throw new Error( 'Invalid Tidewater shoreline parity reference protocol' );
 	const source = await fetch( '../world-source.json', { cache: 'no-store' } ).then( response => response.json() );
 	const terrainComponent = source.components.find( component => component.type === 'elsemesh.terrain-surface/1' );
 	const assetResponse = await fetch( `../assets/${terrainComponent.data.dataAssetId.slice( 'sha256:'.length )}`, { cache: 'no-store' } );
@@ -104,7 +106,7 @@ try {
 
 	}
 	if ( ! boat.isFinite() ) throw new Error( 'WebGL production-query boat trace became non-finite' );
-	if ( boatTrace.length !== reference.boatTrace?.length || boatTrace.length !== 18 ) throw new Error( 'WebGPU and WebGL production boat traces must each contain 18 one-second samples' );
+	if ( boatTrace.length !== reference.boatTrace?.length || boatTrace.length !== 18 ) throw new Error( `WebGPU and WebGL production boat traces must each contain 18 one-second samples (WebGL ${boatTrace.length}, WebGPU ${reference.boatTrace?.length})` );
 	let maxBoatPositionDelta = 0, maxBoatSpeedDelta = 0;
 	const boatSamples = boatTrace.map( ( actual, i ) => {
 		const expected = reference.boatTrace[ i ];
@@ -169,12 +171,75 @@ try {
 	}
 	fftOnlyHeightError /= reference.boatTrace.length;
 	fftOnlyNormalError /= reference.boatTrace.length * 2;
-	result.textContent = JSON.stringify( { status: 'complete', count: samples.length, heightError, maxHeightError, normalError, floorError, samples, shoreProfile: { shoreOffsetError, maxShoreOffsetError, shorePointError, maxShorePointError }, boat: { maxPositionDelta: maxBoatPositionDelta, maxSpeedDelta: maxBoatSpeedDelta, traceWaterHeightError, maxTraceWaterHeightError, traceWaterNormalError, fftOnlyHeightError, maxFFTOnlyHeightError, fftOnlyNormalError, samples: boatSamples, traceWaterSamples, fftOnlySamples } } );
+	const wakeQueryInstance = wakeQuery = new WebGLWaterQuery( THREE, renderer, terrain, reference.seaLevel );
+	const wakeBoat = new BoatController( {
+		design: new BoatDesign(), query: wakeQueryInstance, terrain,
+		colliders: { resolveCapsule: () => false }, initialPosition: new Vector3( ...berthObject.transform.position ), initialHeading: berthObject.transform.yaw,
+	} );
+	wakeBoat.driven = true;
+	wakeBoat.moored = false;
+	wakeQueryInstance.setSurfaceOffsetSampler( 'shore', createWebGLShoreSurfaceOffset( { terrain, seaLevel: reference.seaLevel, field: maps.shoreField } ) );
+	wake = new WebGLWakeSim( THREE, renderer, { terrain, boat: wakeBoat, colliders: { cylinders: [] }, seaLevel: reference.seaLevel } );
+	wakeQueryInstance.setWakeReader( wake.readerUniforms );
+	wakeQueryInstance.latency = 1 / 60;
+	const wakeBoatSlot = wakeQueryInstance.allocate( 'wake-enabled-boat-point', 1 );
+	const wakeProbeSlot = wakeQueryInstance.allocate( 'wake-enabled-reference-point', 1 );
+	const wakeBoatTrace = [];
+	for ( let frame = 0; frame < WAKE_TRACE_SECONDS * 60; frame ++ ) {
+
+		const dt = 1 / 60, time = ( frame + 1 ) * dt;
+		wakeBoat.setInput( 1, frame < 12 * 60 ? 0 : - 0.7, dt );
+		wakeBoat.update( dt );
+		wakeBoat.queueQueries();
+		wakeQueryInstance.setPoint( wakeBoatSlot, wakeBoat.position.x + wakeBoat.velocity.x * dt, wakeBoat.position.z + wakeBoat.velocity.z * dt );
+		if ( frame % 60 === 59 ) wakeQueryInstance.setPoint( wakeProbeSlot, ...reference.wakeBoatTrace[ Math.floor( frame / 60 ) ].waterPoint );
+		while ( wakeQueryInstance._pending ) await new Promise( resolve => setTimeout( resolve, 1 ) );
+		const previousVersion = wakeQueryInstance.version;
+		wake.update( dt, time );
+		wakeQueryInstance.update( dt, time );
+		const wakeQueryDeadline = performance.now() + 5000;
+		while ( wakeQueryInstance.version === previousVersion && performance.now() < wakeQueryDeadline ) await new Promise( resolve => setTimeout( resolve, 1 ) );
+		if ( wakeQueryInstance.version === previousVersion ) throw new Error( `WebGL wake-enabled boat query timed out at frame ${frame}` );
+		while ( wakeQueryInstance._pending ) await new Promise( resolve => setTimeout( resolve, 1 ) );
+		wakeQueryInstance.latency = dt;
+		if ( frame % 60 === 59 ) wakeBoatTrace.push( {
+			position: [ wakeBoat.position.x, wakeBoat.position.y, wakeBoat.position.z ],
+			velocity: [ wakeBoat.velocity.x, wakeBoat.velocity.y, wakeBoat.velocity.z ],
+			quaternion: [ wakeBoat.quaternion.x, wakeBoat.quaternion.y, wakeBoat.quaternion.z, wakeBoat.quaternion.w ],
+			speed: wakeBoat.speed,
+			waterPoint: Array.from( wakeQueryInstance.resultInputs.slice( wakeBoatSlot * 4, wakeBoatSlot * 4 + 2 ) ),
+			water: Array.from( wakeQueryInstance.cpu.slice( wakeBoatSlot * 4, wakeBoatSlot * 4 + 4 ) ),
+			referenceWater: Array.from( wakeQueryInstance.cpu.slice( wakeProbeSlot * 4, wakeProbeSlot * 4 + 4 ) ),
+			wakeAmount: wake.uniforms.uAmount.value,
+			wakeSteps: wake.stepCount,
+		} );
+
+	}
+	if ( ! wakeBoat.isFinite() || wakeBoatTrace.length !== reference.wakeBoatTrace.length || wake.stepCount < WAKE_TRACE_SECONDS * 60 - 1 || wake.stepCount > WAKE_TRACE_SECONDS * 60 ) throw new Error( `WebGL wake-enabled production boat trace did not complete all frames (${JSON.stringify( { boatFinite: wakeBoat.isFinite(), actualSamples: wakeBoatTrace.length, expectedSamples: reference.wakeBoatTrace.length, wakeSteps: wake.stepCount, expectedWakeSteps: [ WAKE_TRACE_SECONDS * 60 - 1, WAKE_TRACE_SECONDS * 60 ] } )})` );
+	let maxWakeBoatPositionDelta = 0, maxWakeBoatSpeedDelta = 0, maxWakeWaterHeightDelta = 0, maxWakeWaterNormalDelta = 0, maxWakeStepDelta = 0;
+	const wakeBoatSamples = wakeBoatTrace.map( ( actual, i ) => {
+		const expected = reference.wakeBoatTrace[ i ];
+		const positionDelta = Math.hypot( ...actual.position.map( ( value, axis ) => value - expected.position[ axis ] ) );
+		const speedDelta = Math.abs( actual.speed - expected.speed );
+		const heightDelta = Math.abs( actual.referenceWater[ 0 ] - expected.water[ 0 ] );
+		const normalDelta = Math.hypot( actual.referenceWater[ 1 ] - expected.water[ 1 ], actual.referenceWater[ 2 ] - expected.water[ 2 ] );
+		const stepDelta = Math.abs( actual.wakeSteps - expected.wakeSteps );
+		maxWakeBoatPositionDelta = Math.max( maxWakeBoatPositionDelta, positionDelta );
+		maxWakeBoatSpeedDelta = Math.max( maxWakeBoatSpeedDelta, speedDelta );
+		maxWakeWaterHeightDelta = Math.max( maxWakeWaterHeightDelta, heightDelta );
+		maxWakeWaterNormalDelta = Math.max( maxWakeWaterNormalDelta, normalDelta );
+		maxWakeStepDelta = Math.max( maxWakeStepDelta, stepDelta );
+		return { second: i + 1, positionDelta, speedDelta, heightDelta, normalDelta, stepDelta, webgpu: expected, webgl: actual };
+	} );
+	if ( ! wakeBoatSamples.every( sample => [ sample.positionDelta, sample.speedDelta, sample.heightDelta, sample.normalDelta ].every( Number.isFinite ) ) ) throw new Error( 'WebGL wake-enabled boat or water trace contains non-finite values' );
+	result.textContent = JSON.stringify( { status: 'complete', count: samples.length, heightError, maxHeightError, normalError, floorError, samples, shoreProfile: { shoreOffsetError, maxShoreOffsetError, shorePointError, maxShorePointError }, boat: { maxPositionDelta: maxBoatPositionDelta, maxSpeedDelta: maxBoatSpeedDelta, traceWaterHeightError, maxTraceWaterHeightError, traceWaterNormalError, fftOnlyHeightError, maxFFTOnlyHeightError, fftOnlyNormalError, samples: boatSamples, traceWaterSamples, fftOnlySamples }, wakeBoat: { maxPositionDelta: maxWakeBoatPositionDelta, maxSpeedDelta: maxWakeBoatSpeedDelta, maxWaterHeightDelta: maxWakeWaterHeightDelta, maxWaterNormalDelta: maxWakeWaterNormalDelta, maxWakeStepDelta, samples: wakeBoatSamples } } );
 	result.dataset.status = 'complete';
 } catch ( error ) {
 	result.textContent = JSON.stringify( { status: 'failed', error: error.stack || String( error ) } );
 	result.dataset.status = 'failed';
 } finally {
+	wake?.dispose();
+	wakeQuery?.dispose();
 	query?.dispose();
 	renderer?.dispose();
 }

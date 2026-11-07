@@ -8,6 +8,8 @@ import { createServer } from 'vite';
 const testDirectory = dirname( fileURLToPath( import.meta.url ) );
 const engineRoot = resolve( testDirectory, '../../..' );
 const referencePath = join( testDirectory, 'webgpu-shore-query-reference.json' );
+const reuseReference = process.env.ELSEMESH_REUSE_SHORE_QUERY_REFERENCE === '1';
+const keepReference = process.env.ELSEMESH_KEEP_SHORE_QUERY_REFERENCE === '1';
 
 function chromiumPath() {
 	if ( process.env.ELSEMESH_TEST_CHROMIUM ) return process.env.ELSEMESH_TEST_CHROMIUM;
@@ -27,17 +29,21 @@ async function stopBrowser( browser ) {
 	try { process.kill( - browser.pid, 'SIGKILL' ); } catch {}
 }
 
-const writer = spawnSync( process.execPath, [ '--preserve-symlinks', join( testDirectory, 'write-webgpu-shore-query-reference.mjs' ) ], {
-	cwd: engineRoot, encoding: 'utf8', timeout: 600000, maxBuffer: 1024 * 1024,
-	env: { ...process.env, ELSEMESH_SHORE_QUERY_REFERENCE: referencePath },
-} );
-if ( writer.error ) throw writer.error;
-assert.equal( writer.status, 0, `headless Dawn builds the WebGPU reference: ${writer.stdout}\n${writer.stderr}` );
-process.stdout.write( writer.stdout );
+if ( reuseReference ) {
+	assert( existsSync( referencePath ), `set ELSEMESH_KEEP_SHORE_QUERY_REFERENCE=1 on the writer run to preserve ${referencePath}` );
+} else {
+	const writer = spawnSync( process.execPath, [ '--preserve-symlinks', join( testDirectory, 'write-webgpu-shore-query-reference.mjs' ) ], {
+		cwd: engineRoot, encoding: 'utf8', timeout: 1800000, maxBuffer: 1024 * 1024,
+		env: { ...process.env, ELSEMESH_SHORE_QUERY_REFERENCE: referencePath },
+	} );
+	if ( writer.error ) throw writer.error;
+	assert.equal( writer.status, 0, `headless Dawn builds the WebGPU reference: ${writer.stdout}\n${writer.stderr}` );
+	process.stdout.write( writer.stdout );
+}
 
 const profile = mkdtempSync( join( '/var/tmp', 'elsemesh-tidewater-shore-parity-' ) );
 const vite = await createServer( {
-	configFile: false, root: engineRoot, server: { host: '127.0.0.1', port: 0, strictPort: true }, appType: 'mpa',
+	configFile: false, root: engineRoot, optimizeDeps: { entries: [ 'worlds/tidewater/test/webgl-shore-query-parity.html' ] }, server: { host: '127.0.0.1', port: 0, strictPort: true }, appType: 'mpa',
 	plugins: [ {
 		name: 'serve-tidewater-binary-test-assets',
 		configureServer( server ) {
@@ -97,7 +103,7 @@ try {
 		await command( 'Page.enable' );
 		await command( 'Runtime.enable' );
 		await command( 'Page.navigate', { url } );
-		const deadline = Date.now() + 300000;
+		const deadline = Date.now() + 1200000;
 		let result;
 		while ( Date.now() < deadline ) {
 			const response = await command( 'Runtime.evaluate', {
@@ -125,6 +131,15 @@ try {
 		assert( metrics.boat.maxPositionDelta <= 0.15, `18-second WebGPU/WebGL boat position delta ${metrics.boat.maxPositionDelta} m <= 0.15 m` );
 		assert( metrics.boat.maxSpeedDelta <= 0.02, `18-second WebGPU/WebGL boat speed delta ${metrics.boat.maxSpeedDelta} m/s <= 0.02 m/s` );
 		assert( metrics.boat.maxTraceWaterHeightError <= 0.02, `same-position production water height error ${metrics.boat.maxTraceWaterHeightError} m <= 0.02 m` );
+		assert( metrics.wakeBoat && metrics.wakeBoat.samples.length === 3, 'WebGPU/WebGL wake-enabled production probes return three per-second samples' );
+		assert( [ metrics.wakeBoat.maxPositionDelta, metrics.wakeBoat.maxSpeedDelta, metrics.wakeBoat.maxWaterHeightDelta, metrics.wakeBoat.maxWaterNormalDelta ].every( Number.isFinite ), 'wake-enabled production trace metrics are finite' );
+		assert( metrics.wakeBoat.maxPositionDelta <= 0.15, `three-second wake-enabled boat position delta ${metrics.wakeBoat.maxPositionDelta} m <= 0.15 m` );
+		assert( metrics.wakeBoat.maxSpeedDelta <= 0.02, `three-second wake-enabled boat speed delta ${metrics.wakeBoat.maxSpeedDelta} m/s <= 0.02 m/s` );
+		assert( metrics.wakeBoat.maxWaterHeightDelta <= 0.02, `wake-enabled fixed-position water height delta ${metrics.wakeBoat.maxWaterHeightDelta} m <= 0.02 m` );
+		assert( metrics.wakeBoat.maxWaterNormalDelta <= 0.02, `wake-enabled fixed-position water normal delta ${metrics.wakeBoat.maxWaterNormalDelta} <= 0.02` );
+		assert( metrics.wakeBoat.maxWakeStepDelta <= 1 && metrics.wakeBoat.samples.every( sample => sample.webgpu.wakeAmount > 0 && sample.webgl.wakeAmount > 0 ), 'both WakeSim fields prime on startup and advance within one startup frame of each other' );
+		console.log( `Tidewater wake-enabled production boat probe (3 s): max position delta ${metrics.wakeBoat.maxPositionDelta.toFixed(3)} m, max speed delta ${metrics.wakeBoat.maxSpeedDelta.toFixed(3)} m/s, max fixed-point water height delta ${metrics.wakeBoat.maxWaterHeightDelta.toFixed(4)} m, max normal delta ${metrics.wakeBoat.maxWaterNormalDelta.toFixed(5)}` );
+		console.log( `wake-enabled per-second position deltas (m): ${metrics.wakeBoat.samples.map( sample => sample.positionDelta.toFixed(2) ).join( ', ' )}` );
 		const peakPosition = metrics.boat.samples.reduce( ( peak, sample ) => sample.positionDelta > peak.positionDelta ? sample : peak );
 		const finalBoat = metrics.boat.samples.at( - 1 );
 		console.log( `Tidewater production boat trace (18 s, FFT + packaged shoreline, no interactive wake): max position delta ${metrics.boat.maxPositionDelta.toFixed(3)} m at ${peakPosition.second} s; final ${finalBoat.positionDelta.toFixed(3)} m; max speed delta ${metrics.boat.maxSpeedDelta.toFixed(3)} m/s` );
@@ -150,5 +165,5 @@ try {
 	if ( browser ) await stopBrowser( browser );
 	await vite.close();
 	rmSync( profile, { recursive: true, force: true } );
-	rmSync( referencePath, { force: true } );
+	if ( ! keepReference ) rmSync( referencePath, { force: true } );
 }

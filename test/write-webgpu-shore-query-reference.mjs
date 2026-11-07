@@ -13,6 +13,7 @@ import { TerrainGPU } from '../../../src/world/TerrainGPU.js';
 import { BoatController } from '../../../src/player/BoatController.js';
 import { BoatDesign } from '../../../src/world/boat/BoatDesign.js';
 import { Vector3 } from '../../../src/engine/math/Vector3.js';
+import { WakeSim } from '../../../src/ocean/WakeSim.js';
 
 const output = process.env.ELSEMESH_SHORE_QUERY_REFERENCE;
 if ( ! output ) throw new Error( 'Set ELSEMESH_SHORE_QUERY_REFERENCE to an external build-tree JSON path' );
@@ -113,6 +114,75 @@ async function traceBoat() {
 
 }
 
+const WAKE_TRACE_SECONDS = 3;
+
+async function traceBoatWithWake() {
+
+	const dt = 1 / 60;
+	fft.time.value = 0;
+	G.seaLevel.value = source.rules.seaLevel;
+	const wakeSurface = new WaterSurface( { fft, cdlod: {} } );
+	wakeSurface.terrain = terrainGPU;
+	wakeSurface.shore = surface.shore;
+	const wakeQuery = new WaterQuery( null, wakeSurface );
+	wakeQuery.latency = dt;
+	const design = new BoatDesign();
+	const boat = new BoatController( {
+		design, query: wakeQuery, terrain, colliders: { resolveCapsule: () => false },
+		initialPosition: new Vector3( ...berth ), initialHeading: heading,
+	} );
+	boat.driven = true;
+	boat.moored = false;
+	const wake = new WakeSim( null, { terrainGPU, boat } );
+	wakeSurface.wake = wake;
+	GPU.beginFrame();
+	G.time.value = 0;
+	G.dt.value = dt;
+	wake.update( dt );
+	GPU.submit();
+	await GPU.queue.onSubmittedWorkDone();
+	assert.equal( wake.stepCount, 0, 'WebGPU WakeSim primes on the idle startup frame without integrating a step' );
+	const tracePointSlot = wakeQuery.allocate( 'boat-wake-trace-point', 1 );
+	const trace = [];
+	for ( let frame = 0; frame < WAKE_TRACE_SECONDS * 60; frame ++ ) {
+
+		const time = ( frame + 1 ) * dt;
+		GPU.beginFrame();
+		G.time.value = time;
+		G.dt.value = dt;
+		boat.setInput( 1, frame < 12 * 60 ? 0 : - 0.7, dt );
+		boat.update( dt );
+		boat.queueQueries();
+		wakeQuery.setPoint( tracePointSlot, boat.position.x + boat.velocity.x * dt, boat.position.z + boat.velocity.z * dt );
+		fft.update( dt );
+		wake.update( dt );
+		wakeQuery.update();
+		GPU.submit();
+		const previousVersion = wakeQuery.version;
+		const deadline = Date.now() + 5000;
+		while ( wakeQuery.version === previousVersion && Date.now() < deadline ) await new Promise( resolve => setTimeout( resolve, 1 ) );
+		assert.notEqual( wakeQuery.version, previousVersion, `WebGPU wake boat query returns at frame ${frame}` );
+		wakeQuery.latency = dt;
+		if ( frame % 60 === 59 ) trace.push( {
+			position: [ boat.position.x, boat.position.y, boat.position.z ],
+			velocity: [ boat.velocity.x, boat.velocity.y, boat.velocity.z ],
+			quaternion: [ boat.quaternion.x, boat.quaternion.y, boat.quaternion.z, boat.quaternion.w ],
+			speed: boat.speed,
+			waterPoint: Array.from( wakeQuery.resultInputs.slice( tracePointSlot * 4, tracePointSlot * 4 + 2 ) ),
+			water: Array.from( wakeQuery.cpu.slice( tracePointSlot * 4, tracePointSlot * 4 + 4 ) ),
+			wakeAmount: wake.uAmount.value,
+			wakeSteps: wake.stepCount,
+		} );
+
+	}
+
+	assert( boat.isFinite(), 'WebGPU wake-enabled production-query boat trace remains finite' );
+	assert( wake.stepCount >= WAKE_TRACE_SECONDS * 60 - 1 && wake.stepCount <= WAKE_TRACE_SECONDS * 60, 'WebGPU WakeSim may skip the initial sub-threshold throttle frame after idle priming' );
+	assert( trace.some( sample => sample.wakeAmount > 0 ), 'WebGPU wake remains active while the boat is moving' );
+	return trace;
+
+}
+
 try {
 	const time = 4.25, start = query.allocate( 'parity', points.length );
 	for ( let i = 0; i < points.length; i ++ ) query.setPoint( start + i, ...points[ i ] );
@@ -169,6 +239,7 @@ fn main( @builtin( global_invocation_id ) gid: vec3u ) {
 	const rawShore = new Float32Array( await readBuffer( shoreOutputs.getGPU(), points.length * 16 ) );
 	const shoreAtPoint = points.map( ( _, i ) => Array.from( rawShore.slice( i * 4, i * 4 + 4 ) ) );
 	const boatTrace = await traceBoat();
+	const wakeBoatTrace = await traceBoatWithWake();
 	const fftOnlySurface = Object.create( surface );
 	fftOnlySurface.shore = null;
 	fftOnlySurface.wake = null;
@@ -191,15 +262,15 @@ fn main( @builtin( global_invocation_id ) gid: vec3u ) {
 		boatTrace[ i ].waterFFTOnly = Array.from( fftOnlyQuery.cpu.slice( fftOnlySlot * 4, fftOnlySlot * 4 + 4 ) );
 	}
 	const reference = {
-		protocol: 'elsemesh.tidewater-shore-query-parity/1', time, seaLevel: source.rules.seaLevel,
+		protocol: 'elsemesh.tidewater-shore-query-parity/2', time, seaLevel: source.rules.seaLevel,
 		terrain: { size: maps.size, origin: maps.origin, resolution: maps.resolution }, shoreField: maps.shoreField,
 		points, webgpu, shoreOnly, shoreAtPoint,
-		boatTrace,
+		boatTrace, wakeBoatTrace,
 	};
 	const outputPath = resolve( output );
 	await mkdir( dirname( outputPath ), { recursive: true } );
 	await writeFile( outputPath, JSON.stringify( reference ) );
-	console.log( `wrote ${points.length} Tidewater WebGPU shoreline query samples and an 18-second production boat trace at ${time.toFixed( 2 )} s` );
+	console.log( `wrote ${points.length} Tidewater WebGPU shoreline query samples, an 18-second baseline boat trace, and a ${WAKE_TRACE_SECONDS}-second wake-enabled boat trace at ${time.toFixed( 2 )} s` );
 } finally {
 	surface.shore.dispose?.();
 	terrainGPU.dispose();
