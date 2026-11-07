@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import * as THREE from 'three';
 import { Whale } from '../../../src/world/marine/Whale.js';
-import { WhaleBrain } from '../../../src/world/marine/WhaleBrain.js';
+import { WhaleBrain, createHumpbackBrain } from '../marine/HumpbackBrain.js';
 
 const root = path.resolve( 'worlds/tidewater' );
 const world = JSON.parse( await readFile( path.join( root, 'world-source.json' ), 'utf8' ) );
@@ -12,8 +12,8 @@ assert.ok( component, 'Tidewater exports a packaged whale component' );
 const data = component.data;
 const queryNames = [];
 const query = { allocate: name => { queryNames.push( name ); return queryNames.length - 1; } };
-const firstBrain = new WhaleBrain( { terrain: null, query, queryName: 'whale:first', ...data } );
-const secondBrain = new WhaleBrain( { terrain: null, query, queryName: 'whale:second', ...data } );
+const firstBrain = new WhaleBrain( { THREE, terrain: null, query, queryName: 'whale:first', ...data } );
+const secondBrain = new WhaleBrain( { THREE, terrain: null, query, queryName: 'whale:second', ...data } );
 assert.deepEqual( queryNames, [ 'whale:first', 'whale:second' ], 'multiple whale components allocate independent water query slots' );
 assert.notEqual( firstBrain.slot, secondBrain.slot, 'multiple whales do not overwrite each other water query results' );
 const asset = async id => new Uint8Array( await readFile( path.join( root, 'assets', id.slice( 'sha256:'.length ) ) ) );
@@ -22,7 +22,7 @@ const [ manifest, geometry, albedo, height ] = await Promise.all( [ data.modelAs
 const scene = new THREE.Scene();
 const whale = new Whale( {
 	scene, terrain: null, THREE, webgl: true, seaLevel: world.rules.seaLevel,
-	profile: data,
+	profile: data, createBrain: createHumpbackBrain,
 } );
 await whale.loadPackage( { manifest, geometry, albedo, height } );
 assert.equal( whale.ready, true, 'WebGL whale loads only the packaged asset bytes' );
@@ -60,7 +60,7 @@ globalThis.fetch = async url => {
 	return new Response( bytes );
 };
 try {
-	const builtin = new Whale( { scene, terrain: null, THREE, webgl: true, url: 'https://elsemesh.invalid/models/whale/', profile: data, seaLevel: world.rules.seaLevel } );
+	const builtin = new Whale( { scene, terrain: null, THREE, webgl: true, url: 'https://elsemesh.invalid/models/whale/', profile: data, createBrain: createHumpbackBrain, seaLevel: world.rules.seaLevel } );
 	await builtin.load();
 	assert.equal( builtin.ready, true, 'built-in WebGL loads the shared public Whale assets' );
 	assert.deepEqual( builtin.meshes.map( mesh => mesh.geometry.attributes.position.count ), [ 40212, 5898, 908 ], 'built-in and hosted paths use the same packaged LOD geometry' );

@@ -9,6 +9,7 @@ import { Reef } from '../../src/world/Reef.js';
 import { TIDEWATER_LAYOUT } from './layout.js';
 import { Wildlife } from './wildlife/Wildlife.js';
 import { Whale } from '../../src/world/marine/Whale.js';
+import { createHumpbackBrain } from './marine/HumpbackBrain.js';
 import { HostedBoat } from '../../src/network/HostedBoat.js';
 import { decodeWorldComponentAsset } from '../../src/network/WorldComponentAssetCodecRegistry.js';
 import { decodeGrassDensityAsset } from '../../src/network/GrassDensityAsset.js';
@@ -118,6 +119,7 @@ async function installWhale( { app, root, connector, installed }, component ) {
 	const whale = new Whale( {
 		scene: root, terrain: root.userData.terrainData || null,
 		seaLevel: connector.manifest.rules.seaLevel ?? 0,
+		createBrain: createHumpbackBrain,
 		profile: { seed: component.seed, route: component.route, surfaceAt: component.surfaceAt, cruiseSpeed: component.cruiseSpeed, surfaceSpeed: component.surfaceSpeed },
 	} );
 	try {

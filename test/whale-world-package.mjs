@@ -3,7 +3,8 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { setupLife } from '../../../test/life-harness.mjs';
 import { Whale } from '../../../src/world/marine/Whale.js';
-import { WhaleBrain } from '../../../src/world/marine/WhaleBrain.js';
+import { WhaleBrain, createHumpbackBrain } from '../marine/HumpbackBrain.js';
+import * as THREE from 'three';
 import { TIDEWATER_WHALE_PROFILE } from '../WhaleProfile.js';
 
 const root = path.resolve( 'worlds/tidewater' );
@@ -27,12 +28,13 @@ try {
 		terrain: null,
 		seaLevel: source.rules.seaLevel,
 		profile: { seed: data.seed, route: data.route, surfaceAt: data.surfaceAt, cruiseSpeed: data.cruiseSpeed, surfaceSpeed: data.surfaceSpeed },
+		createBrain: createHumpbackBrain,
 	} );
 	await whale.loadPackage( { manifest, geometry, albedo, height } );
 	assert.equal( whale.ready, true, 'renderer creates the whale from package assets' );
 	assert.deepEqual( whale.meshes.map( mesh => mesh.geometry.attributes.position.count ), [ 40212, 5898, 908 ], 'package provides the three original whale LOD meshes' );
 	assert.deepEqual( whale.brain.curve.points.map( point => [ point.x, point.z ] ), data.route, 'runtime route exactly follows exported world data' );
-	const createBrain = seed => new WhaleBrain( { terrain: null, ...TIDEWATER_WHALE_PROFILE, seed, seaLevel: source.rules.seaLevel } );
+	const createBrain = seed => new WhaleBrain( { THREE, terrain: null, ...TIDEWATER_WHALE_PROFILE, seed, seaLevel: source.rules.seaLevel } );
 	assert.equal( createBrain( data.seed ).rand(), createBrain( data.seed ).rand(), 'the same exported seed initializes the same simulation state' );
 	assert.notEqual( createBrain( data.seed ).rand(), createBrain( data.seed + 1 ).rand(), 'a different exported seed selects a different simulation state' );
 	whale.update( 1 / 60, life.camera );

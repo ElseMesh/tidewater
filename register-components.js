@@ -9,6 +9,7 @@ import * as fishPresentation from './FishPresentation.js';
 import { VILLAGE_MATERIAL_MAPS, VILLAGE_MATERIAL_PROFILE, VILLAGE_MATERIAL_ROLES } from './VillageMaterialProfile.js';
 import { decodeVillageMaterialAsset, VILLAGE_MATERIAL_ASSET_KIND } from './VillageMaterialAsset.js';
 import { TIDEWATER_WORLD_COMPONENTS } from './world-provider.js';
+import { createHumpbackBrain } from './marine/HumpbackBrain.js';
 import './WorldPackageMaterialAdapter.js';
 import './renderers/WebGLVegetationComponentAdapter.js';
 import './renderers/WebGLReefComponentAdapter.js';
@@ -23,5 +24,5 @@ registerWorldMaterialProfile( VILLAGE_MATERIAL_PROFILE, { roles: VILLAGE_MATERIA
 
 for ( const [ type, traits ] of TIDEWATER_WORLD_COMPONENTS ) {
 	const install = tidewaterComponentInstaller( type );
-	registerWorldComponent( type, { ...traits, ...( install ? { install } : {} ) } );
+	registerWorldComponent( type, { ...traits, ...( install ? { install } : {} ), ...( type === 'elsemesh.humpback-whale/1' ? { createSimulation: createHumpbackBrain } : {} ) } );
 }
