@@ -6671,6 +6671,38 @@
       }
     },
     {
+      "id": "elsemesh-object:island-ground-coconuts",
+      "kind": "asset-instance",
+      "label": "Coconuts, husks, and fallen palm fronds",
+      "assetId": "sha256:8a4b0dc78db6ce88edce0bacd98ede38f32667575038aa293de32b2ccc979118",
+      "priority": "visible",
+      "streamingBounds": {
+        "center": [
+          11.617027282714844,
+          4.58610463142395,
+          -108.88858032226562
+        ],
+        "radius": 181.53362330537524
+      },
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "yaw": 0
+      },
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "collision": {
+        "shape": "none",
+        "enabled": false
+      }
+    },
+    {
       "id": "elsemesh-object:scanned-debris-0",
       "kind": "asset-instance",
       "label": "dead quiver trunk",
