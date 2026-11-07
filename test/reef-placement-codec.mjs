@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import { decodeReefPlacements, encodeReefPlacements, REEF_PLACEMENT_RECORD_BYTES } from '../../../src/network/ReefPlacements.js';
-import { REEF_TYPE_NAMES, REEF_TYPE_VARIANT_COUNTS } from '../../../src/network/ReefPlacementTypes.js';
+import { decodeReefPlacements, encodeReefPlacements, REEF_PLACEMENT_RECORD_BYTES } from '../ReefPlacements.js';
+import { REEF_TYPE_NAMES, REEF_TYPE_VARIANT_COUNTS } from '../ReefPlacementTypes.js';
 
 assert.deepEqual( REEF_TYPE_NAMES.slice( 0, 5 ), [ 'slab', 'rock', 'boulder', 'lobes', 'brain' ] );
 assert.equal( REEF_TYPE_VARIANT_COUNTS.slab, 2 );

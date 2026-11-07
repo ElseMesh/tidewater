@@ -14,7 +14,7 @@ import { validateWorldSource } from '../../../src/network/WorldSource.js';
 import { Colliders } from '../../../src/world/Colliders.js';
 import { standard } from '../../../src/materials/Materials.js';
 import { decodeVegetationPlacements } from '../VegetationPlacements.js';
-import { decodeReefPlacements } from '../../../src/network/ReefPlacements.js';
+import { decodeReefPlacements } from '../ReefPlacements.js';
 import { decodeFishPropPlacements } from '../FishPropPlacements.js';
 import { decodeTerrainSurfaceAsset } from '../../../src/network/TerrainSurfaceAsset.js';
 import { decodeGrassDensityAsset } from '../../../src/network/GrassDensityAsset.js';

@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { TerrainData } from '../terrain/TerrainData.js';
-import { Reef, REEF_TYPE_NAMES } from '../../../src/world/Reef.js';
-import { decodeReefPlacements, encodeReefPlacements, MAX_REEF_PLACEMENTS, REEF_PLACEMENT_RECORD_BYTES } from '../../../src/network/ReefPlacements.js';
+import { Reef } from '../../../src/world/Reef.js';
+import { REEF_TYPE_NAMES } from '../ReefPlacementTypes.js';
+import { decodeReefPlacements, encodeReefPlacements, MAX_REEF_PLACEMENTS, REEF_PLACEMENT_RECORD_BYTES } from '../ReefPlacements.js';
 import { TIDEWATER_LAYOUT } from '../layout.js';
 
 const terrain = new TerrainData( { seed: 7, worldLayout: TIDEWATER_LAYOUT } );

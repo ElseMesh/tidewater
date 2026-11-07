@@ -43,7 +43,7 @@ Coordinates are finite and bounded to ±10,000 m. `s`, `sx`, `sy`, and `sz` must
 
 ## Stable type IDs
 
-IDs are zero-based and use this exact table. The table is also exported as `REEF_TYPE_NAMES` from the client source.
+IDs are zero-based and use this exact table. The table is exported as `REEF_TYPE_NAMES` from [`ReefPlacementTypes.js`](../../ReefPlacementTypes.js) in the Tidewater world repository.
 
 | ID | Name | ID | Name |
 | ---: | --- | ---: | --- |
@@ -72,4 +72,4 @@ IDs are zero-based and use this exact table. The table is also exported as `REEF
 
 Never reorder or reuse an existing ID. Adding a type changes the table count, which version-1 readers validate exactly; therefore adding a type also requires a new protocol and magic (for example `TRP2`), a new asset kind, and matching manifest feature support. Do not change the interpretation or binary layout of an existing field in place. Incompatible semantic changes follow the same versioning rule.
 
-The encoder and decoder are `encodeReefPlacements(records, seed)` and `decodeReefPlacements(bytes)` in `src/network/ReefPlacements.js`. Their record object fields correspond directly to the record table: `{type, variant, x, y, z, s, sx, sy, sz, q, c1, c2, seed, flex}`.
+The encoder and decoder are `encodeReefPlacements(records, seed)` and `decodeReefPlacements(bytes)` in [`ReefPlacements.js`](../../ReefPlacements.js), owned by the Tidewater world repository. Their record object fields correspond directly to the record table: `{type, variant, x, y, z, s, sx, sy, sz, q, c1, c2, seed, flex}`.

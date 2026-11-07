@@ -24,7 +24,7 @@ import { createVegetationPlacement, buildGrassMask } from '../renderers/webgpu-v
 import { encodeVegetationPlacements } from '../VegetationPlacements.js';
 import { encodeGrassDensityAsset } from '../../../src/network/GrassDensityAsset.js';
 import { Reef } from '../../../src/world/Reef.js';
-import { encodeReefPlacements } from '../../../src/network/ReefPlacements.js';
+import { encodeReefPlacements } from '../ReefPlacements.js';
 import { encodeFishPropPlacements, MAX_FISH_PROP_PLACEMENT_BYTES } from '../FishPropPlacements.js';
 import { BANK } from '../../../src/audio/soundBank.js';
 import { MIX } from '../../../src/audio/SoundScape.js';

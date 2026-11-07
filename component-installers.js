@@ -13,7 +13,7 @@ import { HostedBoat } from '../../src/network/HostedBoat.js';
 import { decodeWorldComponentAsset } from '../../src/network/WorldComponentAssetCodecRegistry.js';
 import { decodeGrassDensityAsset } from '../../src/network/GrassDensityAsset.js';
 import { decodeTerrainSurfaceAsset } from '../../src/network/TerrainSurfaceAsset.js';
-import { decodeReefPlacements, MAX_REEF_PLACEMENTS, REEF_PLACEMENT_HEADER_BYTES, REEF_PLACEMENT_RECORD_BYTES } from '../../src/network/ReefPlacements.js';
+import { decodeReefPlacements, MAX_REEF_PLACEMENTS, REEF_PLACEMENT_HEADER_BYTES, REEF_PLACEMENT_RECORD_BYTES } from './ReefPlacements.js';
 
 const INSTALLERS = new Map( [
 	[ 'elsemesh.procedural-island-vegetation/1', installVegetation ],
