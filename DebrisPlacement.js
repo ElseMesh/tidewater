@@ -4,8 +4,12 @@ import { C, lin, mulc, WOOD, buoy, ropeCoil, bucket, rowboat, oar, woodpile } fr
 import {
 	KIND, stone, minGround, driftLog, branch, plank, coconut, husk, weedMat, seagrassWrack, frond, shell, coralPiece,
 	tyre, bottle, flipFlop, ropeScrap, netScrap, wheelbarrow, plankPile, floatBuoy,
-} from '../../src/world/debris/DebrisShapes.js';
+} from './debris/DebrisShapes.js';
 import { SCAN, SCAN_SIZE } from '../../src/world/debris/ScannedDebris.js';
+
+export function debrisCastsShadow( { kind, parameter, size } ) {
+	return kind === KIND.STONE && size >= 0.2 || kind === KIND.DRIFT && size >= 0.1 || kind === KIND.CORAL && size >= 0.15 && parameter >= 2;
+}
 
 // Where the debris goes. Works on the CPU terrain (TerrainData) after the village, vegetation and
 // rocks exist, and keeps clear of everything the player walks on or through: boardwalks, the

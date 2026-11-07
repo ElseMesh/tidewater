@@ -2,6 +2,7 @@
 // shells over the terrain, rendered headless at 2560x1267 from a few viewpoints.
 //   node worlds/tidewater/test/world-debris-render.mjs [outPrefix=/var/tmp/elsemesh-debris-]
 import '../../../test/headless.mjs';
+import assert from 'node:assert/strict';
 import { readFileSync, mkdtempSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
@@ -130,10 +131,11 @@ try {
 }
 
 const { Debris } = await import( '../../../src/world/Debris.js' );
-const { DebrisPlacer } = await import( '../DebrisPlacement.js' );
+const { DebrisPlacer, debrisCastsShadow } = await import( '../DebrisPlacement.js' );
 const colliders = new Colliders();
 t0 = performance.now();
-const debris = new Debris( { scene: H.scene, terrain: { data, gpu }, village: { materials: villageMats, textures: villageTextures, buildings: [], getFootprints: () => [], path: null }, colliders, worldLayout: TIDEWATER_LAYOUT, createPlacer: placement => new DebrisPlacer( placement ) } );
+const debris = new Debris( { scene: H.scene, terrain: { data, gpu }, village: { materials: villageMats, textures: villageTextures, buildings: [], getFootprints: () => [], path: null }, colliders, worldLayout: TIDEWATER_LAYOUT, createPlacer: placement => new DebrisPlacer( placement ), isShadowCaster: debrisCastsShadow } );
+assert.equal( debris.stats().shadowTriangles, 15368, 'Tidewater world shadow policy preserves the existing caster geometry' );
 console.log( 'debris built', ( performance.now() - t0 ).toFixed( 0 ), 'ms' );
 await debris.scanned.promise;
 console.log( 'stats', JSON.stringify( { ...debris.stats(), timings: undefined } ) );
