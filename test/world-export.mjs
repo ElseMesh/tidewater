@@ -153,6 +153,12 @@ try {
 	assert.ok( boatObject, 'export includes the static moored boat preview' );
 	assert.equal( boatObject.lods?.length, 1, 'moored boat preview has a distant geometry variant' );
 	assert.ok( firstAssets.has( boatObject.lods[ 0 ].assetId ), 'moored boat LOD is part of the portable package' );
+	const naturalDebrisObject = source.objects.find( object => object.id === 'elsemesh-object:island-ground-coconuts' );
+	assert.ok( naturalDebrisObject, 'hosted island preserves the ground coconuts, husks, and fallen palm fronds' );
+	assert.equal( naturalDebrisObject.collision.enabled, false, 'portable natural debris stays visual-only' );
+	const naturalDebrisGLB = parseGLB( firstAssets.get( naturalDebrisObject.assetId ) );
+	assert.deepEqual( naturalDebrisGLB.materials.map( material => material.name ), [ 'Tidewater natural debris coconut', 'Tidewater natural debris husk', 'Tidewater natural debris fallen-frond' ], 'portable coconut, husk, and frond geometry uses separate generic GLB materials' );
+	assert.ok( naturalDebrisGLB.meshes[ 0 ].every( primitive => primitive.indices?.length > 0 && primitive.attributes.COLOR_0 ), 'portable natural debris retains indexed geometry and vertex coloration' );
 	assert.deepEqual( source.rules.requiredFeatures, [ 'elsemesh.static-glb/1', 'elsemesh.static-glb-quaternion/1', 'elsemesh.village-materials/1', 'elsemesh.village-materials/2', 'elsemesh.terrain-surface/1', 'elsemesh.ground-detail-field/1', 'elsemesh.static-vegetation/1', 'elsemesh.static-grass/1', 'elsemesh.static-reef/1', 'elsemesh.static-fish-props/1', 'elsemesh.example-island-wildlife/1', 'elsemesh.humpback-whale/1', 'elsemesh.island-ocean/1', 'elsemesh.downeast-boat/1', 'elsemesh.ambient-audio/1', 'elsemesh.portal-handoff/1', 'elsemesh.portal-preview-static/1' ], 'portable content declares the renderer capabilities it requires' );
 	assert.deepEqual( source.portals, [], 'the island package contains no undeclared external world links' );
 	assert.equal( source.components.length, 10 + source.components.filter( ( component ) => component.type === 'elsemesh.static-reef/1' ).length, 'portable island declares village materials, vegetation, reef tiles, fish props, ground detail, terrain renderer, wildlife, humpback, ocean, boat, and ambient components' );

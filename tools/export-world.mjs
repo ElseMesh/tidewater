@@ -144,6 +144,11 @@ if ( triangleCount( boatLODData ) >= triangleCount( boatBaseData ) * 0.5 ) throw
 if ( JSON.stringify( boatLODData.materials.map( material => material.name ).sort() ) !== JSON.stringify( boatBaseData.materials.map( material => material.name ).sort() ) ) throw new Error( 'Moored boat distance LOD must preserve all material assignments' );
 if ( boatLODData.meshes.flat().some( primitive => ! primitive.attributes.COLOR_0 || ! primitive.attributes.TEXCOORD_0 ) ) throw new Error( 'Moored boat distance LOD must preserve vertex colors and UVs' );
 staticAssets.set( boatLODAssetId, boatLODGLB );
+const naturalDebrisBatches = buildPortableCoconutBatches( generated.naturalDebris, terrain );
+const naturalDebrisGLB = exportBatchGLB( naturalDebrisBatches, 'Tidewater natural debris' );
+const naturalDebrisAssetId = `sha256:${createHash( 'sha256' ).update( naturalDebrisGLB ).digest( 'hex' )}`;
+const naturalDebrisBounds = boundsForGLB( naturalDebrisGLB );
+staticAssets.set( naturalDebrisAssetId, naturalDebrisGLB );
 const debris = generated.debris;
 const vegetationDocument = Buffer.from( encodeVegetationPlacements( generated.vegetation, 7 ) );
 const vegetationAssetId = `sha256:${createHash( 'sha256' ).update( vegetationDocument ).digest( 'hex' )}`;
@@ -300,6 +305,16 @@ const source = {
 		priority: 'portal-preview',
 		streamingBounds: boatBounds,
 		transform: { position: [ TIDEWATER_LAYOUT.boatDock.position.x, TIDEWATER_LAYOUT.boatDock.position.y, TIDEWATER_LAYOUT.boatDock.position.z ], yaw: TIDEWATER_LAYOUT.boatDock.heading },
+		scale: [ 1, 1, 1 ],
+		collision: { shape: 'none', enabled: false },
+	}, {
+		id: 'elsemesh-object:island-ground-coconuts',
+		kind: 'asset-instance',
+		label: 'Coconuts, husks, and fallen palm fronds',
+		assetId: naturalDebrisAssetId,
+		priority: 'visible',
+		streamingBounds: naturalDebrisBounds,
+		transform: { position: [ 0, 0, 0 ], yaw: 0 },
 		scale: [ 1, 1, 1 ],
 		collision: { shape: 'none', enabled: false },
 	}, ...debris.map( ( instance, index ) => {
@@ -460,10 +475,69 @@ function buildIslandProceduralContent( terrainData ) {
 		fishProps: village.B.fishProps?.items || [],
 		vegetationSite: vegetation.site,
 		groundDetailDensity: placer.mask,
+		naturalDebris: B.batches.nature,
 		boatBatches: buildBoatBatches(),
 		debris: placer.scanned,
 		vegetation: vegetation.records,
 	};
+}
+
+function buildPortableCoconutBatches( source, terrain ) {
+	if ( ! source || source.vcount === 0 ) throw new Error( 'Tidewater natural debris produced no geometry' );
+	const kinds = new Map( [ 'coconut', 'husk', 'fallen-frond' ].map( name => [ name, { pos: [], nrm: [], uv: [], tint: [], idx: [], vcount: 0, vertices: new Map() } ] ) );
+	const { pos, nrm, uv, tint, data, idx } = source;
+	const srgbToLinear = value => value <= 0.04045 ? value / 12.92 : Math.pow( ( value + 0.055 ) / 1.055, 2.4 );
+	const smooth = ( a, b, value ) => { const t = Math.max( 0, Math.min( 1, ( value - a ) / ( b - a ) ) ); return t * t * ( 3 - 2 * t ); };
+	const coconutColor = age => {
+		const mix = ( a, b, t ) => a.map( ( value, i ) => value + ( b[ i ] - value ) * t );
+		let color = mix( [ 0.4, 0.42, 0.12 ], [ 0.37, 0.23, 0.11 ], smooth( 0.18, 0.55, age ) );
+		return mix( color, [ 0.36, 0.32, 0.27 ], smooth( 0.7, 0.95, age ) );
+	};
+	const category = ( vertex ) => {
+		const at = vertex * 4, kind = data[ at + 1 ], parameter = data[ at + 2 ];
+		if ( kind === 1 ) return parameter >= 1.5 ? 'husk' : 'coconut';
+		if ( kind === 5 ) return 'fallen-frond';
+		return null;
+	};
+	const albedo = ( name, parameter ) => {
+		if ( name === 'coconut' ) return coconutColor( Math.min( 1, parameter ) );
+		if ( name === 'husk' ) return [ 0.52, 0.37, 0.21 ];
+		let color = [ 0.44, 0.42, 0.17 ];
+		const mix = ( a, b, t ) => a.map( ( value, i ) => value + ( b[ i ] - value ) * t );
+		color = mix( color, [ 0.6, 0.5, 0.3 ], smooth( 0.1, 0.45, parameter ) );
+		return mix( color, [ 0.33, 0.24, 0.15 ], smooth( 0.45, 0.8, parameter ) );
+	};
+	for ( let triangle = 0; triangle < idx.length; triangle += 3 ) {
+		const vertices = [ idx[ triangle ], idx[ triangle + 1 ], idx[ triangle + 2 ] ];
+		const name = category( vertices[ 0 ] );
+		if ( ! name || vertices.some( vertex => category( vertex ) !== name ) ) continue;
+		const target = kinds.get( name );
+		for ( const vertex of vertices ) {
+			let outputIndex = target.vertices.get( vertex );
+			if ( outputIndex !== undefined ) {
+				target.idx.push( outputIndex );
+				continue;
+			}
+			const p = vertex * 3, d = vertex * 4;
+			const parameter = data[ d + 2 ];
+			const base = albedo( name, parameter );
+			const above = pos[ p + 1 ] - terrain.heightAt( pos[ p ], pos[ p + 2 ] );
+			const contact = above > 0.14 ? 1 : 1 - smooth( 0, 0.14, above );
+			const occlusion = 1 - 0.38 * contact * ( 1 - 0.8 * Math.max( 0, nrm[ p + 1 ] ) );
+			target.pos.push( pos[ p ], pos[ p + 1 ], pos[ p + 2 ] );
+			target.nrm.push( nrm[ p ], nrm[ p + 1 ], nrm[ p + 2 ] );
+			target.uv.push( uv[ vertex * 2 ], uv[ vertex * 2 + 1 ] );
+			target.tint.push( ...base.map( ( channel, axis ) => srgbToLinear( channel ) * tint[ p + axis ] * occlusion ) );
+			outputIndex = target.vcount ++;
+			target.vertices.set( vertex, outputIndex );
+			target.idx.push( outputIndex );
+		}
+	}
+	return [ ...kinds ].map( ( [ name, batch ] ) => {
+		if ( batch.vcount === 0 ) throw new Error( `Tidewater natural debris is missing ${name} geometry` );
+		delete batch.vertices;
+		return { name, batch };
+	} );
 }
 
 function boundsForFishProps( records ) {
@@ -548,7 +622,7 @@ function exportBatchGLB( batches, sceneName, villageMaterials = false ) {
 		materials.push( {
 			...( villageMaterials ? { extras: { elsemeshMaterial: { profile: VILLAGE_MATERIAL_PROFILE, role } } } : {} ),
 			name: `${sceneName} ${name}`,
-			pbrMetallicRoughness: { baseColorFactor: [ 1, 1, 1, 1 ], metallicFactor: 0, roughnessFactor: name.includes( 'roofMetal' ) ? 0.72 : name.includes( 'boat-glass' ) ? 0.35 : 0.82 },
+			pbrMetallicRoughness: { baseColorFactor: [ 1, 1, 1, 1 ], metallicFactor: 0, roughnessFactor: name === 'coconut' ? 0.76 : name === 'husk' ? 0.9 : name === 'fallen-frond' ? 0.84 : name.includes( 'roofMetal' ) ? 0.72 : name.includes( 'boat-glass' ) ? 0.35 : 0.82 },
 			doubleSided: true,
 		} );
 		primitives.push( {
