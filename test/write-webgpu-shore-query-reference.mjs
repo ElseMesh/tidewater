@@ -15,9 +15,13 @@ import { BoatDesign } from '../../../src/world/boat/BoatDesign.js';
 import { Vector3 } from '../../../src/engine/math/Vector3.js';
 import { WakeSim } from '../../../src/ocean/WakeSim.js';
 import { tidewaterPierColliders } from './tidewater-pier-colliders.js';
+import { assertPreSplitWaterSource } from './pre-split-water-source-parity.mjs';
 
 const output = process.env.ELSEMESH_SHORE_QUERY_REFERENCE;
 if ( ! output ) throw new Error( 'Set ELSEMESH_SHORE_QUERY_REFERENCE to an external build-tree JSON path' );
+
+await assertPreSplitWaterSource();
+
 const source = JSON.parse( await readFile( new URL( '../world-source.json', import.meta.url ), 'utf8' ) );
 const terrainComponent = source.components.find( component => component.type === 'elsemesh.terrain-surface/1' );
 assert( terrainComponent, 'Tidewater package contains its authored terrain surface' );
@@ -38,8 +42,10 @@ let fftOnlyQuery = null;
 
 const berth = source.objects.find( object => object.id === 'elsemesh-object:moored-lobster-boat' )?.transform.position;
 assert( Array.isArray( berth ) && berth.length === 3, 'Tidewater package has its authored boat berth' );
+assert.deepEqual( berth, [ 64.5, 0, 36.5 ], 'Tidewater boat uses the pre-split dock position' );
 const heading = source.objects.find( object => object.id === 'elsemesh-object:moored-lobster-boat' )?.transform.yaw;
 assert( Number.isFinite( heading ), 'Tidewater package has its authored boat heading' );
+assert.equal( heading, 0, 'Tidewater boat uses the pre-split dock heading' );
 const points = [
 	[ berth[ 0 ], berth[ 2 ] ], [ berth[ 0 ] + 4, berth[ 2 ] ], [ berth[ 0 ] - 4, berth[ 2 ] ],
 	[ berth[ 0 ], berth[ 2 ] + 8 ], [ berth[ 0 ], berth[ 2 ] - 8 ],

@@ -4,6 +4,7 @@ import { accessSync, constants, createReadStream, existsSync, mkdtempSync, readF
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createServer } from 'vite';
+import { assertPreSplitWaterSource } from './pre-split-water-source-parity.mjs';
 
 const testDirectory = dirname( fileURLToPath( import.meta.url ) );
 const engineRoot = resolve( testDirectory, '../../..' );
@@ -30,6 +31,7 @@ async function stopBrowser( browser ) {
 }
 
 if ( reuseReference ) {
+	await assertPreSplitWaterSource();
 	assert( existsSync( referencePath ), `set ELSEMESH_KEEP_SHORE_QUERY_REFERENCE=1 on the writer run to preserve ${referencePath}` );
 } else {
 	const writer = spawnSync( process.execPath, [ '--preserve-symlinks', join( testDirectory, 'write-webgpu-shore-query-reference.mjs' ) ], {

@@ -26,10 +26,12 @@ creation and cleanup. Neither check renders pixels or measures FPS.
 packaged terrain and shoreline field, then records two 18-second underway boat
 traces. The first uses FFT and shoreline inputs without interactive wake or
 collision handling. The second includes WakeSim and the authored Tidewater pier
-colliders. The comparison checks boat motion and fixed-position water height
-and normals; its headless WebGL harness uses synchronous pixel readback because
-Chromium's async readback stopped completing after its first sample. It does
-not measure live readback timing, rendered pixels, or FPS.
+colliders. Before generating the WebGPU reference it pins the wake solver,
+water query, boat design, boat physics, berth, and pier inputs to pre-split
+ElseMesh `23c30bf`. The comparison checks boat motion and fixed-position water
+height and normals. Its headless WebGL harness uses synchronous pixel readback
+because Chromium's async readback stopped completing after its first sample.
+It does not measure live readback timing, rendered pixels, or FPS.
 
 The optional Blender authoring checks use the Tidewater package as their source
 fixture:
