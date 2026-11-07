@@ -136,6 +136,7 @@ export class Guide {
 		const style = h( 'style' );
 		style.textContent = CSS;
 		document.head.append( style );
+		this.style = style;
 
 		this.seen = this._load();
 		this.el = h( 'div', 'gm-guide em-interactive', `<div class="gm-guide-card em-glass" role="dialog" aria-modal="true" aria-live="polite">
@@ -296,7 +297,9 @@ export class Guide {
 		const ui = this.ui, g = this.game, app = g.app, p = app.player;
 
 		// the intro, once the start overlay is gone
-		if ( this._wait >= 0 && ! ui._start ) {
+		const startDismissed = ui._startDismissed === undefined ? ! ui._start : ui._startDismissed;
+		if ( ! startDismissed ) return;
+		if ( this._wait >= 0 ) {
 
 			this._wait -= dt;
 			if ( this._wait < 0 ) this.show( 0 );
@@ -373,6 +376,17 @@ export class Guide {
 			this._coachT = 7.5;
 
 		}
+
+	}
+
+	dispose() {
+
+		window.removeEventListener( 'keydown', this._onKey, true );
+		window.removeEventListener( 'mousedown', this._onDown, true );
+		this.minimap?.highlight( [] );
+		this.el.remove();
+		this.coach.remove();
+		this.style.remove();
 
 	}
 

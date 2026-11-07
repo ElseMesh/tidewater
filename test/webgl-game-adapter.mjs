@@ -37,8 +37,8 @@ const state = new GameState( storage, 'elsemesh:local', fishCatalog );
 state.addFish( 'grunt', 0.8 );
 const coinCues = [];
 let inRange = true, shopInRange = false;
-const vendor = { name: 'Joe · Fish buyer', kind: 'buyer', inRange: () => inRange };
-const shopVendor = { name: 'Marta · Chandlery', kind: 'shop', inRange: () => shopInRange };
+const vendor = { name: 'Joe · Fish buyer', kind: 'buyer', position: { x: 3, y: 1, z: 4 }, inRange: () => inRange };
+const shopVendor = { name: 'Marta · Chandlery', kind: 'shop', position: { x: 8, y: 1, z: 9 }, inRange: () => shopInRange };
 const ui = {
 	root: { dataset: {} },
 	promptKey: { textContent: '' },
@@ -54,11 +54,13 @@ const hud = {
 	toggleInventory( force ) { this.invOpen = force ?? ! this.invOpen; if ( this.invOpen ) this.closeStand(); },
 	update( status ) { this.lastStatus = status; },
 };
+const guideFrames = [], guide = { update( dt ) { guideFrames.push( dt ); } };
 const adapter = Object.create( WebGLGameAdapter.prototype );
 const webglCamera = { backend: 'webgl' }, webglBoat = { backend: 'webgl' }, mapFrames = [];
 Object.assign( adapter, {
 	state, vendor, vendors: [ vendor, shopVendor ], activeVendor: vendor, ui, hud, nearVendor: true,
 	camera: webglCamera, boatController: webglBoat,
+	app: { player: null, boatCtl: null }, guide,
 	minimap: { update( dt, view ) { mapFrames.push( { dt, view } ); } },
 	audio: { coin: () => coinCues.push( 'coin' ) },
 } );
@@ -81,6 +83,11 @@ assert.equal( hud.lastStatus.fight, null, 'the adapter uses the shared HUD updat
 assert.equal( mapFrames.length, 1, 'the WebGL game loop advances the engine navigator' );
 assert.equal( mapFrames[ 0 ].view.camera, webglCamera, 'the navigator receives the WebGL camera' );
 assert.equal( mapFrames[ 0 ].view.boat, webglBoat, 'the navigator receives the WebGL boat' );
+assert.deepEqual( guideFrames, [ 1 / 60 ], 'WebGL advances the same first-play guide as WebGPU' );
+assert.equal( adapter.app.player.position.x, 0, 'the guide receives the live WebGL player context' );
+assert.equal( adapter.app.boatCtl, webglBoat, 'the guide receives the active WebGL boat controller' );
+assert.deepEqual( adapter.vendorPosition( 'joe' ), vendor.position, 'the shared guide can locate Joe in WebGL' );
+assert.deepEqual( adapter.vendorPosition( 'marta' ), shopVendor.position, 'the shared guide can locate Marta in WebGL' );
 
 shopInRange = true;
 adapter.update( 1 / 60, { position: { x: 0, y: 0, z: 0 }, mode: 'deck' } );
@@ -116,7 +123,7 @@ const pressed = new Set( [ 'KeyR' ] );
 const input = { enabled: true, mouseDown: false, rightDown: false, hit: code => pressed.delete( code ) };
 const gameplay = Object.create( WebGLGameAdapter.prototype );
 Object.assign( gameplay, {
-	runtime, state: runtime.state, rod, rodPresentation: null, fishingAreas: experience.behaviors[ 'elsemesh.fishing-game/1' ].fishingAreas, vendor: { name: 'Joe · Fish buyer', inRange: () => false }, vendors: [ { name: 'Joe · Fish buyer', inRange: () => false } ],
+	app: { player: null, boatCtl: null }, runtime, state: runtime.state, rod, rodPresentation: null, fishingAreas: experience.behaviors[ 'elsemesh.fishing-game/1' ].fishingAreas, vendor: { name: 'Joe · Fish buyer', inRange: () => false }, vendors: [ { name: 'Joe · Fish buyer', inRange: () => false } ],
 	ui: { promptKey: { textContent: '' }, promptText: { textContent: '' }, prompt: { classList: { toggle() {} } }, toast( message ) { this.lastToast = message; } },
 	hud: { standOpen: false, invOpen: false, update() {} }, fishingInput: new FishingInputController(),
 } );
@@ -157,6 +164,7 @@ const parityRod = {
 };
 const parityAdapter = Object.create( WebGLGameAdapter.prototype );
 Object.assign( parityAdapter, {
+	app: { player: null, boatCtl: null },
 	runtime: { stepFight: () => ( { state: 'caught', fight: { species: 'grunt', kg: 0.8 }, catchInfo: { species: 'grunt', kg: 0.8, cm: 36, value: 6, kept: true, newSpecies: true, record: false, prevBestKg: 0, prevBestCm: 0 } } ) },
 	rod: parityRod, audio: { fishSplash: ( _, strength ) => parityEvents.push( [ 'splash', strength ] ), fishFlop: () => parityEvents.push( [ 'flop' ] ), lineSnap: () => parityEvents.push( [ 'snap' ] ) },
 	hud: { catchOpen: false, showCatch( info, ms ) { this.catchOpen = true; this.info = info; this.ms = ms; }, hideCatch() { this.catchOpen = false; } },

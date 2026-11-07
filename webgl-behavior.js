@@ -30,19 +30,19 @@ export const webglBehaviorImplementations = Object.freeze( {
 			...( builtIn ? {} : { worldId: fallback.connector.worldId } ),
 			THREE, scene: fallback.scene, camera: fallback.camera, query: fallback.waterQuery, extensions: fallback.activeWorldExtensions,
 			terrain, boatController: fallback.boat?.controller || null, boatRoot: fallback.boat?.group || null, audio: fallback.app.audio,
-			engineRoot: fallback.app.hud?.root || null,
+			engineRoot: fallback.app.hud?.root || null, engineUI: fallback.app.hud || null,
 		} );
 		if ( Number.isInteger( terrain?.res ) && Number.isFinite( terrain.texel ) && Number.isFinite( terrain.origin ) ) {
 
 			const game = fallback.gameAdapter;
 			const vendorByID = { joe: fishStand.vendor, marta: chandlery.vendor };
-			game.minimap = new Minimap( game.ui.hud, {
+			game.setMinimap( new Minimap( game.ui.hud, {
 				terrain,
 				fishingAreas: game.fishingAreas,
 				state: game.state,
 				vendorPosition: id => vendorByID[ id ]?.position || null,
 				habitatAtPoint: ( x, z, depth ) => game._habitatAtPoint( x, z, depth ),
-			}, { camera: fallback.camera, player: fallback.player, boat: fallback.boat?.controller || null } );
+			}, { camera: fallback.camera, player: fallback.player, boat: fallback.boat?.controller || null } ) );
 
 		}
 		if ( builtIn ) {

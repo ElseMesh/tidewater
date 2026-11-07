@@ -4,6 +4,7 @@ import { FishingRod } from '../game/FishingRod.js';
 import { fishingHabitatAt } from '../game/Bites.js';
 import { WebGLFishingRodPresentation } from './WebGLFishingRodPresentation.js';
 import { FishingInputController } from '../FishingInputController.js';
+import { Guide } from '../game/Guide.js';
 
 const CATCH_CARD_MS = 9000;
 
@@ -53,11 +54,13 @@ export function createGameUI( engineRoot = null ) {
 // presents the shared rod simulation with Three.js while keeping world/input/render work local.
 export class WebGLGameAdapter {
 
-	constructor( vendor, { vendors = [ vendor ], experience, worldId = 'elsemesh:local', extensions = null, THREE, scene, camera, query, terrain, boatController = null, boatRoot = null, audio = null, engineRoot = null } = {} ) {
+	constructor( vendor, { vendors = [ vendor ], experience, worldId = 'elsemesh:local', extensions = null, THREE, scene, camera, query, terrain, boatController = null, boatRoot = null, audio = null, engineRoot = null, engineUI = null } = {} ) {
 
 		this.fishingAreas = worldBehaviorData( experience, 'elsemesh.fishing-game/1' ).fishingAreas;
 		this.camera = camera;
 		this.boatController = boatController;
+		this.app = { player: null, boatCtl: boatController };
+		this.engineUI = engineUI;
 		this.minimap = null;
 		this.runtime = createWorldBehaviorRuntime( experience, 'elsemesh.fishing-game/1', {
 			worldId, extensions, controller: boatController, terrain,
@@ -79,6 +82,9 @@ export class WebGLGameAdapter {
 		this.rodPresentation = this.rod && THREE && scene ? new WebGLFishingRodPresentation( THREE, scene, this.rod ) : null;
 		this.deckFloodlights = createDeckFloodlights( THREE, boatRoot );
 		this.fishingInput = new FishingInputController();
+		this.guide = engineUI ? new Guide( engineUI, this ) : null;
+		this._onReplayGuide = this.guide ? () => this.guide.replay() : null;
+		if ( this._onReplayGuide ) engineUI.onReplayGuide = this._onReplayGuide;
 		if ( this.rod ) {
 			this.rod.onLand = where => this._onBobberLanded( where );
 		}
@@ -112,6 +118,23 @@ export class WebGLGameAdapter {
 			return true;
 		}
 		return false;
+
+	}
+
+	get bite() { return this.runtime?.bite || null; }
+	get fight() { return this.runtime?.fight || null; }
+
+	vendorPosition( id ) {
+
+		const kind = id === 'joe' ? 'buyer' : id === 'marta' ? 'shop' : null;
+		return kind ? this.vendors.find( vendor => vendor.kind === kind )?.position || null : null;
+
+	}
+
+	setMinimap( minimap ) {
+
+		this.minimap = minimap;
+		if ( this.guide ) this.guide.minimap = minimap;
 
 	}
 
@@ -165,6 +188,11 @@ export class WebGLGameAdapter {
 		}
 		this.hud.update( { ...boatGauges, fight: this.runtime?.fight || null, casting: rod?.state === 'windup', power: rod?.power || 0, bite: this.runtime?.bite?.phase === 'take', aiming: rod?.equipped || this.nearVendor && ! this.hud.standOpen } );
 		this.minimap?.update( dt, { camera: this.camera, player, boat: this.boatController } );
+		if ( this.guide ) {
+			this.app.player = player;
+			this.app.boatCtl = this.boatController;
+			this.guide.update( dt );
+		}
 		if ( dt < 0 ) throw new Error( 'WebGL game adapter received a negative frame delta' );
 
 	}
@@ -284,6 +312,8 @@ export class WebGLGameAdapter {
 	dispose() {
 
 		this._endLanding();
+		this.guide?.dispose();
+		if ( this.engineUI?.onReplayGuide === this._onReplayGuide ) this.engineUI.onReplayGuide = null;
 		this.rodPresentation?.dispose();
 		for ( const light of this.deckFloodlights || [] ) { light.removeFromParent(); light.target.removeFromParent(); }
 		this.ui.dispose();
