@@ -4,6 +4,7 @@ import { WorldConnector } from '../../../src/network/WorldConnector.js';
 import { createWorldBehaviorExtensions, createWorldBehaviorRuntime, dispatchWorldBehaviorHooks } from '../../../src/network/WorldBehaviorRegistry.js';
 import { GameState } from '../GameState.js';
 import { FishingRod } from '../game/FishingRod.js';
+import { FISH_STAND_VENDOR } from '../game/FishStandContent.js';
 import { Game } from '../game/Game.js';
 import { FishingInputController } from '../FishingInputController.js';
 import { WebGLGameAdapter } from '../webgl/WebGLGameAdapter.js';
@@ -27,12 +28,24 @@ async function createScenario( backend, { experience, assets, worldId, fishCatal
 	const state = new GameState( storage, worldId, fishCatalog );
 	const runtime = createWorldBehaviorRuntime( experience, behaviorId, { state, load: false, worldId, extensions } );
 	await runtime.extensionReady;
+	const fishBehavior = experience.behaviors[ behaviorId ];
+	const stand = fishBehavior.fishStand;
+	const terrain = { heightAt: () => - 8 };
+	const [ standX, standZ ] = stand.position;
+	const groundY = terrain.heightAt( standX, standZ );
+	const [ localX, localY, localZ ] = FISH_STAND_VENDOR.localPosition;
+	const c = Math.cos( stand.yaw ), s = Math.sin( stand.yaw );
 	const vendor = {
-		name: 'Joe · Fish buyer', kind: 'buyer', position: { x: 0, y: 2, z: 0 }, radius: 3,
-		inRange: player => Math.hypot( player.x - 0, player.z - 0 ) < 3 && Math.abs( player.y - 2 ) < 2.5,
+		name: FISH_STAND_VENDOR.name, kind: FISH_STAND_VENDOR.kind,
+		position: {
+			x: standX + localX * c + localZ * s,
+			y: groundY + localY,
+			z: standZ - localX * s + localZ * c,
+		},
+		radius: stand.interactionRadius ?? FISH_STAND_VENDOR.radius,
+		inRange: player => Math.hypot( player.x - vendor.position.x, player.z - vendor.position.z ) < vendor.radius && Math.abs( player.y - vendor.position.y ) < 2.5,
 		update() {},
 	};
-	const terrain = { heightAt: () => - 8 };
 	const waterQuery = new SyntheticWaterQuery( terrain );
 	const camera = new PerspectiveCamera( 62, 1, 0.1, 500 );
 	camera.position.set( 0, 2, 0 );
@@ -55,7 +68,6 @@ async function createScenario( backend, { experience, assets, worldId, fishCatal
 		pending.push( promise );
 		return promise;
 	};
-	const fishBehavior = experience.behaviors[ behaviorId ];
 	let game, app, fallback, landing = null, landingReady = Promise.resolve( null ), gameFrames = 0;
 	if ( backend === 'webgpu' ) {
 		app = Object.assign( Object.create( App.prototype ), {
@@ -172,6 +184,7 @@ async function createScenario( backend, { experience, assets, worldId, fishCatal
 			await this.flush();
 		},
 		async sellAtVendor() {
+			player.position.set( vendor.position.x, vendor.position.y + 1.7, vendor.position.z );
 			invariant( vendor.inRange( player.position ), `${backend} test player is outside the buyer's interaction range` );
 			this.frame();
 			await this.flush();
