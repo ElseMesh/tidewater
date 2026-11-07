@@ -27,6 +27,11 @@ async function createScenario( backend, { experience, assets, worldId, fishCatal
 	const state = new GameState( storage, worldId, fishCatalog );
 	const runtime = createWorldBehaviorRuntime( experience, behaviorId, { state, load: false, worldId, extensions } );
 	await runtime.extensionReady;
+	const vendor = {
+		name: 'Joe · Fish buyer', kind: 'buyer', position: { x: 0, y: 2, z: 0 }, radius: 3,
+		inRange: player => Math.hypot( player.x - 0, player.z - 0 ) < 3 && Math.abs( player.y - 2 ) < 2.5,
+		update() {},
+	};
 	const terrain = { heightAt: () => - 8 };
 	const waterQuery = new SyntheticWaterQuery( terrain );
 	const camera = new PerspectiveCamera( 62, 1, 0.1, 500 );
@@ -63,9 +68,14 @@ async function createScenario( backend, { experience, assets, worldId, fishCatal
 		} );
 		game = Object.assign( Object.create( Game.prototype ), {
 			app, runtime, state, fishCatalog, fishingAreas: fishBehavior.fishingAreas, active: true,
-			rod, fishingInput, hud: { invOpen: false, standOpen: false, update() {}, showCatch() {}, closeStand() {} }, landing: null,
+			rod, fishingInput, hud: {
+				invOpen: false, standOpen: false, catchOpen: false, vendor: null, update() {},
+				showCatch() { this.catchOpen = true; }, hideCatch() { this.catchOpen = false; },
+				openStand( target ) { this.vendor = target; this.standOpen = true; },
+				closeStand() { this.standOpen = false; },
+			}, landing: null,
 			stand: { setColliders() {}, setActive() {} }, chandlery: { setColliders() {}, setActive() {} },
-			display: { mesh: { visible: true }, shown: false, show() { this.shown = true; }, hide() { this.shown = false; } }, vendors: [],
+			display: { mesh: { visible: true }, shown: false, show() { this.shown = true; }, hide() { this.shown = false; } }, vendors: [ vendor ],
 			boatGameplay: { step: () => ( { fuel: null, sonar: null } ), setTerrain() {}, setController() {} }, toast: ( ...args ) => toasts.push( args ),
 		} );
 		app.game = game;
@@ -86,10 +96,15 @@ async function createScenario( backend, { experience, assets, worldId, fishCatal
 			root: { dataset: {} }, promptKey: { textContent: '' }, promptText: { textContent: '' },
 			prompt: { classList: { toggle() {} } }, toast() {},
 		};
-		const hud = { standOpen: false, invOpen: false, catchOpen: false, update() {}, showCatch() {}, closeStand() {}, hideCatch() {} };
+		const hud = {
+			standOpen: false, invOpen: false, catchOpen: false, vendor: null, update() {},
+			showCatch() { this.catchOpen = true; }, hideCatch() { this.catchOpen = false; },
+			openStand( target ) { this.vendor = target; this.standOpen = true; },
+			closeStand() { this.standOpen = false; },
+		};
 		game = Object.assign( Object.create( WebGLGameAdapter.prototype ), {
 			runtime, state, fishCatalog, fishingAreas: fishBehavior.fishingAreas, rod, fishingInput, hud, ui, audio,
-			landing: null, vendor: { name: 'Joe · Fish buyer' }, vendors: [],
+			landing: null, vendor, vendors: [ vendor ], activeVendor: null,
 			boatGameplay: { step: () => ( { fuel: null, sonar: null } ) }, toast: ( ...args ) => toasts.push( args ),
 		} );
 		rod.onLand = where => { landing = where; landingReady = game._onBobberLanded( where ); };
@@ -108,7 +123,7 @@ async function createScenario( backend, { experience, assets, worldId, fishCatal
 		};
 	}
 	return {
-		game, runtime, rod, player, input, pressed, audio, toasts,
+		game, runtime, rod, player, input, pressed, audio, toasts, vendor,
 		landing: () => landing,
 		landingReady: () => landingReady,
 		gameFrames: () => backend === 'webgpu' ? gameFrames : null,
@@ -144,6 +159,36 @@ async function createScenario( backend, { experience, assets, worldId, fishCatal
 		},
 		async flush() {
 			while ( pending.length || pendingActions.length ) await Promise.all( [ ...pending.splice( 0 ), ...pendingActions.splice( 0 ) ] );
+		},
+		async pressKey( code ) {
+			if ( backend === 'webgpu' ) {
+				pressed.add( code );
+				this.frame();
+			} else {
+				const handled = dispatchWorldBehaviorHooks( experience, 'onWebGLKeyDown', { active: true, fallback, event: { code } } );
+				invariant( handled, `WebGL ${code} was not routed through the registered world input hook` );
+				this.frame();
+			}
+			await this.flush();
+		},
+		async sellAtVendor() {
+			invariant( vendor.inRange( player.position ), `${backend} test player is outside the buyer's interaction range` );
+			this.frame();
+			await this.flush();
+			if ( game.hud.catchOpen ) {
+				await this.pressKey( 'KeyE' );
+				invariant( ! game.hud.catchOpen, `${backend} E input did not dismiss the catch card before vendor interaction` );
+			}
+			this.frame();
+			await this.flush();
+			await this.pressKey( 'KeyE' );
+			invariant( game.hud.standOpen, `${backend} E input did not open the nearby fish-buyer panel` );
+			invariant( game.hud.vendor === vendor, `${backend} opened a panel for the wrong vendor` );
+			const sale = game.sellAll();
+			invariant( sale.count === 1 && state.inventory.length === 0 && state.money === sale.total, `${backend} vendor sale did not credit the catch` );
+			await this.pressKey( 'KeyE' );
+			invariant( ! game.hud.standOpen, `${backend} E input did not close the fish-buyer panel` );
+			return sale;
 		},
 	};
 }
@@ -195,7 +240,7 @@ async function playThroughSale( backend, context ) {
 		audio: structuredClone( scenario.audio.events ),
 		toasts: structuredClone( scenario.toasts ),
 	};
-	const sale = scenario.game.sellAll();
+	const sale = await scenario.sellAtVendor();
 	invariant( sale.count === 1 && scenario.runtime.state.inventory.length === 0 && scenario.runtime.state.money === sale.total, `${backend} sale did not credit money and empty inventory` );
 	const afterSale = structuredClone( { inventory: scenario.runtime.state.inventory, money: scenario.runtime.state.money, audio: scenario.audio.events, toasts: scenario.toasts } );
 	scenario.depart();
@@ -232,7 +277,7 @@ try {
 		Math.random = previousRandom;
 	}
 	invariant( JSON.stringify( webgl ) === JSON.stringify( webgpu ), 'Live signed Worker gameplay differs between WebGPU and WebGL game paths' );
-	result.textContent = `PASS signed Tidewater module through gateway and dedicated Workers via registered WebGPU/WebGL frame hooks; WebGPU App activation, gameplay frames, departure, and re-entry: ${JSON.stringify( { worldId, assetId: reference.assetId, biteFrames: webgpu.trace.bite.length, fightFrames: webgpu.trace.fight.length - 1, sale: webgpu.sale } )}`;
+	result.textContent = `PASS signed Tidewater module through gateway and dedicated Workers; WebGPU/WebGL E input opened and closed the buyer panel and sold the catch; WebGPU App activation, gameplay frames, departure, and re-entry: ${JSON.stringify( { worldId, assetId: reference.assetId, biteFrames: webgpu.trace.bite.length, fightFrames: webgpu.trace.fight.length - 1, sale: webgpu.sale } )}`;
 	result.dataset.status = 'passed';
 } catch ( error ) {
 	result.textContent = `FAIL ${error.stack || error}`;
