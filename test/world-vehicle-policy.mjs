@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
 import { BoatModel } from '../../../src/world/BoatModel.js';
-import { DOWNEAST_BOAT_TRIANGLES } from '../../../src/network/WorldRules.js';
+import { worldComponentDescriptor } from '../../../src/network/WorldComponentRegistry.js';
+import '../register-components.js';
 
 const model = new BoatModel();
 try {
-	assert.equal( model.triangleCount, DOWNEAST_BOAT_TRIANGLES, 'boat complexity contract matches the bundled Downeast model' );
+	const vehicle = worldComponentDescriptor( 'elsemesh.downeast-boat/1' );
+	assert.equal( vehicle?.vehicle, true, 'Tidewater registers its boat as a vehicle component' );
+	assert.equal( vehicle.complexityTriangles, model.triangleCount, 'Tidewater owns a complexity budget matching its bundled boat model' );
 } finally {
 	model.dispose();
 }
