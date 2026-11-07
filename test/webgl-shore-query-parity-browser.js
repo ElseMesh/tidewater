@@ -7,9 +7,10 @@ import { BoatDesign } from '../../../src/world/boat/BoatDesign.js';
 import { Vector3 } from '../../../src/engine/math/Vector3.js';
 import { createWebGLShoreSurfaceOffset } from '../../../src/fallback/WebGLShoreSurface.js';
 import { WebGLWakeSim } from '../../../src/ocean/WebGLWakeSim.js';
+import { tidewaterPierColliders } from './tidewater-pier-colliders.js';
 
 const result = document.querySelector( '#result' );
-const WAKE_TRACE_SECONDS = 3;
+const WAKE_TRACE_SECONDS = 18;
 let renderer, query, wakeQuery, wake;
 try {
 	const referenceResponse = await fetch( './webgpu-shore-query-reference.json', { cache: 'no-store' } );
@@ -172,14 +173,15 @@ try {
 	fftOnlyHeightError /= reference.boatTrace.length;
 	fftOnlyNormalError /= reference.boatTrace.length * 2;
 	const wakeQueryInstance = wakeQuery = new WebGLWaterQuery( THREE, renderer, terrain, reference.seaLevel );
+	const wakeColliders = tidewaterPierColliders( terrain );
 	const wakeBoat = new BoatController( {
 		design: new BoatDesign(), query: wakeQueryInstance, terrain,
-		colliders: { resolveCapsule: () => false }, initialPosition: new Vector3( ...berthObject.transform.position ), initialHeading: berthObject.transform.yaw,
+		colliders: wakeColliders, initialPosition: new Vector3( ...berthObject.transform.position ), initialHeading: berthObject.transform.yaw,
 	} );
 	wakeBoat.driven = true;
 	wakeBoat.moored = false;
 	wakeQueryInstance.setSurfaceOffsetSampler( 'shore', createWebGLShoreSurfaceOffset( { terrain, seaLevel: reference.seaLevel, field: maps.shoreField } ) );
-	wake = new WebGLWakeSim( THREE, renderer, { terrain, boat: wakeBoat, colliders: { cylinders: [] }, seaLevel: reference.seaLevel } );
+	wake = new WebGLWakeSim( THREE, renderer, { terrain, boat: wakeBoat, colliders: wakeColliders, seaLevel: reference.seaLevel } );
 	wakeQueryInstance.setWakeReader( wake.readerUniforms );
 	wakeQueryInstance.latency = 1 / 60;
 	const wakeBoatSlot = wakeQueryInstance.allocate( 'wake-enabled-boat-point', 1 );

@@ -14,6 +14,7 @@ import { BoatController } from '../../../src/player/BoatController.js';
 import { BoatDesign } from '../../../src/world/boat/BoatDesign.js';
 import { Vector3 } from '../../../src/engine/math/Vector3.js';
 import { WakeSim } from '../../../src/ocean/WakeSim.js';
+import { tidewaterPierColliders } from './tidewater-pier-colliders.js';
 
 const output = process.env.ELSEMESH_SHORE_QUERY_REFERENCE;
 if ( ! output ) throw new Error( 'Set ELSEMESH_SHORE_QUERY_REFERENCE to an external build-tree JSON path' );
@@ -114,7 +115,7 @@ async function traceBoat() {
 
 }
 
-const WAKE_TRACE_SECONDS = 3;
+const WAKE_TRACE_SECONDS = 18;
 
 async function traceBoatWithWake() {
 
@@ -126,14 +127,15 @@ async function traceBoatWithWake() {
 	wakeSurface.shore = surface.shore;
 	const wakeQuery = new WaterQuery( null, wakeSurface );
 	wakeQuery.latency = dt;
+	const colliders = tidewaterPierColliders( terrain );
 	const design = new BoatDesign();
 	const boat = new BoatController( {
-		design, query: wakeQuery, terrain, colliders: { resolveCapsule: () => false },
+		design, query: wakeQuery, terrain, colliders,
 		initialPosition: new Vector3( ...berth ), initialHeading: heading,
 	} );
 	boat.driven = true;
 	boat.moored = false;
-	const wake = new WakeSim( null, { terrainGPU, boat } );
+	const wake = new WakeSim( null, { terrainGPU, boat, colliders } );
 	wakeSurface.wake = wake;
 	GPU.beginFrame();
 	G.time.value = 0;
@@ -270,7 +272,7 @@ fn main( @builtin( global_invocation_id ) gid: vec3u ) {
 	const outputPath = resolve( output );
 	await mkdir( dirname( outputPath ), { recursive: true } );
 	await writeFile( outputPath, JSON.stringify( reference ) );
-	console.log( `wrote ${points.length} Tidewater WebGPU shoreline query samples, an 18-second baseline boat trace, and a ${WAKE_TRACE_SECONDS}-second wake-enabled boat trace at ${time.toFixed( 2 )} s` );
+	console.log( `wrote ${points.length} Tidewater WebGPU shoreline query samples and 18-second boat traces with and without WakeSim against Tidewater pier collisions at ${time.toFixed( 2 )} s` );
 } finally {
 	surface.shore.dispose?.();
 	terrainGPU.dispose();
