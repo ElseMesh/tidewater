@@ -74,7 +74,7 @@ console.log( 'terrain', ( performance.now() - t0 ).toFixed( 0 ), 'ms' );
 let terrain = null;
 try {
 
-	const { Terrain } = await import( '../src/world/Terrain.js' );
+	const { Terrain } = await import( '../../../src/world/Terrain.js' );
 	terrain = new Terrain( { scene: H.scene, terrainData: data, terrainGPU: gpu } );
 	H.before.push( ( cam ) => terrain.update( cam ) );
 	console.log( 'using real Terrain' );
@@ -114,8 +114,8 @@ H.scene.add( sea );
 let villageMats = null, villageTextures = null;
 try {
 
-	const { createVillageMaterials } = await import( '../src/world/village/VillageMaterials.js' );
-	const { VillageTextures } = await import( '../src/world/village/TextureBaker.js' );
+	const { createVillageMaterials } = await import( '../../../src/world/village/VillageMaterials.js' );
+	const { VillageTextures } = await import( '../../../src/world/village/TextureBaker.js' );
 	villageTextures = new VillageTextures();
 	villageMats = createVillageMaterials( villageTextures );
 	console.log( 'using real village materials' );
@@ -129,10 +129,11 @@ try {
 
 }
 
-const { Debris } = await import( '../src/world/Debris.js' );
+const { Debris } = await import( '../../../src/world/Debris.js' );
+const { DebrisPlacer } = await import( '../DebrisPlacement.js' );
 const colliders = new Colliders();
 t0 = performance.now();
-const debris = new Debris( { scene: H.scene, terrain: { data, gpu }, village: { materials: villageMats, textures: villageTextures, buildings: [], getFootprints: () => [], path: null }, colliders, worldLayout: TIDEWATER_LAYOUT } );
+const debris = new Debris( { scene: H.scene, terrain: { data, gpu }, village: { materials: villageMats, textures: villageTextures, buildings: [], getFootprints: () => [], path: null }, colliders, worldLayout: TIDEWATER_LAYOUT, createPlacer: placement => new DebrisPlacer( placement ) } );
 console.log( 'debris built', ( performance.now() - t0 ).toFixed( 0 ), 'ms' );
 await debris.scanned.promise;
 console.log( 'stats', JSON.stringify( { ...debris.stats(), timings: undefined } ) );

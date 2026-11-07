@@ -18,7 +18,7 @@ import { Colliders } from '../../../src/world/Colliders.js';
 import { Builder, Batch } from '../../../src/world/village/GeoBuilder.js';
 import { VILLAGE_MATERIAL_PROFILE, VILLAGE_MATERIAL_ROLES } from '../VillageMaterialProfile.js';
 import { InstancedProps } from '../../../src/world/Props.js';
-import { DebrisPlacer } from '../../../src/world/debris/DebrisPlacement.js';
+import { DebrisPlacer } from '../DebrisPlacement.js';
 import { SCAN_ASSETS } from '../../../src/world/debris/ScannedDebris.js';
 import { createVegetationPlacement, buildGrassMask } from '../renderers/webgpu-vegetation/Scatter.js';
 import { encodeVegetationPlacements } from '../VegetationPlacements.js';

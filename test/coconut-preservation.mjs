@@ -9,7 +9,7 @@ import { Village } from '../../../src/world/Village.js';
 import { Colliders } from '../../../src/world/Colliders.js';
 import { Builder } from '../../../src/world/village/GeoBuilder.js';
 import { InstancedProps } from '../../../src/world/Props.js';
-import { DebrisPlacer } from '../../../src/world/debris/DebrisPlacement.js';
+import { DebrisPlacer } from '../DebrisPlacement.js';
 import * as fishPresentation from '../FishPresentation.js';
 
 const terrain = new TerrainData( { worldLayout: TIDEWATER_LAYOUT } );
