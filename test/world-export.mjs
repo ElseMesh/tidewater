@@ -197,7 +197,7 @@ try {
 	assert.ok( componentData( wildlife ).footprints.length > 0 && componentData( wildlife ).footprints.length <= 256, 'portable wildlife carries bounded building exclusion footprints' );
 	assert.deepEqual( source.components.find( ( component ) => component.type === 'elsemesh.island-ocean/1' ), { id: 'elsemesh-component:island-ocean', type: 'elsemesh.island-ocean/1', priority: 'portal-preview', assets: [], data: {} }, 'portable island declares its versioned ocean renderer for early portal previews' );
 	const boat = source.components.find( ( component ) => component.type === 'elsemesh.downeast-boat/1' );
-	assert.deepEqual( componentData( boat ), { objectId: 'elsemesh-object:moored-lobster-boat' }, 'portable island binds the trusted boat runtime to its signed world-local berth' );
+	assert.deepEqual( componentData( boat ), { objectId: 'elsemesh-object:moored-lobster-boat', complexityTriangles: 46845 }, 'portable island binds the trusted boat runtime and its world-owned complexity to the signed berth' );
 	assert.equal( source.rules.seaLevel, 0, 'the boat has a declared world-space sea level' );
 	assert.deepEqual( source.rules.vehiclePolicy, { enabled: true, maxSpeed: 8, maxCombinedComplexity: 100000 }, 'example island accepts transported boats with signed speed and combined-complexity limits' );
 	const ambience = source.components.find( ( component ) => component.type === 'elsemesh.ambient-audio/1' );
@@ -263,6 +263,7 @@ try {
 	assert.deepEqual( villageObject.lods[ 0 ], { assetId: villageObject.lods[ 0 ].assetId, maxScreenFraction: 0.45 }, 'village selects lower detail only when its projected size falls below the authored threshold' );
 	const boatBase = parseGLB( firstAssets.get( boatObject.assetId ) );
 	const boatLOD = parseGLB( firstAssets.get( boatObject.lods[ 0 ].assetId ) );
+	assert.equal( componentData( boat ).complexityTriangles, triangleCount( boatBase ), 'worldd complexity metadata is derived from the exported vehicle mesh' );
 	const boatMin = [ Infinity, Infinity, Infinity ], boatMax = [ - Infinity, - Infinity, - Infinity ];
 	for ( const primitive of boatBase.meshes.flat() ) {
 		const positions = primitive.attributes.POSITION.array;
