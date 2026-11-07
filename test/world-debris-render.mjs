@@ -26,12 +26,13 @@ globalThis.__debrisFile = async ( url ) => {
 
 };
 const tmp = mkdtempSync( join( tmpdir(), 'debris-img-' ) );
-// JPEG -> BMP with macOS sips, then read the BMP (RGBA8, top row first)
+// JPEG -> BMP with the host image converter, then read the BMP (RGBA8, top row first).
 globalThis.__debrisImage = async ( url ) => {
 
 	const src = join( ROOT, url.replace( /^.*models\//, 'models/' ) );
 	const out = join( tmp, url.replace( /^.*\//, '' ) + '.bmp' );
-	execFileSync( 'sips', [ '-s', 'format', 'bmp', src, '--out', out ], { stdio: 'ignore' } );
+	if ( process.platform === 'darwin' ) execFileSync( 'sips', [ '-s', 'format', 'bmp', src, '--out', out ], { stdio: 'ignore' } );
+	else execFileSync( 'convert', [ src, '-depth', '8', `BMP3:${out}` ], { stdio: 'ignore' } );
 	const b = readFileSync( out );
 	const off = b.readUInt32LE( 10 ), w = b.readInt32LE( 18 ), h0 = b.readInt32LE( 22 ), bpp = b.readUInt16LE( 28 );
 	const h = Math.abs( h0 ), bytes = bpp / 8, row = Math.ceil( w * bytes / 4 ) * 4;
