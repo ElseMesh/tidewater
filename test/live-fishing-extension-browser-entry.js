@@ -26,6 +26,8 @@ async function createScenario( backend, { experience, assets, worldId, fishCatal
 	if ( extensions ) extensionSets.push( extensions );
 	const storage = { getItem: () => null, setItem() {} };
 	const state = new GameState( storage, worldId, fishCatalog );
+	state.money = 1000;
+	const boatController = { maxThrust: 10, pitchSpeed: 2, position: { x: 0, y: 0, z: 0 } };
 	const runtime = createWorldBehaviorRuntime( experience, behaviorId, { state, load: false, worldId, extensions } );
 	await runtime.extensionReady;
 	const fishBehavior = experience.behaviors[ behaviorId ];
@@ -44,6 +46,21 @@ async function createScenario( backend, { experience, assets, worldId, fishCatal
 		},
 		radius: stand.interactionRadius ?? FISH_STAND_VENDOR.radius,
 		inRange: player => Math.hypot( player.x - vendor.position.x, player.z - vendor.position.z ) < vendor.radius && Math.abs( player.y - vendor.position.y ) < 2.5,
+		update() {},
+	};
+	const chandlery = fishBehavior.chandlery;
+	const [ shopX, shopZ ] = chandlery.position;
+	const shopLocal = { x: 0, y: 0, z: - 0.75 };
+	const shopC = Math.cos( chandlery.yaw ), shopS = Math.sin( chandlery.yaw );
+	const shopVendor = {
+		name: 'Marta · Chandlery', kind: 'shop',
+		position: {
+			x: shopX + shopLocal.x * shopC + shopLocal.z * shopS,
+			y: groundY,
+			z: shopZ - shopLocal.x * shopS + shopLocal.z * shopC,
+		},
+		radius: chandlery.interactionRadius,
+		inRange: player => Math.hypot( player.x - shopVendor.position.x, player.z - shopVendor.position.z ) < shopVendor.radius && Math.abs( player.y - shopVendor.position.y ) < 2.5,
 		update() {},
 	};
 	const waterQuery = new SyntheticWaterQuery( terrain );
@@ -87,7 +104,7 @@ async function createScenario( backend, { experience, assets, worldId, fishCatal
 				closeStand() { this.standOpen = false; },
 			}, landing: null,
 			stand: { setColliders() {}, setActive() {} }, chandlery: { setColliders() {}, setActive() {} },
-			display: { mesh: { visible: true }, shown: false, show() { this.shown = true; }, hide() { this.shown = false; } }, vendors: [ vendor ],
+			display: { mesh: { visible: true }, shown: false, show() { this.shown = true; }, hide() { this.shown = false; } }, vendors: [ vendor, shopVendor ],
 			boatGameplay: { step: () => ( { fuel: null, sonar: null } ), setTerrain() {}, setController() {} }, toast: ( ...args ) => toasts.push( args ),
 		} );
 		app.game = game;
@@ -116,7 +133,7 @@ async function createScenario( backend, { experience, assets, worldId, fishCatal
 		};
 		game = Object.assign( Object.create( WebGLGameAdapter.prototype ), {
 			runtime, state, fishCatalog, fishingAreas: fishBehavior.fishingAreas, rod, fishingInput, hud, ui, audio,
-			landing: null, vendor, vendors: [ vendor ], activeVendor: null,
+			landing: null, vendor, vendors: [ vendor, shopVendor ], activeVendor: null,
 			boatGameplay: { step: () => ( { fuel: null, sonar: null } ) }, toast: ( ...args ) => toasts.push( args ),
 		} );
 		rod.onLand = where => { landing = where; landingReady = game._onBobberLanded( where ); };
@@ -125,6 +142,7 @@ async function createScenario( backend, { experience, assets, worldId, fishCatal
 			fishStand: null, chandlery: null, gameAdapter: game,
 		};
 	}
+	await runtime.boatGameplay.setController( boatController );
 	const pendingActions = [];
 	for ( const name of ( backend === 'webgpu' ? [ 'strike', 'updateFight' ] : [ '_strike', '_stepFight' ] ) ) {
 		const original = game[ name ].bind( game );
@@ -135,7 +153,7 @@ async function createScenario( backend, { experience, assets, worldId, fishCatal
 		};
 	}
 	return {
-		game, runtime, rod, player, input, pressed, audio, toasts, vendor,
+		game, runtime, rod, player, input, pressed, audio, toasts, vendor, shopVendor,
 		landing: () => landing,
 		landingReady: () => landingReady,
 		gameFrames: () => backend === 'webgpu' ? gameFrames : null,
@@ -159,6 +177,7 @@ async function createScenario( backend, { experience, assets, worldId, fishCatal
 			extensions = app.activeHostedExtensions;
 			extensionSets.push( extensions );
 			await runtime.extensionReady;
+			await runtime.boatGameplay.applyGear();
 			invariant( previousExtensions !== extensions && ! previousExtensions.has( behaviorId ), 'WebGPU re-entry did not replace and dispose the previous Worker set' );
 			rod.state = 'idle';
 			rod.equipped = false;
@@ -198,10 +217,27 @@ async function createScenario( backend, { experience, assets, worldId, fishCatal
 			invariant( game.hud.standOpen, `${backend} E input did not open the nearby fish-buyer panel` );
 			invariant( game.hud.vendor === vendor, `${backend} opened a panel for the wrong vendor` );
 			const sale = game.sellAll();
-			invariant( sale.count === 1 && state.inventory.length === 0 && state.money === sale.total, `${backend} vendor sale did not credit the catch` );
+			invariant( sale.count === 1 && state.inventory.length === 0 && state.money === 1000 + sale.total, `${backend} vendor sale did not credit the catch` );
 			await this.pressKey( 'KeyE' );
 			invariant( ! game.hud.standOpen, `${backend} E input did not close the fish-buyer panel` );
 			return sale;
+		},
+		async buyUpgradeAtShop() {
+			player.position.set( shopVendor.position.x, shopVendor.position.y + 1.7, shopVendor.position.z );
+			invariant( shopVendor.inRange( player.position ), `${backend} test player is outside Marta's interaction range` );
+			this.frame();
+			await this.flush();
+			await this.pressKey( 'KeyE' );
+			invariant( game.hud.standOpen, `${backend} E input did not open the nearby upgrade shop` );
+			invariant( game.hud.vendor === shopVendor, `${backend} opened the wrong vendor panel` );
+			const moneyBefore = state.money;
+			const purchase = game.buy( 'engine' );
+			await runtime.boatGameplay.applyGear();
+			invariant( purchase?.index === 1 && state.upgrades.engine === 1 && state.money === moneyBefore - 300, `${backend} upgrade purchase did not update browser game state` );
+			invariant( Math.abs( boatController.maxThrust - 10 * 1.15 ** 2 ) < 1e-12 && Math.abs( boatController.pitchSpeed - 2 * 1.15 ) < 1e-12, `${backend} signed Worker did not apply the purchased boat-engine upgrade` );
+			await this.pressKey( 'KeyE' );
+			invariant( ! game.hud.standOpen, `${backend} E input did not close Marta's upgrade shop` );
+			return { purchase, money: state.money, upgrades: structuredClone( state.upgrades ), maxThrust: boatController.maxThrust, pitchSpeed: boatController.pitchSpeed };
 		},
 	};
 }
@@ -254,14 +290,15 @@ async function playThroughSale( backend, context ) {
 		toasts: structuredClone( scenario.toasts ),
 	};
 	const sale = await scenario.sellAtVendor();
-	invariant( sale.count === 1 && scenario.runtime.state.inventory.length === 0 && scenario.runtime.state.money === sale.total, `${backend} sale did not credit money and empty inventory` );
+	invariant( sale.count === 1 && scenario.runtime.state.inventory.length === 0 && scenario.runtime.state.money === 1000 + sale.total, `${backend} sale did not credit money and empty inventory` );
+	const shop = await scenario.buyUpgradeAtShop();
 	const afterSale = structuredClone( { inventory: scenario.runtime.state.inventory, money: scenario.runtime.state.money, audio: scenario.audio.events, toasts: scenario.toasts } );
 	scenario.depart();
 	if ( backend === 'webgpu' ) {
 		await scenario.reenter();
 		scenario.depart();
 	}
-	return { trace, caught, sale, afterSale };
+	return { trace, caught, sale, shop, afterSale };
 }
 
 try {
@@ -290,7 +327,7 @@ try {
 		Math.random = previousRandom;
 	}
 	invariant( JSON.stringify( webgl ) === JSON.stringify( webgpu ), 'Live signed Worker gameplay differs between WebGPU and WebGL game paths' );
-	result.textContent = `PASS signed Tidewater module through gateway and dedicated Workers; WebGPU/WebGL E input opened and closed the buyer panel and sold the catch; WebGPU App activation, gameplay frames, departure, and re-entry: ${JSON.stringify( { worldId, assetId: reference.assetId, biteFrames: webgpu.trace.bite.length, fightFrames: webgpu.trace.fight.length - 1, sale: webgpu.sale } )}`;
+	result.textContent = `PASS signed Tidewater module through gateway and dedicated Workers; WebGPU/WebGL E input opened and closed the fish-buyer and upgrade-shop panels, sold a catch, and purchased an upgrade; WebGPU App activation, gameplay frames, departure, and re-entry: ${JSON.stringify( { worldId, assetId: reference.assetId, biteFrames: webgpu.trace.bite.length, fightFrames: webgpu.trace.fight.length - 1, sale: webgpu.sale, shop: webgpu.shop } )}`;
 	result.dataset.status = 'passed';
 } catch ( error ) {
 	result.textContent = `FAIL ${error.stack || error}`;

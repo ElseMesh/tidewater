@@ -263,7 +263,9 @@ export class WebGLGameAdapter {
 
 	buy( key ) {
 
-		return this.runtime.buyUpgrade( key );
+		const result = this.runtime.buyUpgrade( key );
+		if ( result ) this.toast( `${ result.name }: ${ result.label }` );
+		return result;
 
 	}
 
