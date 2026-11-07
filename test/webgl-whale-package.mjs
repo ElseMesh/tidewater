@@ -22,7 +22,7 @@ const [ manifest, geometry, albedo, height ] = await Promise.all( [ data.modelAs
 const scene = new THREE.Scene();
 const whale = new Whale( {
 	scene, terrain: null, THREE, webgl: true, seaLevel: world.rules.seaLevel,
-	profile: { seed: data.seed, route: data.route, surfaceAt: data.surfaceAt, cruiseSpeed: data.cruiseSpeed, surfaceSpeed: data.surfaceSpeed },
+	profile: data,
 } );
 await whale.loadPackage( { manifest, geometry, albedo, height } );
 assert.equal( whale.ready, true, 'WebGL whale loads only the packaged asset bytes' );
@@ -60,7 +60,7 @@ globalThis.fetch = async url => {
 	return new Response( bytes );
 };
 try {
-	const builtin = new Whale( { scene, terrain: null, THREE, webgl: true, url: 'https://elsemesh.invalid/models/whale/', profile: component, seaLevel: world.rules.seaLevel } );
+	const builtin = new Whale( { scene, terrain: null, THREE, webgl: true, url: 'https://elsemesh.invalid/models/whale/', profile: data, seaLevel: world.rules.seaLevel } );
 	await builtin.load();
 	assert.equal( builtin.ready, true, 'built-in WebGL loads the shared public Whale assets' );
 	assert.deepEqual( builtin.meshes.map( mesh => mesh.geometry.attributes.position.count ), [ 40212, 5898, 908 ], 'built-in and hosted paths use the same packaged LOD geometry' );
