@@ -15,8 +15,8 @@ try {
 		return response.arrayBuffer();
 	} );
 	const parsedGLB = parseGLB( glbBytes );
-	const graphMaterialIndexes = new Map( parsedGLB.materials.flatMap( ( material, index ) => material.name === 'Procedural village net' || [ 'thatch', 'fabric' ].includes( material.extras?.elsemeshWorld?.materialRole ) ? [ [ material.name, index ] ] : [] ) );
-	if ( graphMaterialIndexes.size !== 3 ) throw new Error( 'signed village GLB is missing its net, thatch, or fabric graph material' );
+	const graphMaterialIndexes = new Map( parsedGLB.materials.flatMap( ( material, index ) => material.name === 'Procedural village net' || [ 'thatch', 'fabric', 'stone' ].includes( material.extras?.elsemeshWorld?.materialRole ) ? [ [ material.name, index ] ] : [] ) );
+	if ( graphMaterialIndexes.size !== 4 ) throw new Error( 'signed village GLB is missing its net, thatch, fabric, or stone graph material' );
 	const graphAttributes = new Map( [ ...graphMaterialIndexes ].map( ( [ name, index ] ) => {
 		const primitive = parsedGLB.meshes.flat().find( candidate => candidate.material === index );
 		if ( ! primitive?.attributes._ELSEMESH_VDATA ) throw new Error( `signed ${name} GLB mesh is missing its VEC4 _ELSEMESH_VDATA` );
@@ -35,11 +35,12 @@ try {
 		if ( name === 'Procedural village fabric' ? meshes.length < 1 : meshes.length !== 1 ) throw new Error( `unexpected signed ${name} material mesh count: ${meshes.length}` );
 	}
 	const compiled = applyWebGLWorldMaterialGraphs( THREE, gltf.scene );
-	if ( compiled !== 3 ) throw new Error( `expected three engine-compiled graphs, found ${compiled}` );
+	if ( compiled !== 4 ) throw new Error( `expected four engine-compiled graphs, found ${compiled}` );
 	const netMesh = graphMeshes.get( 'Procedural village net' )[ 0 ];
 	const thatchMesh = graphMeshes.get( 'Procedural village thatch' )[ 0 ];
 	const fabricMesh = graphMeshes.get( 'Procedural village fabric' )[ 0 ];
-	for ( const mesh of [ netMesh, thatchMesh, fabricMesh ] ) if ( ! mesh.material.userData?.elsemeshWorldMaterialGraph ) throw new Error( `${mesh.material.name} did not pass through the engine graph compiler` );
+	const stoneMesh = graphMeshes.get( 'Procedural village stone' )[ 0 ];
+	for ( const mesh of [ netMesh, thatchMesh, fabricMesh, stoneMesh ] ) if ( ! mesh.material.userData?.elsemeshWorldMaterialGraph ) throw new Error( `${mesh.material.name} did not pass through the engine graph compiler` );
 	if ( netMesh.material.side !== THREE.DoubleSide || ! netMesh.material.transparent || netMesh.material.depthWrite ) throw new Error( 'net material lost its signed glTF blend or double-sided state' );
 	const focusGeometryCluster = mesh => {
 		const geometry = mesh.geometry, index = geometry.index?.array, positions = geometry.getAttribute( 'position' )?.array, data = geometry.getAttribute( 'vdata' )?.array;
@@ -85,7 +86,7 @@ try {
 	const gl = renderer.getContext();
 	const pixels = new Uint8Array( 640 * 480 * 4 );
 	const metrics = {};
-	for ( const [ label, mesh ] of [ [ 'net', netMesh ], [ 'thatch', thatchMesh ], [ 'fabric', fabricMesh ] ] ) {
+	for ( const [ label, mesh ] of [ [ 'net', netMesh ], [ 'thatch', thatchMesh ], [ 'fabric', fabricMesh ], [ 'stone', stoneMesh ] ] ) {
 		for ( const target of graphMeshes.values() ) target[ 0 ].visible = target[ 0 ] === mesh;
 		const bounds = new THREE.Box3().setFromObject( mesh );
 		const center = bounds.getCenter( new THREE.Vector3() );

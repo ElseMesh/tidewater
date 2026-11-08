@@ -4,7 +4,6 @@ const ROLE_SPECS = Object.freeze( {
 	wood: { albedo: 'woodA', packed: 'woodN', metalness: 0 },
 	hard: { packed: 'hardN', metalness: 0.25 },
 	roofMetal: { packed: 'roofN', metalness: 0.35 },
-	stone: { albedo: 'stoneA', packed: 'stoneN', metalness: 0 },
 } );
 
 function makeTexture( THREE, data, spec, { color = false, anisotropy = 1 } = {} ) {

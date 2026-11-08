@@ -3,7 +3,7 @@ import { commonModule } from '../../../../src/engine/render/wgsl/common.js';
 import { standard } from '../../../../src/materials/Materials.js';
 import { createWebGPUMaterialGraph } from '../../../../src/materials/WorldMaterialGraph.js';
 import { VillageTextures } from './TextureBaker.js';
-import { TIDEWATER_NET_MATERIAL_GRAPH, TIDEWATER_THATCH_MATERIAL_GRAPH, TIDEWATER_FABRIC_MATERIAL_GRAPH } from '../../VillageMaterialGraphs.js';
+import { TIDEWATER_NET_MATERIAL_GRAPH, TIDEWATER_THATCH_MATERIAL_GRAPH, TIDEWATER_FABRIC_MATERIAL_GRAPH, TIDEWATER_STONE_MATERIAL_GRAPH } from '../../VillageMaterialGraphs.js';
 
 // Shared PBR materials for the village, pier and props.
 //
@@ -501,60 +501,16 @@ fn vlmGlass( uvm: vec2f, aTint: vec3f, seed: f32, kind: f32, lit: f32 ) -> VlmGl
 } );
 
 // ---------------------------------------------------------------------------
-// STONE: rubble masonry, lime plaster over stone, sand dusted near the ground
-// uv in metres (u horizontal, v vertical from the bottom of the piece).
-// vdata: x seed, y style (0 coursed rubble, 1 plaster over stone, 2 small rubble)
-// tint: plaster colour
-
+// Rubble, plaster, end grain, and ground dust share the signed renderer-neutral graph.
 export function createStoneMaterial( T ) {
-
-	const m = villageMaterial( { roughness: 0.92, metalness: 0 }, T, [ 'stoneA', 'stoneN', 'paintN', 'grime' ], { surface: /* wgsl */`
-	let aTint = in.vs.vTint;
-	let aData = in.vs.vData;
-	let seed = aData.x;
-	let style = aData.y;
-	let uv0 = in.uv;
-	let isCap = step( 1500.0, uv0.x );
-	let isEnd = step( 500.0, uv0.x ) * ( 1.0 - isCap );
-	let uvS = uv0 - vec2f( isCap * 2000.0 + isEnd * 1000.0, 0.0 );
-	let isRubble = step( 1.5, style );
-	let isPlaster = vlmBand01( style, 1.0 );
-	let off = vec2f( vlmHash21( seed, 4.1 ), vlmHash21( seed, 7.7 ) );
-	let tuv = uvS * mix( 0.5, 0.8, isRubble ) + off;
-	let A = textureSample( vlgStoneA, smpAnisoRepeat, tuv );
-	let N = textureSample( vlgStoneN, smpAnisoRepeat, tuv );
-	// lime plaster: trowel marks from the paint film set, stains / dust from the grime map
-	let puv = uvS + off * 3.0;
-	let PN = textureSample( vlgPaintN, smpAnisoRepeat, puv * vec2f( 0.7, 1.4 ) );
-	let PA = textureSample( vlgGrime, smpAnisoRepeat, puv * 0.5 );
-
-	// plaster survives where the baked plaster field is high; the plaster edge has thickness
-	let pf = A.a + ( PA.a - 0.5 ) * 0.12;
-	let pm = smoothstep( 0.3, 0.33, pf ) * isPlaster;
-	let e = 1.0 / 1024.0;
-	let gX = textureSample( vlgStoneA, smpAnisoRepeat, tuv + vec2f( e, 0.0 ) ).a - textureSample( vlgStoneA, smpAnisoRepeat, tuv - vec2f( e, 0.0 ) ).a;
-	let gY = textureSample( vlgStoneA, smpAnisoRepeat, tuv + vec2f( 0.0, e ) ).a - textureSample( vlgStoneA, smpAnisoRepeat, tuv - vec2f( 0.0, e ) ).a;
-	let pEdge = ( 1.0 - smoothstep( 0.0, 0.03, abs( pf - 0.315 ) ) ) * isPlaster;
-
-	let stoneCol = A.rgb * mix( vec3f( 1.0 ), aTint * 1.1, 0.15 );
-	var plasterCol = aTint * ( 1.0 - PA.r * 0.3 ) * ( 1.0 - PA.b * 0.25 ) * ( ( PA.a - 0.5 ) * 0.16 + 1.0 );
-	plasterCol = plasterCol * mix( 1.0, PN.a, 0.6 ) * ( ( PN.b - 0.5 ) * 0.12 + 1.0 );
-	var col = mix( stoneCol * mix( 1.0, N.a, 0.5 ), plasterCol, pm );
-	// sand dust and splash dirt near the ground
-	let low = 1.0 - smoothstep( 0.05, 0.75, uvS.y );
-	let dust = low * smoothstep( 0.25, 0.7, PA.a ) * 0.8;
-	col = mix( col, vec3f( 0.46, 0.4, 0.3 ), dust );
-	col = col * ( 1.0 - low * 0.18 );
-
-	let sl = mix( vlmSlopeOf( N ), vlmSlopeOf( PN ) * 2.5, pm ) + vec2f( gX, gY ) * pEdge * - 6.0;
-	s.normal = vlmNormalFromSlope( in.P, in.N, in.uv, sl );
-	s.albedo = col;
-	s.roughness = clamp( mix( N.b, PN.b * 0.3 + 0.66, pm ) + dust * 0.05, 0.05, 1.0 );
-	s.ao = mix( N.a, PN.a, pm );
-` } );
+	const m = createWebGPUMaterialGraph( {
+		name: 'VillageStone',
+		pbrMetallicRoughness: { roughnessFactor: 0.92, metallicFactor: 0 },
+	}, TIDEWATER_STONE_MATERIAL_GRAPH, {
+		graphTextures: { baseColor: T.stoneA, normal: T.stoneN, metallicRoughness: T.paintN, occlusion: T.grime },
+	} );
 	m.name = 'VillageStone';
 	return m;
-
 }
 
 // Cloth, tarps, nets, and flags share the signed renderer-neutral graph.
