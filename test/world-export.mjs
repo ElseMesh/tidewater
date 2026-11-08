@@ -3,7 +3,7 @@ import '../register-behavior.js';
 import * as fishPresentation from '../FishPresentation.js';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, readlink, readdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import '../../../test/headless.mjs';
@@ -44,6 +44,12 @@ try {
 	const checkedInSourceBytes = await readFile( path.join( checkedInDir, 'world-source.json' ) );
 	const checkedInTerrainReportBytes = await readFile( path.join( checkedInDir, 'terrain-validation.json' ) );
 	const checkedInSource = validateWorldSource( JSON.parse( checkedInSourceBytes ) );
+	const builtInAliases = [
+		[ 'terrain-full.glb', checkedInSource.objects.find( object => object.id === 'elsemesh-object:island-terrain' )?.assetId ],
+		[ 'village-full.glb', checkedInSource.objects.find( object => object.id === 'elsemesh-object:island-village' )?.assetId ],
+		[ 'vegetation-placements.bin', checkedInSource.components.find( component => component.type === 'elsemesh.static-vegetation/1' )?.data?.placementAssetId ],
+	];
+	for ( const [ name, assetId ] of builtInAliases ) assert.equal( await readlink( path.join( checkedInDir, 'lod-source', name ) ), `../assets/${assetId.slice( 'sha256:'.length )}`, `built-in ${name} alias points at the current signed asset` );
 	const referencedIDs = ( source ) => new Set( [ ...source.objects.flatMap( ( object ) => [ object.assetId, ...( object.lods || [] ).map( ( lod ) => lod.assetId ) ] ), ...source.components.flatMap( componentAssetRefs ), ...( source.experience?.extensions || [] ).map( extension => extension.assetId ) ] );
 	const checkedInIDs = referencedIDs( checkedInSource );
 	const checkedInFiles = ( await readdir( path.join( checkedInDir, 'assets' ) ) ).sort();

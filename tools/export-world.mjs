@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { createHash } from 'node:crypto';
 import { deflateSync } from 'node:zlib';
-import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import '../register-behavior.js';
@@ -359,7 +359,20 @@ const source = {
 	updatedAt,
 };
 await writeFile( sourcePath, `${JSON.stringify( source, null, 2 )}\n` );
-if ( output === WORLD_ROOT ) await generateTidewaterReefURLs();
+if ( output === WORLD_ROOT ) {
+	const builtInAssetAliases = [
+		[ 'terrain-full.glb', source.objects.find( object => object.id === 'elsemesh-object:island-terrain' )?.assetId ],
+		[ 'village-full.glb', villageAssetId ],
+		[ 'vegetation-placements.bin', source.components.find( component => component.type === 'elsemesh.static-vegetation/1' )?.data?.placementAssetId ],
+	];
+	for ( const [ name, assetId ] of builtInAssetAliases ) {
+		if ( ! assetId || ! staticAssets.has( assetId ) ) throw new Error( `Built-in asset alias ${name} does not resolve to an exported package asset` );
+		const aliasPath = path.join( WORLD_ROOT, 'lod-source', name );
+		await rm( aliasPath, { force: true } );
+		await symlink( `../assets/${assetId.slice( 'sha256:'.length )}`, aliasPath );
+	}
+	await generateTidewaterReefURLs();
+}
 const terrainValidation = {
 	format: 'elsemesh.terrain-validation/1',
 	worldId: source.worldId,
