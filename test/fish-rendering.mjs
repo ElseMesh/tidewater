@@ -3,7 +3,7 @@
 //   node worlds/tidewater/test/fish-rendering.mjs [outDir]
 import { setupLife } from '../../../test/life-harness.mjs';
 import * as E from '../../../src/engine/index.js';
-import { FishSchools } from '../../../src/world/Fish.js';
+import { FishSchools } from '../fish/FishSchools.js';
 import { FishProps } from '../fish/FishProps.js';
 import * as fishPresentation from '../FishPresentation.js';
 import { FISH_SCHOOL_POPULATION } from '../FishSchoolPopulation.js';

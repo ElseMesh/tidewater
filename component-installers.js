@@ -5,7 +5,7 @@ import { HeightfieldTerrainData } from '../../src/world/HeightfieldTerrainData.j
 import { TerrainGPU } from '../../src/world/TerrainGPU.js';
 import { Terrain } from '../../src/world/Terrain.js';
 import { Vegetation } from './renderers/WebGPUVegetation.js';
-import { Reef } from '../../src/world/Reef.js';
+import { Reef } from './Reef.js';
 import { TIDEWATER_LAYOUT } from './layout.js';
 import { Wildlife } from './wildlife/Wildlife.js';
 import { Whale } from '../../src/world/marine/Whale.js';

@@ -13,9 +13,8 @@ Each record carries the original prop kind, species, world position and
 quaternion, length, skin-pattern ID, deterministic seed, body bend/jaw
 parameters, and four renderer flags. Tidewater's adapters rebuild fish
 geometry and materials and submit them through the generic component registry;
-ElseMesh supplies backend dispatch and scene rendering. The fish geometry and
-shader implementation are still under `src/world/fish` and remain to be
-extracted from the engine. The asset does not contain executable shader code, geometry,
+ElseMesh supplies backend dispatch and scene rendering. Tidewater owns its fish
+geometry and shader implementation under `fish/`. The asset does not contain executable shader code, geometry,
 textures, collision, or procedural RNG state. Missing or non-finite seeds are
 rejected rather than replaced with runtime randomness. One component may hold
 up to 20,000 records and its asset is capped at 16 MiB.

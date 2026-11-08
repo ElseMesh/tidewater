@@ -1,4 +1,4 @@
-import { PART } from '../../../src/world/fish/FishGeometry.js';
+import { PART } from '../fish/FishGeometry.js';
 import { deformFishPropPoint, fishPropGeometry } from '../fish/FishProps.js';
 
 const clamp01 = value => Math.max( 0, Math.min( 1, value ) );

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { Vector3 } from '../../../src/engine/index.js';
-import { FishSchools } from '../../../src/world/Fish.js';
+import { FishSchools } from '../fish/FishSchools.js';
 import { mulberry32 } from '../../../src/util/Noise.js';
 import * as presentation from '../FishPresentation.js';
 import { FISH_SCHOOL_POPULATION } from '../FishSchoolPopulation.js';

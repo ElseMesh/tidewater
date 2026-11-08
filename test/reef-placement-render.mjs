@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { setupLife } from '../../../test/life-harness.mjs';
-import { Reef } from '../../../src/world/Reef.js';
+import { Reef } from '../Reef.js';
 import { TIDEWATER_LAYOUT } from '../layout.js';
 
 const L = await setupLife( { W: 320, H: 240, shadowSplits: [ 12 ] } );

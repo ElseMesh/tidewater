@@ -1,10 +1,10 @@
 // Reef (MultiKindInstanceBatch + ReefMaterials) headless render: views from above the water and underwater,
 // velocity view, GPU time. Usage: node worlds/tidewater/test/reef-rendering.mjs [outDir]
-// (REEF_STUB_FISH=1 stubs the fish).
+// (REEF_STUB_FISH=1 stubs the fish schools).
 import { register } from 'node:module';
 register( './reef-rendering-stubs.mjs', import.meta.url );
 const { setupLife } = await import( '../../../test/life-harness.mjs' );
-const { Reef } = await import( '../../../src/world/Reef.js' );
+const { Reef } = await import( '../Reef.js' );
 const fishPresentation = await import( '../FishPresentation.js' );
 const { FISH_SCHOOL_POPULATION } = await import( '../FishSchoolPopulation.js' );
 const { TIDEWATER_LAYOUT } = await import( '../layout.js' );

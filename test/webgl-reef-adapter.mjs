@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import * as THREE from 'three';
 import '../register-components.js';
-import { reefLODAtDistance } from '../../../src/world/Reef.js';
+import { reefLODAtDistance } from '../Reef.js';
 import { WebGLReefAdapter } from '../renderers/WebGLReefAdapter.js';
 import { worldComponentBackendBatchAdapter } from '../../../src/network/WorldComponentBackendRegistry.js';
 

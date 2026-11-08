@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { TerrainData } from '../terrain/TerrainData.js';
-import { Reef } from '../../../src/world/Reef.js';
+import { Reef } from '../Reef.js';
 import { REEF_TYPE_NAMES } from '../ReefPlacementTypes.js';
 import { decodeReefPlacements, encodeReefPlacements, MAX_REEF_PLACEMENTS, REEF_PLACEMENT_RECORD_BYTES } from '../ReefPlacements.js';
 import { TIDEWATER_LAYOUT } from '../layout.js';

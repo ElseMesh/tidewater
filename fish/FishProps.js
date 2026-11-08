@@ -1,8 +1,8 @@
 import * as THREE from '../../../src/engine/index.js';
 import { MultiKindInstanceBatch } from '../../../src/engine/render/MultiKindInstanceBatch.js';
 import { GPU } from '../../../src/engine/gpu/GPU.js';
-import { fishGeometry, splitFishGeometry, PART } from '../../../src/world/fish/FishGeometry.js';
-import { createPropMaterial } from '../../../src/world/fish/FishMaterial.js';
+import { fishGeometry, splitFishGeometry, PART } from './FishGeometry.js';
+import { createPropMaterial } from './FishMaterial.js';
 import { bandFade } from '../../../src/materials/LODFade.js';
 
 // Fish as village props: whole fish lying on ice or hanging from the stall, split salted fish on

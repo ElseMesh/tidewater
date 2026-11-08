@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import * as presentation from '../FishPresentation.js';
 import source from '../world-source.json' with { type: 'json' };
 import { isFishCatalog } from '../FishTable.js';
-import { createPropMaterial, createSwimMaterial } from '../../../src/world/fish/FishMaterial.js';
-import { section } from '../../../src/world/fish/FishGeometry.js';
+import { createPropMaterial, createSwimMaterial } from '../fish/FishMaterial.js';
+import { section } from '../fish/FishGeometry.js';
 
 const { PATTERN, SPECIES, SKIN } = presentation;
 const names = Object.keys( PATTERN ).sort( ( a, b ) => PATTERN[ a ] - PATTERN[ b ] );
