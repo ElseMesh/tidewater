@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import * as THREE from 'three';
-import { Whale } from '../../../src/world/marine/Whale.js';
+import { Whale } from '../marine/Whale.js';
 import { WhaleBrain, createHumpbackBrain } from '../marine/HumpbackBrain.js';
 
 const root = path.resolve( 'worlds/tidewater' );

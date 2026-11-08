@@ -8,7 +8,7 @@ import { Vegetation } from './renderers/WebGPUVegetation.js';
 import { Reef } from './Reef.js';
 import { TIDEWATER_LAYOUT } from './layout.js';
 import { Wildlife } from './wildlife/Wildlife.js';
-import { Whale } from '../../src/world/marine/Whale.js';
+import { Whale } from './marine/Whale.js';
 import { worldComponentDescriptor } from '../../src/network/WorldComponentRegistry.js';
 import { HostedBoat } from '../../src/network/HostedBoat.js';
 import { decodeWorldComponentAsset } from '../../src/network/WorldComponentAssetCodecRegistry.js';

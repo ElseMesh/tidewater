@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { setupLife } from '../../../test/life-harness.mjs';
-import { Whale } from '../../../src/world/marine/Whale.js';
+import { Whale } from '../marine/Whale.js';
 import { WhaleBrain, createHumpbackBrain } from '../marine/HumpbackBrain.js';
 import * as THREE from 'three';
 import { TIDEWATER_WHALE_PROFILE } from '../WhaleProfile.js';
