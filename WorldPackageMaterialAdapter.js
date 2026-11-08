@@ -4,6 +4,7 @@ import { createVillageMaterialContext, disposeVillageMaterialContext } from './r
 import { createStaticPropMaterial } from './fish/FishMaterial.js';
 import * as fishPresentation from './FishPresentation.js';
 import { FISH_PROP_MATERIAL_COMPONENT, FISH_PROP_MATERIAL_DESCRIPTOR, FISH_PROP_MATERIAL_PROFILE } from './FishPropMaterialProfile.js';
+import { VILLAGE_MATERIAL_ROLES } from './VillageMaterialProfile.js';
 
 registerWorldPackageMaterialAdapter( 'elsemesh.village-materials/2', {
 	async prepare( { connector, signal, component } ) {
@@ -16,7 +17,7 @@ registerWorldPackageMaterialAdapter( 'elsemesh.village-materials/2', {
 	},
 	resolve( { profileRole, index, gltf, context, connector } ) {
 		const role = profileRole;
-		if ( ! role ) return null;
+		if ( ! role || ! VILLAGE_MATERIAL_ROLES.includes( role ) ) return null;
 		if ( ! connector?.manifest?.rules?.requiredFeatures?.includes( 'elsemesh.village-materials/1' ) ) throw new Error( 'Village material profile is missing elsemesh.village-materials/1' );
 		const vdata = gltf.meshes.flat().filter( primitive => primitive.material === index ).map( primitive => primitive.attributes._ELSEMESH_VDATA );
 		if ( vdata.some( attribute => ! attribute || attribute.itemSize !== 4 ) ) throw new Error( `Village material ${role} requires a VEC4 _ELSEMESH_VDATA attribute` );
