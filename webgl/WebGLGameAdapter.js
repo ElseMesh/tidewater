@@ -5,7 +5,7 @@ import { fishingHabitatAt } from '../game/Bites.js';
 import { WebGLFishingRodPresentation } from './WebGLFishingRodPresentation.js';
 import { FishingInputController } from '../FishingInputController.js';
 import { Guide } from '../game/Guide.js';
-import { canFishInWorld, stepFishingBite, strikeFishing, stepFishingFight } from '../game/FishingGameplay.js';
+import { canFishInWorld, canInteractWithVendor, stepFishingBite, strikeFishing, stepFishingFight } from '../game/FishingGameplay.js';
 import { buyFishingUpgrade, refuelFishingBoat, sellAllFish, sellFish } from '../game/FishingCommerce.js';
 
 const CATCH_CARD_MS = 9000;
@@ -102,7 +102,7 @@ export class WebGLGameAdapter {
 			return true;
 		}
 
-		if ( code === 'KeyE' && this.nearVendor ) {
+		if ( code === 'KeyE' && canInteractWithVendor( { nearVendor: this.nearVendor, fighting: !! this.fight, catchOpen: this.hud.catchOpen } ) ) {
 			if ( this.hud.standOpen ) this.hud.closeStand();
 			else this.hud.openStand( this.activeVendor || this.vendor );
 			this.ui.root.dataset.panel = this.hud.standOpen ? 'open' : 'closed';

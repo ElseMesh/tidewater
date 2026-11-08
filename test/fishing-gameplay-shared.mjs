@@ -1,11 +1,15 @@
 import assert from 'node:assert/strict';
-import { canFishInWorld, stepFishingBite, strikeFishing, stepFishingFight } from '../game/FishingGameplay.js';
+import { canFishInWorld, canInteractWithVendor, stepFishingBite, strikeFishing, stepFishingFight } from '../game/FishingGameplay.js';
 
 assert.equal( canFishInWorld( { mode: 'walk' } ), true, 'walking allows fishing' );
 assert.equal( canFishInWorld( { mode: 'deck' } ), true, 'a boat deck allows fishing' );
 assert.equal( canFishInWorld( { mode: 'boat' } ), false, 'the helm does not allow fishing' );
 assert.equal( canFishInWorld( { mode: 'walk', freeCam: true } ), false, 'free camera disables fishing' );
 assert.equal( canFishInWorld( { mode: 'walk', photoMode: true } ), false, 'photo mode disables fishing for both renderers' );
+assert.equal( canInteractWithVendor( { nearVendor: true } ), true, 'a nearby vendor can be opened' );
+assert.equal( canInteractWithVendor( { nearVendor: true, fighting: true } ), false, 'a fish fight blocks vendor interaction in both renderers' );
+assert.equal( canInteractWithVendor( { nearVendor: true, catchOpen: true } ), false, 'an open catch card blocks vendor interaction' );
+assert.equal( canInteractWithVendor( { nearVendor: true, cardDismissed: true } ), false, 'catch-card dismissal input is not reused to open a vendor' );
 
 const audioEvents = [], messages = [];
 const audio = {

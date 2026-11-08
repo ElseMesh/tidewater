@@ -58,7 +58,7 @@ const guideFrames = [], guide = { update( dt ) { guideFrames.push( dt ); } };
 const adapter = Object.create( WebGLGameAdapter.prototype );
 const webglCamera = { backend: 'webgl' }, webglBoat = { backend: 'webgl' }, mapFrames = [];
 Object.assign( adapter, {
-	state, runtime: { refuel: () => 12 }, vendor, vendors: [ vendor, shopVendor ], activeVendor: vendor, ui, hud, nearVendor: true,
+	state, runtime: { refuel: () => 12, fight: null }, vendor, vendors: [ vendor, shopVendor ], activeVendor: vendor, ui, hud, nearVendor: true,
 	camera: webglCamera, boatController: webglBoat,
 	app: { player: null, boatCtl: null }, guide,
 	minimap: { update( dt, view ) { mapFrames.push( { dt, view } ); } },
@@ -97,6 +97,9 @@ assert.equal( adapter.handleKey( 'KeyE' ), false, 'E does not open a vendor pane
 
 adapter.update( 1 / 60, { position: { x: 0, y: 0, z: 0 }, mode: 'walk' } );
 assert.equal( adapter.activeVendor, shopVendor, 'the shared game adapter selects the in-range chandlery vendor' );
+adapter.runtime.fight = { state: 'fighting' };
+assert.equal( adapter.handleKey( 'KeyE' ), false, 'WebGL does not open a vendor panel during a fish fight, matching WebGPU' );
+adapter.runtime.fight = null;
 assert.equal( adapter.handleKey( 'KeyE' ), true, 'E opens the shop through the shared browser HUD' );
 assert.equal( hud.vendor, shopVendor, 'the shop menu binds to Marta instead of the fish buyer' );
 assert.equal( adapter.handleKey( 'Escape' ), true );

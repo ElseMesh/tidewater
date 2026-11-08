@@ -10,7 +10,7 @@ import { Minimap } from './Minimap.js';
 import { Guide } from './Guide.js';
 import { worldFishPresentationFor } from '../../../src/network/WorldFishPresentation.js';
 import { FishingInputController } from '../FishingInputController.js';
-import { canFishInWorld, stepFishingBite, strikeFishing, stepFishingFight } from './FishingGameplay.js';
+import { canFishInWorld, canInteractWithVendor, stepFishingBite, strikeFishing, stepFishingFight } from './FishingGameplay.js';
 import { buyFishingUpgrade, refuelFishingBoat, sellAllFish, sellFish } from './FishingCommerce.js';
 
 // how long the catch card stays up unless dismissed (ms)
@@ -338,7 +338,7 @@ export class Game {
 		if ( p.mode === 'walk' ) for ( const v of this.vendors ) if ( v.inRange( p.position ) ) near = v;
 		for ( const v of this.vendors ) v.talking = !! ( hud && hud.standOpen && hud.vendor === v );
 		if ( hud && hud.standOpen && ( ! near || near !== hud.vendor ) ) hud.closeStand();
-		if ( ! near || this.fight || this._cardDismissed || ( hud && hud.catchOpen ) ) return;
+		if ( ! canInteractWithVendor( { nearVendor: !! near, fighting: !! this.fight, cardDismissed: this._cardDismissed, catchOpen: !! hud?.catchOpen } ) ) return;
 		if ( ! p.prompt ) p.prompt = { key: 'E', text: hud && hud.standOpen ? 'Leave' : `Talk to ${ near.name.split( ' ·' )[ 0 ] }` };
 		if ( inp.hit( 'KeyE' ) ) {
 

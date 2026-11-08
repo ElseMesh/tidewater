@@ -5,6 +5,12 @@ export function canFishInWorld( { mode, freeCam = false, photoMode = false } = {
 
 }
 
+export function canInteractWithVendor( { nearVendor = false, fighting = false, catchOpen = false, cardDismissed = false } = {} ) {
+
+	return !! nearVendor && ! fighting && ! catchOpen && ! cardDismissed;
+
+}
+
 export function stepFishingBite( { runtime, rod, dt, habitat, hour, audio, toast } ) {
 
 	return runtime.stepBite( dt, { habitat, hour } ).then( result => {
