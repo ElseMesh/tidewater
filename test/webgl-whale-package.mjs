@@ -13,7 +13,10 @@ const component = world.components.find( item => item.type === 'elsemesh.humpbac
 assert.ok( component, 'Tidewater exports a packaged whale component' );
 const data = component.data;
 const queryNames = [];
-const query = { allocate: name => { queryNames.push( name ); return queryNames.length - 1; } };
+const query = {
+	allocate: name => { queryNames.push( name ); return queryNames.length - 1; },
+	setPoint() {},
+};
 const firstBrain = new WhaleBrain( { THREE, terrain: null, query, queryName: 'whale:first', ...data } );
 const secondBrain = new WhaleBrain( { THREE, terrain: null, query, queryName: 'whale:second', ...data } );
 assert.deepEqual( queryNames, [ 'whale:first', 'whale:second' ], 'multiple whale components allocate independent water query slots' );
