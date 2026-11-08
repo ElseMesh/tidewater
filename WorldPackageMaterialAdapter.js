@@ -1,6 +1,9 @@
 import { registerWorldPackageMaterialAdapter } from '../../src/network/WorldPackageMaterialAdapterRegistry.js';
 import { decodeWorldComponentAsset } from '../../src/network/WorldComponentAssetCodecRegistry.js';
 import { createVillageMaterialContext, disposeVillageMaterialContext } from './renderers/webgpu-village/VillageMaterialContext.js';
+import { createStaticPropMaterial } from './fish/FishMaterial.js';
+import * as fishPresentation from './FishPresentation.js';
+import { FISH_PROP_MATERIAL_COMPONENT, FISH_PROP_MATERIAL_DESCRIPTOR, FISH_PROP_MATERIAL_PROFILE } from './FishPropMaterialProfile.js';
 
 registerWorldPackageMaterialAdapter( 'elsemesh.village-materials/2', {
 	async prepare( { connector, signal, component } ) {
@@ -29,6 +32,29 @@ registerWorldPackageMaterialAdapter( 'elsemesh.village-materials/2', {
 				geometry.setAttribute( 'tint', tint );
 			},
 			beforeRender: () => context.textures.bake(),
+		};
+	},
+} );
+
+registerWorldPackageMaterialAdapter( FISH_PROP_MATERIAL_COMPONENT, {
+	async prepare( { component } ) {
+		if ( component.data?.profile !== FISH_PROP_MATERIAL_DESCRIPTOR ) throw new Error( 'Tidewater fish material component has an unsupported presentation profile' );
+		const material = createStaticPropMaterial( fishPresentation );
+		material.userData.borrowedWorldMaterial = true;
+		return { context: { material }, dispose: () => material.dispose() };
+	},
+	resolve( { profileRole, context, connector } ) {
+		if ( ! profileRole ) return null;
+		if ( profileRole !== 'prop' ) throw new Error( `Unsupported Tidewater fish material role: ${profileRole}` );
+		if ( ! connector?.manifest?.rules?.requiredFeatures?.includes( FISH_PROP_MATERIAL_COMPONENT ) ) throw new Error( 'Tidewater fish material profile is missing its required feature' );
+		if ( ! context?.material ) throw new Error( 'Tidewater fish material renderer is unavailable' );
+		return {
+			material: context.material,
+			prepareGeometry( geometry ) {
+				const data = geometry.getAttribute( 'vdata' );
+				if ( ! data || data.itemSize !== 4 ) throw new Error( 'Tidewater fish props require a VEC4 _ELSEMESH_VDATA attribute' );
+				geometry.setAttribute( 'aData', data );
+			},
 		};
 	},
 } );

@@ -264,6 +264,53 @@ function propVertex( batch, fade ) {
 
 }
 
+// Generic static-model instance sets provide world transforms plus opaque
+// per-instance material vectors instead of MultiKindInstanceBatch records.
+// Keep the exact prop deformation/shading inputs at that backend boundary.
+function staticPropVertex() {
+
+	return /* wgsl */`
+	let data0 = v.iStaticMaterialData0;
+	let data1 = v.iStaticMaterialData1;
+	let pattern = floor( data0.x );
+	let d = v.aData;
+	var p = v.position;
+	var n = v.normal;
+	o.vFishLocal = p;
+	o.vFishData = d;
+	o.vFishInfo = vec4f( pattern, fract( data0.x ), length( v.model[ 0 ].xyz ), 0.0 );
+	o.vFishFlags = data1;
+
+	let hinge = fishRow( pattern, 7 ).zw;
+	let a = data0.w * fishJawOf( d );
+	let ca = cos( a ); let sa = sin( a );
+	let dy = p.y - hinge.y; let dz = p.z - hinge.x;
+	p.y = hinge.y + dy * ca - dz * sa;
+	p.z = hinge.x + dy * sa + dz * ca;
+	let ny = n.y * ca - n.z * sa; let nz = n.y * sa + n.z * ca;
+	n.y = ny; n.z = nz;
+
+	let k1 = data0.y + select( -1e-4, 1e-4, data0.y >= 0.0 );
+	let t1 = k1 * p.z;
+	let c1 = cos( t1 ); let s1 = sin( t1 ); let h1 = sin( t1 * 0.5 );
+	let x1 = h1 * h1 * 2.0 / k1 + p.x * c1;
+	let z1 = s1 / k1 - p.x * s1;
+	let nx1 = n.x * c1 + n.z * s1; let nz1 = n.z * c1 - n.x * s1;
+	let k2 = data0.z + select( -1e-4, 1e-4, data0.z >= 0.0 );
+	let t2 = k2 * z1;
+	let c2 = cos( t2 ); let s2 = sin( t2 ); let h2 = sin( t2 * 0.5 );
+	let y2 = h2 * h2 * 2.0 / k2 + p.y * c2;
+	let z2 = s2 / k2 - p.y * s2;
+	let ny2 = n.y * c2 + nz1 * s2; let nz2 = nz1 * c2 - n.y * s2;
+	let localNormal = vec3f( nx1, ny2, nz2 );
+	let localPosition = vec3f( x1, y2, z2 );
+	v.useWorld = true;
+	v.worldNormal = cofactor3( v.model ) * localNormal;
+	v.worldPos = ( v.model * vec4f( localPosition, 1.0 ) ).xyz;
+	v.prevWorldPos = v.worldPos;`;
+
+}
+
 // ---------------------------------------------------------------------------
 // fragment stage
 
@@ -766,4 +813,22 @@ export function createPropMaterial( batch, { fade = false, presentation } = {} )
 		defines: { CLEARCOAT: 1 },
 	} );
 
+}
+
+// Tidewater's renderer-neutral static instance-set profile. The placement and
+// LOD contract stays in ElseMesh; this world material consumes the opaque
+// profile data and Tidewater's own fish-presentation table.
+export function createStaticPropMaterial( presentation ) {
+	if ( ! presentation?.SPECIES || ! presentation?.PATTERN || ! presentation?.SKIN ) throw new Error( 'Static fish props require a registered world fish-presentation profile' );
+	return new Material( {
+		name: 'Tidewater static fish props',
+		modules: [ fishModule( presentation ) ],
+		attributes: { aData: 'vec4f', iStaticMaterialData0: 'vec4f', iStaticMaterialData1: 'vec4f' },
+		varyings: VARYINGS,
+		vertex: staticPropVertex(),
+		surface: PROP_MASK + surface( true, false, presentation ),
+		shadow: PROP_MASK + '\nreturn true;',
+		defines: { CLEARCOAT: 1 },
+		side: 'double',
+	} );
 }
