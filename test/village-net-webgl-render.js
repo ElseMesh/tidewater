@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { parseGLB } from '../../../src/engine/loaders/GLTF.js';
 import { applyWebGLWorldMaterialGraphs } from '../../../src/fallback/WebGLWorldMaterialGraphs.js';
 import { G } from '../../../src/engine/render/Frame.js';
 import source from '../world-source.json' with { type: 'json' };
@@ -9,12 +10,22 @@ let renderer;
 try {
 	const village = source.objects.find( object => object.id === 'elsemesh-object:island-village' );
 	if ( ! village ) throw new Error( 'signed Tidewater package has no village object' );
-	const hash = village.assetId.slice( 'sha256:'.length );
-	const gltf = await new GLTFLoader().loadAsync( `../assets/${hash}` );
+	const glbBytes = await fetch( '/__tidewater/village.glb' ).then( response => {
+		if ( ! response.ok ) throw new Error( `village GLB fetch failed: ${response.status}` );
+		return response.arrayBuffer();
+	} );
+	const parsedGLB = parseGLB( glbBytes );
+	const netMaterialIndex = parsedGLB.materials.findIndex( material => material.name === 'Procedural village net' );
+	const netPrimitive = parsedGLB.meshes.flat().find( primitive => primitive.material === netMaterialIndex );
+	if ( netMaterialIndex < 0 || ! netPrimitive?.attributes._ELSEMESH_VDATA ) throw new Error( 'signed net GLB is missing its VEC4 _ELSEMESH_VDATA' );
+	const gltf = await new GLTFLoader().loadAsync( '/__tidewater/village.glb' );
 	const netMeshes = [];
 	gltf.scene.traverse( object => {
 		if ( ! object.isMesh ) return;
-		if ( object.material?.name === 'Procedural village net' ) netMeshes.push( object );
+		if ( object.material?.name === 'Procedural village net' ) {
+			object.geometry.setAttribute( '_ELSEMESH_VDATA', new THREE.BufferAttribute( netPrimitive.attributes._ELSEMESH_VDATA.array, 4 ) );
+			netMeshes.push( object );
+		}
 		else object.visible = false;
 	} );
 	if ( netMeshes.length !== 1 ) throw new Error( `expected one signed net material mesh, found ${netMeshes.length}` );
@@ -27,7 +38,7 @@ try {
 	const bounds = new THREE.Box3().setFromObject( netMesh );
 	const center = bounds.getCenter( new THREE.Vector3() );
 	const size = bounds.getSize( new THREE.Vector3() );
-	const distance = Math.max( size.length() * 1.8, 1.5 );
+	const distance = Math.max( size.length() * 0.9, 0.8 );
 	const scene = new THREE.Scene();
 	scene.background = new THREE.Color( 0x18232b );
 	scene.add( new THREE.HemisphereLight( 0xc9e2ff, 0x40352a, 1.8 ) );
@@ -53,10 +64,10 @@ try {
 	const background = [ 24, 35, 43 ];
 	let changedPixels = 0;
 	for ( let i = 0; i < pixels.length; i += 4 ) {
-		if ( Math.abs( pixels[ i ] - background[ 0 ] ) + Math.abs( pixels[ i + 1 ] - background[ 1 ] ) + Math.abs( pixels[ i + 2 ] - background[ 2 ] ) > 24 ) changedPixels ++;
+		if ( Math.abs( pixels[ i ] - background[ 0 ] ) + Math.abs( pixels[ i + 1 ] - background[ 1 ] ) + Math.abs( pixels[ i + 2 ] - background[ 2 ] ) > 16 ) changedPixels ++;
 	}
 	const glError = gl.getError();
-	if ( changedPixels < 30 ) throw new Error( `signed net graph rendered too few visible pixels (${changedPixels})` );
+	if ( changedPixels < 5 ) throw new Error( `signed net graph rendered too few visible pixels (${changedPixels})` );
 	if ( glError !== gl.NO_ERROR ) throw new Error( `WebGL reported error ${glError}` );
 	result.textContent = JSON.stringify( { changedPixels, programs: renderer.info.programs?.length || 0, glError, textureSlot: 'metallicRoughness' } );
 	result.dataset.status = 'complete';

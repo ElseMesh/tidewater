@@ -21,7 +21,22 @@ async function stopBrowser( browser ) {
 }
 
 const profile = mkdtempSync( join( '/var/tmp', 'tidewater-village-net-webgl-' ) );
-const vite = await createServer( { configFile: false, root: engineRoot, server: { host: '127.0.0.1', port: 0, strictPort: true }, appType: 'mpa' } );
+const source = JSON.parse( readFileSync( join( engineRoot, 'worlds/tidewater/world-source.json' ), 'utf8' ) );
+const village = source.objects.find( object => object.id === 'elsemesh-object:island-village' );
+assert( village?.assetId?.startsWith( 'sha256:' ), 'signed Tidewater source identifies the village GLB' );
+const villageBytes = readFileSync( join( engineRoot, 'worlds/tidewater/assets', village.assetId.slice( 'sha256:'.length ) ) );
+const villageAssetPlugin = {
+	name: 'tidewater-village-net-test-asset',
+	configureServer( server ) {
+		server.middlewares.use( '/__tidewater/village.glb', ( _request, response ) => {
+			response.statusCode = 200;
+			response.setHeader( 'Content-Type', 'model/gltf-binary' );
+			response.setHeader( 'Content-Length', villageBytes.length );
+			response.end( villageBytes );
+		} );
+	},
+};
+const vite = await createServer( { configFile: false, root: engineRoot, optimizeDeps: { entries: [ 'worlds/tidewater/test/village-net-webgl-render.html' ] }, plugins: [ villageAssetPlugin ], server: { host: '127.0.0.1', port: 0, strictPort: true }, appType: 'mpa' } );
 let browser, socket;
 try {
 	await vite.listen();
