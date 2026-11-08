@@ -1,6 +1,7 @@
 import { decodeWorldComponentAsset } from '../../../src/network/WorldComponentAssetCodecRegistry.js';
 import { registerWorldComponentBackendAdapter } from '../../../src/network/WorldComponentBackendRegistry.js';
 import { createWebGLVillageMaterials, applyWebGLVillageMaterials } from './WebGLVillageMaterials.js';
+import { VILLAGE_MATERIAL_PROFILE } from '../VillageMaterialProfile.js';
 
 registerWorldComponentBackendAdapter( 'webgl', 'elsemesh.village-materials/2', installVillageMaterials );
 
@@ -22,6 +23,7 @@ async function installVillageMaterials( { fallback, assets }, component ) {
 		installed: true,
 		runtime: {
 			sharedMaterials,
+			resolveWorldMaterialProfile: ( { profile, role } ) => profile === VILLAGE_MATERIAL_PROFILE ? materials[ role ] || null : null,
 			applyObject: ( object, visual ) => object.id === component.objectId ? applyWebGLVillageMaterials( visual, materials ) : 0,
 			dispose() {
 				const textures = new Set();

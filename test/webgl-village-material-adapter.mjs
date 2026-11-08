@@ -18,6 +18,8 @@ const fallback = { THREE, renderer: { capabilities: { getMaxAnisotropy: () => 1 
 const result = await adapter( { fallback, assets: new Map( [ [ assetId, bytes ] ] ) }, component );
 assert.equal( result?.installed, true, 'the WebGL adapter awaits and installs the decoded signed material maps' );
 assert.equal( result.runtime.sharedMaterials.length, 7 );
+assert.equal( result.runtime.resolveWorldMaterialProfile( { profile: 'elsemesh.village/1', role: 'wood' } ), result.runtime.sharedMaterials.find( material => material.name === 'WebGL village wood' ), 'static-model materials resolve through the installed world profile runtime' );
+assert.equal( result.runtime.resolveWorldMaterialProfile( { profile: 'elsemesh.other/1', role: 'wood' } ), null, 'the profile runtime declines profiles it does not own' );
 result.runtime.dispose();
 
 const fallbackSource = await readFile( new URL( '../../../src/fallback/WebGLFallback.js', import.meta.url ), 'utf8' );
