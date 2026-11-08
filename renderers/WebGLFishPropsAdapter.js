@@ -10,13 +10,19 @@ const smoothstep = ( a, b, value ) => {
 const fract = value => value - Math.floor( value );
 const band = ( value, center, width, softness ) => 1 - smoothstep( width, width + softness, Math.abs( value - center ) );
 const fishHash = ( x, y ) => fract( Math.sin( x * 127.1 + y * 311.7 ) * 43758.5453 );
+const fishNoise = ( x, y ) => {
+	const ix = Math.floor( x ), iy = Math.floor( y ), fx = fract( x ), fy = fract( y );
+	const wx = fx * fx * ( 3 - 2 * fx ), wy = fy * fy * ( 3 - 2 * fy );
+	const a = fishHash( ix, iy ), b = fishHash( ix + 1, iy ), c = fishHash( ix, iy + 1 ), d = fishHash( ix + 1, iy + 1 );
+	return ( a + ( b - a ) * wx ) * ( 1 - wy ) + ( c + ( d - c ) * wx ) * wy;
+};
 
 function fishPalette( T, presentation ) {
 	const colors = Object.fromEntries( Object.entries( {
-		silver: 0xc6d0d6, dark: 0x080b12, blue: 0x315da3, yellow: 0xd7a923,
-		brown: 0x453018, green: 0x236a4a, orange: 0xd36625, red: 0x8e2922,
-		pale: 0xe2d8c7, bronze: 0x806329, white: 0xe5e8e6, black: 0x090a0c,
-	} ).map( ( [ name, hex ] ) => [ name, new T.Color( hex ) ] ) );
+		silver: [ 0.78, 0.82, 0.84 ], dark: [ 0.01, 0.015, 0.03 ], blue: [ 0.3, 0.6, 0.95 ], yellow: [ 0.85, 0.62, 0.05 ],
+		brown: [ 0.13, 0.085, 0.05 ], green: [ 0.1, 0.42, 0.26 ], orange: [ 0.85, 0.45, 0.32 ], red: [ 0.85, 0.45, 0.32 ],
+		pale: [ 0.85, 0.8, 0.72 ], bronze: [ 0.42, 0.34, 0.14 ], white: [ 0.85, 0.88, 0.9 ], black: [ 0.02, 0.02, 0.03 ],
+	} ).map( ( [ name, rgb ] ) => [ name, new T.Color().setRGB( ...rgb ) ] ) );
 	const species = Object.fromEntries( Object.entries( presentation.SKIN ).map( ( [ name, skin ] ) => [ name, {
 		back: new T.Color( skin.back ), flank: new T.Color( skin.flank ), belly: new T.Color( skin.belly ),
 		fin: new T.Color( skin.fin ), edge: new T.Color( skin.edge ), iris: new T.Color( presentation.SPECIES[ name ].iris ),
@@ -52,8 +58,8 @@ function applyBodyMarkings( color, record, attributes, index, local, presentatio
 			const stripeWidth = 0.006 + smoothstep( 0.1, - 0.25, z ) * 0.029;
 			const stripe = band( y, 0.004, stripeWidth, 0.005 );
 			const cellX = Math.floor( z * 70 ), cellY = Math.floor( y * 70 );
-			const jitterX = ( fishHash( cellX + 3.1, cellY + 7.7 ) - 0.5 ) * 0.5;
-			const jitterY = ( fishHash( cellX + 7.7, cellY + 3.1 ) - 0.5 ) * 0.5;
+			const jitterX = ( fishHash( cellX + 3.1, cellY + 3.1 ) - 0.5 ) * 0.5;
+			const jitterY = ( fishHash( cellX + 7.7, cellY + 7.7 ) - 0.5 ) * 0.5;
 			const radius = fishHash( cellX + 1.3, cellY + 1.3 ) * 0.14 + 0.1;
 			const dx = fract( z * 70 ) - 0.5 - jitterX, dy = fract( y * 70 ) - 0.5 - jitterY;
 			const spots = ( 1 - smoothstep( radius, radius + 0.12, Math.hypot( dx, dy ) ) ) * ( fishHash( cellX + seed, cellY + seed ) > 0.4 ? 1 : 0 ) * smoothstep( 0.2, 0.75, h );
@@ -85,8 +91,7 @@ function applyBodyMarkings( color, record, attributes, index, local, presentatio
 			break;
 		}
 		case 'angel':
-			color.multiplyScalar( 1 - smoothstep( 0.72, 0.95, fract( ( 0.5 - z ) / 0.02 ) ) * 0.45 );
-			blend( 'yellow', smoothstep( 0.4, 0.43, z ) * 0.55 );
+			// Per-pixel scale rims and eye ring are applied in fishMaterial().
 			break;
 		case 'barracuda': {
 			const bars = smoothstep( 0.35, 0.8, Math.sin( z * 58 + h * 1.5 + fishHash( z * 8, y * 8 ) ) ) * smoothstep( 0.2, 0.55, h );
@@ -99,18 +104,29 @@ function applyBodyMarkings( color, record, attributes, index, local, presentatio
 			color.multiplyScalar( 1 - smoothstep( 0.6, 0.95, Math.sin( y * 210 + z * 120 ) ) * 0.14 );
 			break;
 		case 'grouper': {
-			const wobble = ( fishHash( Math.floor( z * 34 ), Math.floor( y * 34 ) ) - 0.5 ) * 0.03;
-			const bars = smoothstep( 0.2, 0.6, Math.sin( ( 0.5 - z + wobble ) * 34 - 1.2 ) ) * smoothstep( 0.3, 0.38, 0.5 - z ) * smoothstep( 0.86, 0.78, 0.5 - z ) * ( 1 - smoothstep( - 0.7, - 0.1, h ) * 0.85 );
-			color.lerp( palette.brown, bars * 0.85 );
+			const zz = 0.5 - z;
+			const wobble = ( fishNoise( z * 11 + seed * 5, attributes.getZ( index ) * 11 + seed * 5 ) - 0.5 ) * 0.03;
+			const bars = smoothstep( 0.2, 0.6, Math.sin( ( zz + wobble ) * 34 - 1.2 ) ) * smoothstep( 0.3, 0.38, zz ) * smoothstep( 0.86, 0.78, zz ) * ( 1 - smoothstep( - 0.7, - 0.1, h ) * 0.85 );
+			const eye = presentation.SPECIES.grouper.eye, eyeZ = 0.5 - eye.u * presentation.SPECIES.grouper.body;
+			const stripe = band( y - eye.y - ( z - eyeZ ) * 0.25, 0, 0.008, 0.006 ) * smoothstep( eyeZ - 0.08, eyeZ, z ) * smoothstep( 0.5, 0.45, z );
+			const saddle = smoothstep( 0.4, 0.7, h ) * band( zz, 0.8, 0.025, 0.01 );
+			const spots = smoothstep( 0.72, 0.85, fishNoise( z * 160 + seed * 3, y * 160 + seed * 3 ) ) * smoothstep( eyeZ - 0.12, eyeZ, z );
+			color.lerp( palette.brown, Math.max( bars * 0.85, stripe * 0.85, saddle, spots * 0.7 ) );
+			color.lerp( palette.pale, smoothstep( 0.86, 0.93, fishNoise( z * 150 + 9, y * 150 + 9 ) ) * 0.2 );
 			break;
 		}
-		case 'tuna':
+		case 'tuna': {
 			blend( 'bronze', band( h, 0.28, 0.05, 0.06 ) * smoothstep( 0.3, 0.2, z ) * 0.6 );
-			color.lerp( palette.pale, smoothstep( 0.6, 0.9, Math.sin( z * 95 ) ) * smoothstep( 0, - 0.3, h ) * 0.25 );
+			color.lerp( palette.species.tuna.back, smoothstep( 0.28, 0.4, h ) );
+			const bars = smoothstep( 0.6, 0.9, Math.sin( z * 95 ) ) * smoothstep( 0, - 0.3, h ) * smoothstep( 0.2, 0.1, z );
+			color.lerp( palette.white, bars * 0.35 );
 			break;
+		}
 		case 'mahi': {
 			const cellX = Math.floor( z * 55 ), cellY = Math.floor( y * 55 );
-			const dx = fract( z * 55 ) - 0.5, dy = fract( y * 55 ) - 0.5;
+			const jitterX = ( fishHash( cellX + 3.1, cellY + 3.1 ) - 0.5 ) * 0.55;
+			const jitterY = ( fishHash( cellX + 7.7, cellY + 7.7 ) - 0.5 ) * 0.55;
+			const dx = fract( z * 55 ) - 0.5 - jitterX, dy = fract( y * 55 ) - 0.5 - jitterY;
 			const radius = fishHash( cellX + 1.3, cellY + 1.3 ) * 0.14 + 0.1;
 			const spots = ( 1 - smoothstep( radius, radius + 0.1, Math.hypot( dx, dy * 1.25 ) ) ) * ( fishHash( cellX + seed * 7, cellY + seed * 7 ) > 0.45 ? 1 : 0 ) * ( 1 - smoothstep( - 0.7, - 0.1, h ) );
 			blend( 'blue', spots * 0.75 );
@@ -146,6 +162,10 @@ function bodyColor( record, attributes, index, presentation, local, palette, col
 		if ( radius > 0.95 ) color.multiplyScalar( 0.22 );
 		else if ( radius < 0.55 ) color.set( 0x08090b );
 		else color.multiplyScalar( 0.78 + 0.22 * ( 0.5 + 0.5 * Math.sin( Math.atan2( attributes.getW( index ), attributes.getZ( index ) ) * 26 ) ) );
+		if ( record.species === 'angel' ) {
+			const ring = smoothstep( 1.05, 1.2, radius ) * ( 1 - smoothstep( 1.45, 1.65, radius ) );
+			color.lerp( palette.yellow, ring * 0.85 );
+		}
 	}
 	else if ( part === PART.FLESH || part === PART.FILLET || part === PART.MOUTH ) color.copy( palette.flesh );
 	else if ( part > PART.BODY && part < PART.EYE ) color.copy( skin.fin );
@@ -154,6 +174,11 @@ function bodyColor( record, attributes, index, presentation, local, palette, col
 		color.lerp( skin.belly, 1 - smoothstep( - 0.7, - 0.1, h ) );
 	}
 	if ( part === PART.BODY && record.species ) applyBodyMarkings( color, record, attributes, index, local, presentation, palette );
+	if ( record.species === 'sergeant' && part > PART.BODY && part < PART.EYE ) {
+		const h = attributes.getW( index ), z = local.z, y = local.y;
+		const bars = Math.max( smoothstep( 0.45, 0.7, Math.sin( ( z - 0.215 ) * 52 + 1.57 ) ) * smoothstep( - 0.29, - 0.24, z ) * ( 1 - smoothstep( 0.225, 0.26, z ) ), band( z, - 0.33, 0.012, 0.01 ) * 0.4 ) * ( 1 - smoothstep( - 0.7, - 0.1, h ) * 0.8 );
+		color.lerp( palette.dark, bars * 0.4 );
+	}
 	if ( part > PART.BODY && part < PART.EYE && record.species ) {
 		const alongRay = attributes.getZ( index ), rayCoord = attributes.getW( index );
 		const ray = 1 - smoothstep( 0.07, 0.14, Math.abs( fract( rayCoord + 0.5 ) - 0.5 ) );
@@ -167,7 +192,8 @@ function bodyColor( record, attributes, index, presentation, local, palette, col
 	return color;
 }
 
-function fishMaterial( T ) {
+function fishMaterial( T, presentation ) {
+	const pattern = presentation.PATTERN;
 	const material = new T.MeshPhysicalMaterial( {
 		vertexColors: true, roughness: 0.42, metalness: 0.06,
 		clearcoat: 1, clearcoatRoughness: 0.24,
@@ -232,6 +258,31 @@ function fishMaterial( T ) {
 				diffuseColor.rgb *= 0.96 + scaleShade * 0.07 - pocket * 0.1 + cellK;
 				diffuseColor.rgb *= n1 * 0.14 + 0.93;
 				diffuseColor.rgb *= n2 * 0.2 + 0.9;
+				if ( floor( vFishInfo.x + 0.5 ) == ${ pattern.angel.toFixed( 1 ) } && floor( vFishData.y + 0.01 ) < 0.5 ) {
+					float rims = smoothstep( 0.72, 0.95, sf ) * max( sfade, 0.35 );
+					diffuseColor.rgb = mix( diffuseColor.rgb, vec3( 0.62, 0.48, 0.06 ), rims * 0.6 );
+					float face = smoothstep( 0.4, 0.43, vFishLocal.z );
+					diffuseColor.rgb = mix( diffuseColor.rgb, vec3( 0.55, 0.45, 0.2 ), face * 0.6 );
+				}
+			}` );
+		shader.fragmentShader = insert( shader.fragmentShader, '#include <color_fragment>', `
+			float fishPart = floor( vFishData.y + 0.01 );
+			float fishPattern = floor( vFishInfo.x + 0.5 );
+			if ( fishPattern == ${ pattern.chromis.toFixed( 1 ) } && fishPart == ${ PART.CAUDAL.toFixed( 1 ) } ) {
+				float lobe = smoothstep( 5.5, 7.5, abs( vFishData.w - 8.0 ) );
+				diffuseColor.rgb = mix( diffuseColor.rgb, vec3( 0.01, 0.015, 0.03 ), lobe );
+			}
+			if ( fishPattern == ${ pattern.yellowtail.toFixed( 1 ) } && fishPart == ${ PART.CAUDAL.toFixed( 1 ) } ) diffuseColor.rgb = mix( diffuseColor.rgb, vec3( 0.85, 0.62, 0.05 ), 1.0 );
+			if ( fishPattern == ${ pattern.tuna.toFixed( 1 ) } && fishPart == ${ PART.FINLET.toFixed( 1 ) } ) diffuseColor.rgb = mix( diffuseColor.rgb, vec3( 0.55, 0.48, 0.16 ), 0.85 );
+			if ( fishPattern == ${ pattern.sergeant.toFixed( 1 ) } && fishPart == ${ PART.PECTORAL.toFixed( 1 ) } ) {
+				float eyeZ = ${ ( 0.5 - presentation.SPECIES.sergeant.opercle * presentation.SPECIES.sergeant.body ).toFixed( 6 ) };
+				float spot = ( 1.0 - smoothstep( 0.012, 0.02, length( vec2( vFishLocal.z - eyeZ + 0.03, vFishLocal.y + 0.005 ) ) ) ) * 0.8;
+				diffuseColor.rgb = mix( diffuseColor.rgb, vec3( 0.02, 0.02, 0.03 ), spot );
+			}
+			if ( fishPattern == ${ pattern.angel.toFixed( 1 ) } && fishPart == ${ PART.EYE.toFixed( 1 ) } ) {
+				float eyeRadius = length( vFishData.zw );
+				float ring = smoothstep( 1.05, 1.2, eyeRadius ) * ( 1.0 - smoothstep( 1.45, 1.65, eyeRadius ) );
+				diffuseColor.rgb = mix( diffuseColor.rgb, vec3( 0.7, 0.52, 0.06 ), ring * 0.85 );
 			}` );
 		shader.fragmentShader = insert( shader.fragmentShader, '#include <lights_physical_fragment>', `
 			material.roughness = mix( material.roughness, mix( vFishSkinRoughness, 0.12, vFishWetness ), 0.8 );
@@ -300,7 +351,7 @@ export class WebGLFishPropsAdapter {
 		geometry.setIndex( indices );
 		geometry.computeVertexNormals();
 		geometry.computeBoundingSphere();
-		this.mesh = new T.Mesh( geometry, fishMaterial( T ) );
+		this.mesh = new T.Mesh( geometry, fishMaterial( T, presentation ) );
 		this.mesh.name = 'Hosted fish props';
 		this.mesh.castShadow = true;
 		this.mesh.receiveShadow = true;

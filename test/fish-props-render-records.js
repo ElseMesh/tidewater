@@ -21,6 +21,10 @@ export function fishPropsRenderRecords( presentation ) {
 		record( 'lobster', null, 2.75, - 1.75, 0.8 ),
 		record( 'ice', null, - 1.5, - 3.45, 0.9 ),
 		record( 'leaf', null, 0, - 3.45, 1.0 ),
+		// Pattern and fin-detail probes for shader paths not present in the market's main species row.
+		record( 'whole', 'chromis', - 2.7, - 3.45, 1.2, [ 0, 0.55, 0, 0 ], 0.37 ),
+		record( 'whole', 'sergeant', 1.45, - 3.45, 1.2, [ 0, 0.2, 0.7, 0 ], 0.62 ),
+		record( 'whole', 'angel', 2.8, - 3.45, 1.2, [ 0, 0.85, 0, 0 ], 0.78 ),
 	];
 
 }
