@@ -11,6 +11,7 @@ import { Guide } from './Guide.js';
 import { worldFishPresentationFor } from '../../../src/network/WorldFishPresentation.js';
 import { FishingInputController } from '../FishingInputController.js';
 import { canFishInWorld, stepFishingBite, strikeFishing, stepFishingFight } from './FishingGameplay.js';
+import { buyFishingUpgrade, refuelFishingBoat, sellAllFish, sellFish } from './FishingCommerce.js';
 
 // how long the catch card stays up unless dismissed (ms)
 const CATCH_CARD_MS = 9000;
@@ -154,22 +155,13 @@ export class Game {
 
 	buy( key ) {
 
-		const r = this.runtime.buyUpgrade( key );
-		if ( r ) this.toast( `${ r.name }: ${ r.label }` );
-		return r;
+		return buyFishingUpgrade( this.runtime, key, ( ...args ) => this.toast( ...args ) );
 
 	}
 
 	refuel() {
 
-		const l = this.runtime.refuel();
-		if ( l > 0 ) {
-
-			this.toast( `Filled up · ${ l.toFixed( 0 ) } L` );
-
-		}
-
-		return l;
+		return refuelFishingBoat( this.runtime, ( ...args ) => this.toast( ...args ) );
 
 	}
 
@@ -363,18 +355,13 @@ export class Game {
 
 	sellAll() {
 
-		const r = this.state.sell();
-		if ( r.count ) this.toast( `Sold ${ r.count } fish for $${ r.total }` );
-		if ( this.app.audio && this.app.audio.coin ) this.app.audio.coin();
-		return r;
+		return sellAllFish( this.state, this.app.audio, ( ...args ) => this.toast( ...args ) );
 
 	}
 
 	sell( ids ) {
 
-		const r = this.state.sell( ids );
-		if ( r.count ) this.toast( `Sold for $${ r.total }` );
-		return r;
+		return sellFish( this.state, ids, ( ...args ) => this.toast( ...args ) );
 
 	}
 

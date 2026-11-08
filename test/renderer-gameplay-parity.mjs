@@ -90,4 +90,16 @@ assert.deepEqual( webgl.state.inventory, webgpu.state.inventory, 'both renderers
 assert.deepEqual( webglAudio.events, webgpuAudio.events, 'both renderers play the same sale audio cue' );
 assert.deepEqual( webglToasts, webgpuToasts, 'both renderers show the same sale message' );
 
+const webgpuEmptySale = webgpu.sellAll(), webglEmptySale = webgl.sellAll();
+assert.deepEqual( webglEmptySale, webgpuEmptySale, 'both renderers report the same empty sale' );
+assert.deepEqual( webglAudio.events, webgpuAudio.events, 'both renderers preserve the pre-split empty-sale cue behavior' );
+
+for ( const game of [ webgpu, webgl ] ) {
+	game.state.money = 1000;
+	game.runtime.refuel = () => 12;
+}
+assert.deepEqual( webgl.buy( 'engine' ), webgpu.buy( 'engine' ), 'both renderers apply the same shop upgrade' );
+assert.equal( webgl.refuel(), webgpu.refuel(), 'both renderers buy the same amount of fuel' );
+assert.deepEqual( webglToasts, webgpuToasts, 'both renderers show matching upgrade and refuel feedback' );
+
 console.log( `WebGPU/WebGL fishing and sale trace parity passed (${frames} deterministic fight frames)` );

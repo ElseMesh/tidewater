@@ -6,6 +6,7 @@ import { WebGLFishingRodPresentation } from './WebGLFishingRodPresentation.js';
 import { FishingInputController } from '../FishingInputController.js';
 import { Guide } from '../game/Guide.js';
 import { canFishInWorld, stepFishingBite, strikeFishing, stepFishingFight } from '../game/FishingGameplay.js';
+import { buyFishingUpgrade, refuelFishingBoat, sellAllFish, sellFish } from '../game/FishingCommerce.js';
 
 const CATCH_CARD_MS = 9000;
 
@@ -246,36 +247,25 @@ export class WebGLGameAdapter {
 
 	sellAll() {
 
-		const result = this.state.sell();
-		if ( result.count ) {
-
-			this.toast( `Sold ${ result.count } fish for $${ result.total }` );
-			this.audio?.coin?.();
-
-		}
-		return result;
+		return sellAllFish( this.state, this.audio, ( ...args ) => this.toast( ...args ) );
 
 	}
 
 	sell( ids ) {
 
-		const result = this.state.sell( ids );
-		if ( result.count ) this.toast( `Sold for $${ result.total }` );
-		return result;
+		return sellFish( this.state, ids, ( ...args ) => this.toast( ...args ) );
 
 	}
 
 	buy( key ) {
 
-		const result = this.runtime.buyUpgrade( key );
-		if ( result ) this.toast( `${ result.name }: ${ result.label }` );
-		return result;
+		return buyFishingUpgrade( this.runtime, key, ( ...args ) => this.toast( ...args ) );
 
 	}
 
 	refuel() {
 
-		return this.runtime.refuel();
+		return refuelFishingBoat( this.runtime, ( ...args ) => this.toast( ...args ) );
 
 	}
 

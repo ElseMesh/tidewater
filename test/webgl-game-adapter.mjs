@@ -58,7 +58,7 @@ const guideFrames = [], guide = { update( dt ) { guideFrames.push( dt ); } };
 const adapter = Object.create( WebGLGameAdapter.prototype );
 const webglCamera = { backend: 'webgl' }, webglBoat = { backend: 'webgl' }, mapFrames = [];
 Object.assign( adapter, {
-	state, vendor, vendors: [ vendor, shopVendor ], activeVendor: vendor, ui, hud, nearVendor: true,
+	state, runtime: { refuel: () => 12 }, vendor, vendors: [ vendor, shopVendor ], activeVendor: vendor, ui, hud, nearVendor: true,
 	camera: webglCamera, boatController: webglBoat,
 	app: { player: null, boatCtl: null }, guide,
 	minimap: { update( dt, view ) { mapFrames.push( { dt, view } ); } },
@@ -107,7 +107,13 @@ assert.equal( state.money, 6, 'shared fish pricing is preserved' );
 assert.match( ui.lastToast, /Sold 1 fish for \$6/ );
 assert.deepEqual( coinCues, [ 'coin' ], 'a successful sale plays the WebGPU coin cue exactly once' );
 adapter.sellAll();
-assert.deepEqual( coinCues, [ 'coin' ], 'an empty sale does not play a coin cue' );
+assert.deepEqual( coinCues, [ 'coin', 'coin' ], 'empty-sale cue behavior matches the pre-split WebGPU path' );
+
+state.money = 100;
+state.fuel = 0;
+const refuelled = adapter.refuel();
+assert.ok( refuelled > 0, 'the WebGL chandlery can refuel the boat' );
+assert.match( ui.lastToast, /Filled up · \d+ L/, 'the WebGL chandlery reports the refuel amount like WebGPU' );
 
 console.log( 'webgl game adapter passed (shared buyer controls, inventory, selling and HUD)' );
 
