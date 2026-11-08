@@ -39,6 +39,7 @@ import { encodeVillageMaterialAsset, wrapCompressedVillageMaterialAsset } from '
 import { TIDEWATER_WHALE_PROFILE } from '../WhaleProfile.js';
 import { writeWorldAssetIndex } from '../../../tools/world-asset-index.mjs';
 import { generateTidewaterReefURLs } from './generate-reef-asset-urls.mjs';
+import { fishPropGeometry } from '../../../src/world/fish/FishProps.js';
 
 const REPO = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '../../..' );
 const WORLD_ROOT = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..' );
@@ -165,6 +166,12 @@ if ( fishPropsDocument.length > MAX_FISH_PROP_PLACEMENT_BYTES ) throw new Error(
 const fishPropsAssetId = `sha256:${createHash( 'sha256' ).update( fishPropsDocument ).digest( 'hex' )}`;
 staticAssets.set( fishPropsAssetId, fishPropsDocument );
 const fishPropsBounds = boundsForFishProps( generated.fishProps );
+const fishStaticModelSet = exportFishPropStaticModelSet( generated.fishProps, fishPresentation );
+await writeFile( path.join( output, 'fish-static-model-instance-set.json' ), JSON.stringify( fishStaticModelSet.document, null, 2 ) + '\n' );
+const fishStaticModelsPath = path.join( output, 'fish-static-models' );
+await mkdir( fishStaticModelsPath, { recursive: true } );
+for ( const entry of await readdir( fishStaticModelsPath, { withFileTypes: true } ) ) if ( entry.isFile() && /^[0-9a-f]{64}\.glb$/.test( entry.name ) && ! fishStaticModelSet.assets.has( entry.name.slice( 0, 64 ) ) ) await rm( path.join( fishStaticModelsPath, entry.name ) );
+for ( const [ hash, bytes ] of fishStaticModelSet.assets ) await writeFile( path.join( fishStaticModelsPath, `${hash}.glb` ), bytes );
 const reefLayout = new Reef( { terrain, worldLayout: TIDEWATER_LAYOUT, layoutOnly: true } );
 const reefRecords = reefLayout.placements();
 const reefModelRadius = Math.max( ...[ ...reefLayout.kinds.hard, ...reefLayout.kinds.soft ].filter( ( kind ) => kind.lod === 0 ).map( ( kind ) => {
@@ -553,6 +560,105 @@ function boundsForFishProps( records ) {
 	const center = min.map( ( value, axis ) => ( value + max[ axis ] ) * 0.5 );
 	const radius = Math.max( 0.01, ...records.map( record => Math.hypot( record.x - center[ 0 ], record.y - center[ 1 ], record.z - center[ 2 ] ) + Math.max( 0.25, record.L * 0.8 ) ) );
 	return { center, radius };
+}
+
+// Emit a generic, renderer-neutral static model set alongside the current runtime
+// placement component. Keeping this sidecar lets world tests validate the migration
+// artifact before the engine component is switched over.
+function exportFishPropStaticModelSet( records, presentation ) {
+	const classes = new Map();
+	const assets = new Map();
+	for ( const record of records ) {
+		const id = `${record.kind}-${record.species || 'none'}`;
+		if ( ! classes.has( id ) ) classes.set( id, { id, kind: record.kind, species: record.species } );
+	}
+	const models = [];
+	for ( const entry of classes.values() ) {
+		const lodAssets = [];
+		let radius = 0;
+		for ( const lod of [ 1, 0 ] ) {
+			const geometry = fishPropGeometry( entry.kind, entry.species, lod, presentation );
+			const position = geometry.attributes.position.array;
+			const vdata = geometry.attributes.aData.array;
+			const normal = geometry.attributes.normal.array;
+			for ( let i = 0; i < position.length; i += 3 ) radius = Math.max( radius, Math.hypot( position[ i ], position[ i + 1 ], position[ i + 2 ] ) );
+			const glb = exportFishPropGLB( entry.id, position, normal, vdata, geometry.index.array );
+			const assetId = `sha256:${createHash( 'sha256' ).update( glb ).digest( 'hex' )}`;
+			assets.set( assetId.slice( 'sha256:'.length ), glb );
+			lodAssets.push( { assetId } );
+		}
+		models.push( {
+			id: entry.id,
+			bounds: { center: [ 0, 0, 0 ], radius: Math.max( 0.01, radius ) },
+			geometryMirrorX: false,
+			lods: lodAssets,
+			lodThresholds: [ 28 ],
+			lodMetric: 'scaled-distance',
+			lodFadeFraction: 0.12,
+			shadowLod: 0,
+			shadowMaxDistance: 22,
+			drawMaxDistance: 90,
+			drawFadeStartDistance: 81,
+		} );
+	}
+	const instances = records.map( record => ( {
+		model: `${record.kind}-${record.species || 'none'}`,
+		position: [ record.x, record.y, record.z ],
+		rotation: record.q,
+		scale: [ record.L, record.L, record.L ],
+		// Keep every source field losslessly available during migration. The engine
+		// consumes only the generic transform and eight renderer-neutral material slots.
+		placementId: JSON.stringify( { kind: record.kind, species: record.species, pattern: record.pattern, seed: record.seed, curl: record.curl, sag: record.sag, jaw: record.jaw, flags: record.flags } ),
+		materialData: [ record.pattern + ( record.seed % 1 ) * 0.9, record.curl, record.sag, record.jaw, ...record.flags ],
+	} ) );
+	return {
+		document: { format: 'elsemesh.static-model-instance-set/1', models, instances },
+		assets,
+	};
+}
+
+function exportFishPropGLB( name, position, normal, vdata, indices ) {
+	const chunks = [], bufferViews = [], accessors = [];
+	let byteLength = 0;
+	const add = ( typed, target, type, size, componentType = 5126 ) => {
+		const padding = ( 4 - byteLength % 4 ) % 4;
+		if ( padding ) { chunks.push( Buffer.alloc( padding ) ); byteLength += padding; }
+		const bytes = Buffer.from( typed.buffer, typed.byteOffset, typed.byteLength );
+		const bufferView = bufferViews.length;
+		bufferViews.push( { buffer: 0, byteOffset: byteLength, byteLength: bytes.byteLength, target } );
+		chunks.push( bytes ); byteLength += bytes.byteLength;
+		const accessor = { bufferView, componentType, count: typed.length / size, type };
+		if ( type === 'VEC3' && target === 34962 && size === 3 ) {
+			const min = [ Infinity, Infinity, Infinity ], max = [ - Infinity, - Infinity, - Infinity ];
+			for ( let i = 0; i < typed.length; i += 3 ) for ( let axis = 0; axis < 3; axis ++ ) { min[ axis ] = Math.min( min[ axis ], typed[ i + axis ] ); max[ axis ] = Math.max( max[ axis ], typed[ i + axis ] ); }
+			accessor.min = min; accessor.max = max;
+		}
+		accessors.push( accessor );
+		return accessors.length - 1;
+	};
+	const attributes = {
+		POSITION: add( Float32Array.from( position ), 34962, 'VEC3', 3 ),
+		NORMAL: add( Float32Array.from( normal ), 34962, 'VEC3', 3 ),
+		_ELSEMESH_VDATA: add( Float32Array.from( vdata ), 34962, 'VEC4', 4 ),
+	};
+	const indexAccessor = add( Uint32Array.from( indices ), 34963, 'SCALAR', 1, 5125 );
+	const binary = Buffer.concat( chunks );
+	const gltf = {
+		asset: { version: '2.0', generator: 'Tidewater static fish model exporter/1' },
+		scene: 0, scenes: [ { nodes: [ 0 ] } ], nodes: [ { name } ],
+		meshes: [ { name, primitives: [ { attributes, indices: indexAccessor, material: 0, mode: 4 } ] } ],
+		materials: [ { name: `${name} authored material profile`, pbrMetallicRoughness: { baseColorFactor: [ 1, 1, 1, 1 ], metallicFactor: 0, roughnessFactor: 0.8 }, doubleSided: true } ],
+		accessors, bufferViews, buffers: [ { byteLength: binary.length } ],
+	};
+	const json = Buffer.from( JSON.stringify( gltf ) );
+	const jsonPadded = Buffer.concat( [ json, Buffer.alloc( ( 4 - json.length % 4 ) % 4, 0x20 ) ] );
+	const binPadded = Buffer.concat( [ binary, Buffer.alloc( ( 4 - binary.length % 4 ) % 4 ) ] );
+	const totalLength = 12 + 8 + jsonPadded.length + 8 + binPadded.length;
+	const header = Buffer.alloc( 12 );
+	header.writeUInt32LE( 0x46546c67, 0 ); header.writeUInt32LE( 2, 4 ); header.writeUInt32LE( totalLength, 8 );
+	const jsonHeader = Buffer.alloc( 8 ); jsonHeader.writeUInt32LE( jsonPadded.length, 0 ); jsonHeader.writeUInt32LE( 0x4e4f534a, 4 );
+	const binHeader = Buffer.alloc( 8 ); binHeader.writeUInt32LE( binPadded.length, 0 ); binHeader.writeUInt32LE( 0x004e4942, 4 );
+	return Buffer.concat( [ header, jsonHeader, jsonPadded, binHeader, binPadded ] );
 }
 
 // Preserve the exact material packing used by Village._assemble().

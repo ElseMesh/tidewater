@@ -23,6 +23,7 @@ import { decodeVillageMaterialAsset } from '../VillageMaterialAsset.js';
 import { BANK } from '../../../src/audio/soundBank.js';
 import { transformBoundsCenter } from '../../../src/network/WorldStreaming.js';
 import { Vector3 } from '../../../src/engine/math/Vector3.js';
+import { validateStaticModelInstanceSet } from '../../../src/network/StaticModelInstanceSet.js';
 
 const temporaryRoot = process.env.PREFIX ? path.join( process.env.PREFIX, 'tmp' ) : '/var/tmp';
 const output = await mkdtemp( path.join( temporaryRoot, 'elsemesh-island-export-' ) );
@@ -80,6 +81,7 @@ try {
 	assert.ok( Object.values( checkedInVegetation ).filter( Array.isArray ).reduce( ( count, records ) => count + records.length, 0 ) > 100, 'checked-in component asset contains portable individual vegetation placements' );
 	const sourcePath = path.join( output, 'world-source.json' );
 	const firstExportOutput = execFileSync( process.execPath, [ 'worlds/tidewater/tools/export-world.mjs', '--out', output ], { cwd: repositoryRoot, encoding: 'utf8' } );
+	const fishSetBytesFirst = await readFile( path.join( output, 'fish-static-model-instance-set.json' ) );
 	const sourceFirst = await readFile( sourcePath );
 	const terrainReportPath = path.join( output, 'terrain-validation.json' );
 	const terrainReportFirst = await readFile( terrainReportPath );
@@ -90,6 +92,25 @@ try {
 	const firstAssets = new Map();
 	for ( const id of referencedIDs( firstDocument ) ) firstAssets.set( id, await readFile( path.join( output, 'assets', id.slice( 'sha256:'.length ) ) ) );
 	const secondExportOutput = execFileSync( process.execPath, [ 'worlds/tidewater/tools/export-world.mjs', '--out', output ], { cwd: repositoryRoot, encoding: 'utf8' } );
+	const fishSetBytes = await readFile( path.join( output, 'fish-static-model-instance-set.json' ) );
+	const fishSet = validateStaticModelInstanceSet( JSON.parse( fishSetBytes ) );
+	assert.equal( fishSet.instances.length, 78, 'generic fish model set exports all 78 original placements' );
+	assert.equal( fishSet.models.length, 18, 'generic fish model set exports all 18 kind/species geometry classes' );
+	const fishSetFiles = await readdir( path.join( output, 'fish-static-models' ) );
+	const fishSetAssetIDs = new Set( fishSet.models.flatMap( model => model.lods.map( lod => lod.assetId ) ) );
+	assert.equal( fishSetFiles.length, 36, 'generic fish model set exports two LOD GLBs for every geometry class' );
+	assert.equal( fishSetFiles.length, fishSetAssetIDs.size, 'each generic fish LOD has a unique content address' );
+	for ( const model of fishSet.models ) {
+		assert.equal( model.lods.length, 2, `${model.id} retains both original geometry LODs` );
+		for ( const { assetId } of model.lods ) {
+			const bytes = await readFile( path.join( output, 'fish-static-models', `${assetId.slice( 'sha256:'.length )}.glb` ) );
+			assert.equal( `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`, assetId, 'fish model GLB filename and bytes match its content address' );
+			const parsed = parseGLB( bytes );
+			const primitive = parsed.meshes[ 0 ][ 0 ];
+			assert.ok( primitive.indices?.length > 0 && primitive.attributes.POSITION && primitive.attributes.NORMAL && primitive.attributes._ELSEMESH_VDATA?.itemSize === 4, `${model.id} exports indexed geometry, normals, and material vertex data` );
+		}
+	}
+	assert.deepEqual( fishSetBytes, fishSetBytesFirst, 'the generic fish model-set descriptor is deterministic' );
 	const sourceBytes = await readFile( sourcePath );
 	const terrainReportSecond = await readFile( terrainReportPath );
 	const source = validateWorldSource( JSON.parse( sourceBytes ) );
@@ -178,6 +199,16 @@ try {
 	const fishProps = decodeFishPropPlacements( new Uint8Array( fishPropsBytes ), fishPresentation );
 	assert.ok( fishProps.length > 0 && fishProps.some( record => record.kind === 'whole' ) && fishProps.some( record => record.kind === 'lobster' ), 'export carries the market fish and lobster renderer inputs' );
 	assert.ok( fishProps.every( record => Number.isFinite( record.seed ) && Number.isInteger( record.pattern ) ), 'fish prop export includes deterministic renderer seeds and pattern inputs' );
+	assert.equal( fishProps.length, fishSet.instances.length, 'generic instance-set export preserves the source placement count' );
+	for ( let i = 0; i < fishProps.length; i ++ ) {
+		const sourceRecord = fishProps[ i ], instance = fishSet.instances[ i ];
+		assert.deepEqual( instance.position, [ sourceRecord.x, sourceRecord.y, sourceRecord.z ], 'generic instance position preserves the source placement coordinates' );
+		assert.deepEqual( instance.rotation, sourceRecord.q, 'generic instance rotation preserves the source placement quaternion' );
+		assert.deepEqual( instance.scale, [ sourceRecord.L, sourceRecord.L, sourceRecord.L ], 'generic instance scale preserves the source placement length' );
+		assert.equal( instance.model, `${sourceRecord.kind}-${sourceRecord.species || 'none'}`, 'generic model class preserves source kind and species' );
+		assert.deepEqual( JSON.parse( instance.placementId ), { kind: sourceRecord.kind, species: sourceRecord.species, pattern: sourceRecord.pattern, seed: sourceRecord.seed, curl: sourceRecord.curl, sag: sourceRecord.sag, jaw: sourceRecord.jaw, flags: sourceRecord.flags }, 'generic instance retains every original placement field losslessly' );
+		assert.deepEqual( instance.materialData, [ sourceRecord.pattern + ( sourceRecord.seed % 1 ) * 0.9, sourceRecord.curl, sourceRecord.sag, sourceRecord.jaw, ...sourceRecord.flags ], 'generic instance preserves all renderer inputs in its material data' );
+	}
 	const villageMaterialsComponent = source.components.find( component => component.type === 'elsemesh.village-materials/2' );
 	assert.equal( componentData( villageMaterialsComponent ).profile, VILLAGE_MATERIAL_RENDERER_PROFILE, 'hosted village selects the versioned original material renderer' );
 	assert.equal( componentData( villageMaterialsComponent ).objectId, villageObject.id, 'packaged village textures are associated with the village object' );
