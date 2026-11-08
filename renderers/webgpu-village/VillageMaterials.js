@@ -2,7 +2,9 @@ import { DoubleSide } from '../../../../src/engine/index.js';
 import { ShaderModule } from '../../../../src/engine/gpu/Shader.js';
 import { commonModule } from '../../../../src/engine/render/wgsl/common.js';
 import { standard } from '../../../../src/materials/Materials.js';
+import { createWebGPUMaterialGraph } from '../../../../src/materials/WorldMaterialGraph.js';
 import { VillageTextures } from './TextureBaker.js';
+import { TIDEWATER_NET_MATERIAL_GRAPH } from '../../VillageMaterialGraphs.js';
 
 // Shared PBR materials for the village, pier and props.
 //
@@ -660,32 +662,13 @@ export function createFabricMaterial( T ) {
 // and the TAA reprojected the background with it: grain and ghosted houses behind every net.
 // vdata as for FABRIC nets: x seed, y sway weight, z mesh size (m).
 
-export function createNetMaterial( T ) {
-
-	const m = villageMaterial( { roughness: 0.9, metalness: 0, side: DoubleSide, transparent: true, depthWrite: false }, T, [ 'net' ], {
-		// sway (as the fabric)
-		vertex: SWAY + '\tv.position = swayPos;\n',
-		surface: /* wgsl */`
-	let aTint = in.vs.vTint;
-	let aData = in.vs.vData;
-	let uvm = in.uv;
-	let tile = max( aData.z, 0.02 ) * 4.0;
-	let nuv = uvm / tile;
-	let Nt = textureSample( vlgNet, smpAnisoRepeat, nuv );
-	let fwn = fwidth( nuv );
-	let far = smoothstep( 0.05, 0.1, max( fwn.x, fwn.y ) );
-	let nn = Nt.ba * 2.0 - 1.0;
-	let netS = nn / sqrt( max( 1.0 - dot( nn, nn ), 0.04 ) ) * ( 1.0 - far );
-
-	s.normal = normalize( vlmNormalFromSlope( in.P, in.N, in.uv, netS ) );
-	// strands up close; average coverage of the knotted mesh (~0.4) once they are sub-pixel
-	s.alpha = mix( Nt.r, 0.4, far ) * 0.95;
-	s.albedo = aTint * mix( 0.5, 1.05, Nt.g ) * mix( 1.0, 0.85, far );
-`,
-	} );
-	m.name = 'VillageNet';
-	return m;
-
+function createNetMaterial( textures ) {
+	const material = createWebGPUMaterialGraph( {
+		name: 'VillageNet', doubleSided: true, alphaMode: 'BLEND',
+		pbrMetallicRoughness: { baseColorFactor: [ 1, 1, 1, 1 ], roughnessFactor: 0.9, metallicFactor: 0 },
+	}, TIDEWATER_NET_MATERIAL_GRAPH, { graphTextures: { metallicRoughness: textures.net } } );
+	material.name = 'VillageNet';
+	return material;
 }
 
 export function createVillageMaterials( textures = new VillageTextures() ) {

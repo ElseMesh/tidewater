@@ -6,6 +6,9 @@ import { createHash } from 'node:crypto';
 import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import '../../../test/headless.mjs';
+import '../../../test/smaa-shim.mjs';
+import { GPU } from '../../../src/engine/gpu/GPU.js';
 import { parseGLB } from '../../../src/engine/loaders/GLTF.js';
 import { getDetailImage } from '../../../src/world/terrain/DetailTextures.js';
 import { appendWorldPackageAssets, disposeWorldPackage, loadWorldPackage, registerWorldPackageCollisions, unregisterWorldPackageCollisions } from '../../../src/network/WorldPackage.js';
@@ -33,6 +36,7 @@ const componentAssetRefs = component => ( component.assets || [] ).map( asset =>
 const whaleAssetRefs = component => ( component.assets || [] ).filter( asset => asset.kind.startsWith( 'whale-' ) ).map( asset => asset.assetId );
 
 try {
+	await GPU.init( { headless: true } );
 	const detailImage = getDetailImage();
 	assert.equal( detailImage.width, 512, 'procedural placement can access the shared detail image without initializing WebGPU' );
 	assert.equal( detailImage.data.length, 512 * 512 * 4, 'CPU detail image retains the exact shared RGBA data layout' );
@@ -284,6 +288,15 @@ try {
 	assert.ok( villageGLB.meshes[ 0 ].length >= 8, 'village export preserves its separate authored material batches' );
 	assert.ok( villageGLB.meshes[ 0 ].reduce( ( count, primitive ) => count + primitive.indices.length, 0 ) > 300000, 'village export includes the complete deterministic structural geometry' );
 	assert.ok( villageGLB.meshes[ 0 ].every( ( primitive ) => primitive.attributes.COLOR_0 ), 'village export carries authored per-vertex tint' );
+	const netMaterials = villageGLB.materials.filter( material => material.extras?.elsemeshWorld?.materialRole === 'net' );
+	assert.equal( netMaterials.length, 1, 'village net is represented by one renderer-neutral material graph' );
+	assert.equal( netMaterials[ 0 ].extras.elsemeshMaterial.profile, 'elsemesh.material-graph/1' );
+	assert.equal( netMaterials[ 0 ].extras.elsemeshMaterial.graph.outputs.surfaceNormal, 'surfaceNormal' );
+	assert.ok( netMaterials[ 0 ].pbrMetallicRoughness.metallicRoughnessTexture, 'net graph samples its signed packed channel texture through a standard glTF slot' );
+	const netTextureIndex = netMaterials[ 0 ].pbrMetallicRoughness.metallicRoughnessTexture.index;
+	const netImage = villageGLB.images[ villageGLB.textures[ netTextureIndex ].source ];
+	assert.equal( netImage.mimeType, 'image/png' );
+	assert.deepEqual( [ ...netImage.bytes.subarray( 0, 8 ) ], [ 137, 80, 78, 71, 13, 10, 26, 10 ], 'the graph texture is embedded in the signed GLB' );
 	const lanternMaterialIndexes = new Set( villageGLB.materials.flatMap( ( material, index ) => material.name.includes( 'lantern-' ) ? [ index ] : [] ) );
 	assert.deepEqual( [ ...lanternMaterialIndexes ].map( index => villageGLB.materials[ index ].extras?.elsemeshMaterial?.role ).sort(), [ 'hard', 'wood' ], 'export includes static hanging lanterns with the trusted hard and wood materials' );
 	const lanternPrimitives = villageGLB.meshes[ 0 ].filter( primitive => lanternMaterialIndexes.has( primitive.material ) );
@@ -297,7 +310,7 @@ try {
 	const villageLOD = parseGLB( villageLODBytes );
 	const triangleCount = ( model ) => model.meshes.flat().reduce( ( total, primitive ) => total + primitive.indices.length / 3, 0 );
 	assert.ok( triangleCount( villageLOD ) < triangleCount( villageGLB ) * 0.5, 'village distance LOD reduces geometry by more than half' );
-	assert.deepEqual( [ ...new Set( villageLOD.materials.map( material => material.extras?.elsemeshMaterial?.role ).filter( Boolean ) ) ].sort(), VILLAGE_MATERIAL_ROLES.slice().sort(), 'village distance LOD preserves the trusted material-role catalog' );
+	assert.deepEqual( [ ...new Set( villageLOD.materials.map( material => material.extras?.elsemeshWorld?.materialRole || material.extras?.elsemeshMaterial?.role ).filter( Boolean ) ) ].sort(), VILLAGE_MATERIAL_ROLES.slice().sort(), 'village distance LOD preserves the trusted material-role catalog' );
 	assert.ok( villageLOD.meshes.flat().every( primitive => primitive.attributes.COLOR_0 && primitive.attributes._ELSEMESH_VDATA?.itemSize === 4 ), 'village distance LOD preserves tint and trusted per-vertex material parameters' );
 	assert.deepEqual( villageObject.lods[ 0 ], { assetId: villageObject.lods[ 0 ].assetId, maxScreenFraction: 0.45 }, 'village selects lower detail only when its projected size falls below the authored threshold' );
 	const boatBase = parseGLB( firstAssets.get( boatObject.assetId ) );
@@ -373,7 +386,18 @@ try {
 	const villageRoot = await loadWorldPackage( villageConnector, { assets: new Map( [ [ villageObject.assetId, villagePayload ] ] ), materialContext: { materials: villageMaterials, textures: { bake() {} } } } );
 	let villageRuntimeMeshes = 0;
 	const villageRoles = new Set();
-	villageRoot.traverse( ( object ) => { if ( object.isMesh ) { villageRuntimeMeshes ++; assert.equal( object.geometry.getAttribute( 'vdata' )?.itemSize, 4, 'village GLB keeps original material parameters' ); assert.equal( object.geometry.getAttribute( 'color' )?.itemSize, 3, 'village GLB keeps authored tint' ); villageRoles.add( object.material.name ); } } );
+	villageRoot.traverse( ( object ) => { if ( object.isMesh ) {
+		villageRuntimeMeshes ++;
+		assert.equal( object.geometry.getAttribute( 'vdata' )?.itemSize, 4, 'village GLB keeps original material parameters' );
+		assert.equal( object.geometry.getAttribute( 'color' )?.itemSize, 3, 'village GLB keeps authored tint' );
+		if ( object.material.name === 'Procedural village net' ) {
+			assert.match( object.material.surface, /emg_tintedAlbedo/, 'the package net uses the engine-compiled material graph' );
+			assert.equal( object.material.transparent, true );
+			assert.equal( object.material.depthWrite, false );
+			assert.equal( object.material.side, 'double' );
+			villageRoles.add( 'net' );
+		} else villageRoles.add( object.material.name );
+	} } );
 	assert.equal( villageRuntimeMeshes, villageGLB.meshes[ 0 ].length, 'hosted package loader creates each village material batch' );
 	assert.deepEqual( villageRoles, new Set( VILLAGE_MATERIAL_ROLES ), 'hosted village selects every original trusted material role' );
 	const villageLODController = villageRoot.userData.worldPackage.lodControllers.get( villageObject.id );
@@ -419,4 +443,5 @@ try {
 	console.log( 'ok deterministic procedural island terrain and village GLB package' );
 } finally {
 	await rm( output, { recursive: true, force: true } );
+	GPU.device?.destroy();
 }

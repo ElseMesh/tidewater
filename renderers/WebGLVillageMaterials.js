@@ -7,7 +7,6 @@ const ROLE_SPECS = Object.freeze( {
 	thatch: { albedo: 'thatchA', packed: 'thatchN', metalness: 0 },
 	stone: { albedo: 'stoneA', packed: 'stoneN', metalness: 0 },
 	fabric: { packed: 'net', metalness: 0, roughness: 0.9 },
-	net: { packed: 'net', metalness: 0, roughness: 0.9, transparent: true, alphaTest: 0.35 },
 } );
 
 function makeTexture( THREE, data, spec, { color = false, anisotropy = 1 } = {} ) {
@@ -64,10 +63,7 @@ function derivedColorMap( THREE, data, spec, role, anisotropy ) {
 	const color = new Uint8Array( data.length );
 	for ( let i = 0; i < data.length; i += 4 ) {
 		const r = data[ i ] / 255, g = data[ i + 1 ] / 255, b = data[ i + 2 ] / 255;
-		if ( role === 'net' ) {
-			color[ i ] = color[ i + 1 ] = color[ i + 2 ] = Math.round( g * 255 );
-			color[ i + 3 ] = 255;
-		} else if ( role === 'roofMetal' || role === 'hard' ) {
+		if ( role === 'roofMetal' || role === 'hard' ) {
 			const rust = r * ( role === 'roofMetal' ? 0.45 : 0.55 );
 			color[ i ] = Math.round( ( role === 'roofMetal' ? 110 : 105 ) * ( 1 - rust ) + 102 * rust );
 			color[ i + 1 ] = Math.round( ( role === 'roofMetal' ? 112 : 105 ) * ( 1 - rust ) + 48 * rust );
@@ -77,7 +73,7 @@ function derivedColorMap( THREE, data, spec, role, anisotropy ) {
 			color.set( data.subarray( i, i + 4 ), i );
 		}
 		// These channels are authored as linear RGBA8 data, not sRGB color values.
-		if ( role === 'hard' || role === 'roofMetal' || role === 'net' ) color[ i + 3 ] = 255;
+		if ( role === 'hard' || role === 'roofMetal' ) color[ i + 3 ] = 255;
 	}
 	return makeTexture( THREE, color, spec, { anisotropy } );
 }
@@ -99,7 +95,7 @@ export function createWebGLVillageMaterials( THREE, decoded, { anisotropy = 1 } 
 		const albedoSpec = albedoName ? sourceSpec( albedoName, decoded ) : null;
 		const albedo = albedoSpec ? decoded.maps[ albedoName ] : null;
 		if ( albedoSpec && ( ! ( albedo instanceof Uint8Array ) || albedo.byteLength !== albedoSpec.width * albedoSpec.height * 4 ) ) throw new Error( `WebGL village role ${role} has no valid ${config.albedo} map` );
-		const colorMap = role === 'hard' || role === 'roofMetal' || role === 'net'
+		const colorMap = role === 'hard' || role === 'roofMetal'
 			? derivedColorMap( THREE, albedo || packed, albedoSpec || packedSpec, role, anisotropy )
 			: albedoSpec ? opaqueColorMap( THREE, albedo, albedoSpec, anisotropy ) : null;
 		materials[ role ] = new THREE.MeshStandardMaterial( {
@@ -113,7 +109,6 @@ export function createWebGLVillageMaterials( THREE, decoded, { anisotropy = 1 } 
 			metalness: config.metalness,
 			transparent: !! config.transparent,
 			alphaTest: config.alphaTest || 0,
-			alphaMap: role === 'net' ? maps.alphaMap : null,
 			side: config.transparent ? THREE.DoubleSide : THREE.FrontSide,
 		} );
 		materials[ role ].name = `WebGL village ${role}`;

@@ -17,6 +17,7 @@ import { Rocks } from '../Rocks.js';
 import { Colliders } from '../../../src/world/Colliders.js';
 import { Builder, Batch } from '../village/GeoBuilder.js';
 import { VILLAGE_MATERIAL_PROFILE, VILLAGE_MATERIAL_ROLES } from '../VillageMaterialProfile.js';
+import { TIDEWATER_NET_MATERIAL_GRAPH } from '../VillageMaterialGraphs.js';
 import { InstancedProps } from '../Props.js';
 import { DebrisPlacer } from '../DebrisPlacement.js';
 import { SCANNED_DEBRIS_ASSETS } from '../debris/ScannedAssets.js';
@@ -119,16 +120,17 @@ GPU.device.destroy();
 const whaleFiles = await Promise.all( [ 'humpback.json', 'humpback.bin', 'humpback_albedo.png', 'humpback_height.png' ].map( name => readFile( path.join( WORLD_ROOT, 'source', 'models', 'whale', name ) ) ) );
 const whaleAssetIDs = whaleFiles.map( bytes => `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}` );
 for ( let i = 0; i < whaleFiles.length; i ++ ) staticAssets.set( whaleAssetIDs[ i ], whaleFiles[ i ] );
-const villageGLB = exportBatchGLB( generated.villageBatches, 'Procedural village', true );
+const villageNetPNG = encodePNG( 256, 256, villageMaps.net );
+const villageGLB = applyVillageNetGraph( exportBatchGLB( generated.villageBatches, 'Procedural village', true ), villageNetPNG );
 const villageAssetId = `sha256:${createHash( 'sha256' ).update( villageGLB ).digest( 'hex' )}`;
 const villageBounds = boundsForGLB( villageGLB );
 staticAssets.set( villageAssetId, villageGLB );
-const villageLODGLB = await readFile( path.join( WORLD_ROOT, 'lod-source', 'village-low.glb' ) );
+const villageLODGLB = applyVillageNetGraph( await readFile( path.join( WORLD_ROOT, 'lod-source', 'village-low.glb' ) ), villageNetPNG );
 const villageLODAssetId = `sha256:${createHash( 'sha256' ).update( villageLODGLB ).digest( 'hex' )}`;
 const villageBaseData = parseGLB( villageGLB );
 const villageLODData = parseGLB( villageLODGLB );
 const triangleCount = ( model ) => model.meshes.flat().reduce( ( total, primitive ) => total + ( primitive.indices?.length || primitive.attributes.POSITION.array.length / 3 ) / 3, 0 );
-const materialRoles = ( model ) => [ ...new Set( model.materials.map( ( material ) => material.extras?.elsemeshMaterial?.role ).filter( Boolean ) ) ].sort();
+const materialRoles = ( model ) => [ ...new Set( model.materials.map( material => material.extras?.elsemeshWorld?.materialRole || material.extras?.elsemeshMaterial?.role ).filter( Boolean ) ) ].sort();
 if ( triangleCount( villageLODData ) >= triangleCount( villageBaseData ) * 0.5 ) throw new Error( 'Village distance LOD must use less than half the full-detail triangles' );
 if ( JSON.stringify( materialRoles( villageLODData ) ) !== JSON.stringify( VILLAGE_MATERIAL_ROLES.slice().sort() ) ) throw new Error( 'Village distance LOD must preserve every trusted material role' );
 if ( villageLODData.meshes.flat().some( primitive => ! primitive.attributes.COLOR_0 || primitive.attributes._ELSEMESH_VDATA?.itemSize !== 4 ) ) throw new Error( 'Village distance LOD must preserve vertex tints and VEC4 material data' );
@@ -698,6 +700,80 @@ function buildBoatBatches() {
 	if ( batches.length === 0 ) throw new Error( 'Procedural lobster boat produced no exportable geometry' );
 	return batches;
 
+}
+
+function encodePNG( width, height, rgba ) {
+	if ( !( rgba instanceof Uint8Array ) || rgba.length !== width * height * 4 ) throw new Error( 'PNG encoder requires tightly packed RGBA8 pixels' );
+	const crcTable = new Uint32Array( 256 );
+	for ( let n = 0; n < 256; n ++ ) {
+		let c = n;
+		for ( let k = 0; k < 8; k ++ ) c = c & 1 ? 0xedb88320 ^ ( c >>> 1 ) : c >>> 1;
+		crcTable[ n ] = c >>> 0;
+	}
+	const crc32 = data => {
+		let c = 0xffffffff;
+		for ( const byte of data ) c = crcTable[ ( c ^ byte ) & 255 ] ^ ( c >>> 8 );
+		return ( c ^ 0xffffffff ) >>> 0;
+	};
+	const chunk = ( type, data ) => {
+		const result = Buffer.alloc( 12 + data.length );
+		result.writeUInt32BE( data.length, 0 ); result.write( type, 4, 'ascii' );
+		data.copy( result, 8 ); result.writeUInt32BE( crc32( result.subarray( 4, 8 + data.length ) ), 8 + data.length );
+		return result;
+	};
+	const scanlines = Buffer.alloc( height * ( width * 4 + 1 ) );
+	for ( let y = 0; y < height; y ++ ) Buffer.from( rgba.buffer, rgba.byteOffset + y * width * 4, width * 4 ).copy( scanlines, y * ( width * 4 + 1 ) + 1 );
+	const header = Buffer.alloc( 13 );
+	header.writeUInt32BE( width, 0 ); header.writeUInt32BE( height, 4 ); header[ 8 ] = 8; header[ 9 ] = 6;
+	return Buffer.concat( [ Buffer.from( [ 137, 80, 78, 71, 13, 10, 26, 10 ] ), chunk( 'IHDR', header ), chunk( 'IDAT', deflateSync( scanlines, { level: 9 } ) ), chunk( 'IEND', Buffer.alloc( 0 ) ) ] );
+}
+
+function applyVillageNetGraph( sourceBytes, netPNG ) {
+	const source = Buffer.from( sourceBytes );
+	if ( source.readUInt32LE( 0 ) !== 0x46546c67 || source.readUInt32LE( 4 ) !== 2 ) throw new Error( 'Tidewater village LOD is not a GLB v2 asset' );
+	const jsonLength = source.readUInt32LE( 12 );
+	if ( source.readUInt32LE( 16 ) !== 0x4e4f534a ) throw new Error( 'Tidewater village GLB has no JSON chunk' );
+	const gltf = JSON.parse( source.subarray( 20, 20 + jsonLength ).toString( 'utf8' ).trim() );
+	const binaryHeader = 20 + jsonLength;
+	if ( source.readUInt32LE( binaryHeader + 4 ) !== 0x004e4942 ) throw new Error( 'Tidewater village GLB has no BIN chunk' );
+	const binaryLength = source.readUInt32LE( binaryHeader );
+	let binary = Buffer.from( source.subarray( binaryHeader + 8, binaryHeader + 8 + binaryLength ) );
+	const netMaterials = gltf.materials.filter( material => material.extras?.elsemeshMaterial?.profile === VILLAGE_MATERIAL_PROFILE && material.extras.elsemeshMaterial.role === 'net' );
+	if ( netMaterials.length === 0 ) throw new Error( 'Tidewater village LOD has no authored net material to migrate' );
+	const padding = ( 4 - binary.length % 4 ) % 4;
+	if ( padding ) binary = Buffer.concat( [ binary, Buffer.alloc( padding ) ] );
+	const imageView = gltf.bufferViews.length;
+	gltf.bufferViews.push( { buffer: 0, byteOffset: binary.length, byteLength: netPNG.length } );
+	binary = Buffer.concat( [ binary, netPNG ] );
+	const imageIndex = gltf.images?.length || 0;
+	gltf.images ||= [];
+	gltf.images.push( { bufferView: imageView, mimeType: 'image/png', name: 'Tidewater net channels' } );
+	const samplerIndex = gltf.samplers?.length || 0;
+	gltf.samplers ||= [];
+	gltf.samplers.push( { magFilter: 9729, minFilter: 9987, wrapS: 10497, wrapT: 10497 } );
+	const textureIndex = gltf.textures?.length || 0;
+	gltf.textures ||= [];
+	gltf.textures.push( { sampler: samplerIndex, source: imageIndex } );
+	for ( const material of netMaterials ) {
+		const pbr = material.pbrMetallicRoughness ||= {};
+		pbr.metallicFactor = 0; pbr.roughnessFactor = 0.9;
+		pbr.metallicRoughnessTexture = { index: textureIndex };
+		material.alphaMode = 'BLEND'; material.doubleSided = true;
+		material.extras = {
+			...material.extras,
+			elsemeshWorld: { materialRole: 'net' },
+			elsemeshMaterial: { profile: 'elsemesh.material-graph/1', role: 'graph', graph: TIDEWATER_NET_MATERIAL_GRAPH },
+		};
+	}
+	gltf.buffers[ 0 ].byteLength = binary.length;
+	const json = Buffer.from( JSON.stringify( gltf ) );
+	const jsonPadded = Buffer.concat( [ json, Buffer.alloc( ( 4 - json.length % 4 ) % 4, 0x20 ) ] );
+	const binPadded = Buffer.concat( [ binary, Buffer.alloc( ( 4 - binary.length % 4 ) % 4 ) ] );
+	const totalLength = 12 + 8 + jsonPadded.length + 8 + binPadded.length;
+	const header = Buffer.alloc( 12 ); header.writeUInt32LE( 0x46546c67, 0 ); header.writeUInt32LE( 2, 4 ); header.writeUInt32LE( totalLength, 8 );
+	const jsonHeader = Buffer.alloc( 8 ); jsonHeader.writeUInt32LE( jsonPadded.length, 0 ); jsonHeader.writeUInt32LE( 0x4e4f534a, 4 );
+	const binHeader = Buffer.alloc( 8 ); binHeader.writeUInt32LE( binPadded.length, 0 ); binHeader.writeUInt32LE( 0x004e4942, 4 );
+	return Buffer.concat( [ header, jsonHeader, jsonPadded, binHeader, binPadded ] );
 }
 
 function exportBatchGLB( batches, sceneName, villageMaterials = false ) {

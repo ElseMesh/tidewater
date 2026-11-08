@@ -66,7 +66,7 @@ Each filename is the SHA-256 of the exact packaged bytes. Keep these names immut
 | Moored lobster boat (static preview) distance mesh — glb | glTF binary (GLB) | 1.20 MiB | [`eed66ccd07cb5e3a6583e12fbba397b17650c224c15d8b60cc53ce83366aac74`](assets/eed66ccd07cb5e3a6583e12fbba397b17650c224c15d8b60cc53ce83366aac74) |
 | Portal preview terrain — glb | glTF binary (GLB) | 823.9 KiB | [`3ee6e7b8591964e1c494c91e1b04ef65e1380332650d38db5a89e2c1a3c68fc5`](assets/3ee6e7b8591964e1c494c91e1b04ef65e1380332650d38db5a89e2c1a3c68fc5) |
 | Procedural island terrain — glb | glTF binary (GLB) | 12.78 MiB | [`d3cec3194167eaf7018f401cabcecb337ab989cd6141b45fc8c43f5aa4d8a3cf`](assets/d3cec3194167eaf7018f401cabcecb337ab989cd6141b45fc8c43f5aa4d8a3cf) |
-| Procedural village, pier and harbor — glb | glTF binary (GLB) | 13.90 MiB | [`81d6e2f5b482cd8cbd368cd2ecbe80df8253f1310fb2faf6a9a92a941837c27e`](assets/81d6e2f5b482cd8cbd368cd2ecbe80df8253f1310fb2faf6a9a92a941837c27e) |
-| Procedural village, pier and harbor distance mesh — glb | glTF binary (GLB) | 7.11 MiB | [`e582cd9e095db2a40fb84ebc68b41b672126d2b368bb7ae31cfe6d4e666c6dee`](assets/e582cd9e095db2a40fb84ebc68b41b672126d2b368bb7ae31cfe6d4e666c6dee) |
+| Procedural village, pier and harbor — glb | glTF binary (GLB) | 13.91 MiB | [`9ed1cea5dc422ad1ed201fdab8d92ed9d5b53f81b0e77ee1d8706912f4bc1eca`](assets/9ed1cea5dc422ad1ed201fdab8d92ed9d5b53f81b0e77ee1d8706912f4bc1eca) |
+| Procedural village, pier and harbor distance mesh — glb | glTF binary (GLB) | 7.12 MiB | [`d6e65afff8014cc3bd1f0e68de8445e99300cb51fc50357fae9102bb94177408`](assets/d6e65afff8014cc3bd1f0e68de8445e99300cb51fc50357fae9102bb94177408) |
 
 Regenerate this index with the owning world repository exporter. Every referenced package file is checked against its SHA-256.

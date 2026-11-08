@@ -620,10 +620,10 @@
       "id": "elsemesh-object:island-village",
       "kind": "asset-instance",
       "label": "Procedural village, pier and harbor",
-      "assetId": "sha256:81d6e2f5b482cd8cbd368cd2ecbe80df8253f1310fb2faf6a9a92a941837c27e",
+      "assetId": "sha256:9ed1cea5dc422ad1ed201fdab8d92ed9d5b53f81b0e77ee1d8706912f4bc1eca",
       "lods": [
         {
-          "assetId": "sha256:e582cd9e095db2a40fb84ebc68b41b672126d2b368bb7ae31cfe6d4e666c6dee",
+          "assetId": "sha256:d6e65afff8014cc3bd1f0e68de8445e99300cb51fc50357fae9102bb94177408",
           "maxScreenFraction": 0.45
         }
       ],

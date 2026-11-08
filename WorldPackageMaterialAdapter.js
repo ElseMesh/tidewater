@@ -1,7 +1,7 @@
 import { registerWorldPackageMaterialAdapter } from '../../src/network/WorldPackageMaterialAdapterRegistry.js';
 import { decodeWorldComponentAsset } from '../../src/network/WorldComponentAssetCodecRegistry.js';
 import { createVillageMaterialContext, disposeVillageMaterialContext } from './renderers/webgpu-village/VillageMaterialContext.js';
-import { VILLAGE_MATERIAL_ROLES } from './VillageMaterialProfile.js';
+import { VILLAGE_MATERIAL_PROFILE_ROLES } from './VillageMaterialProfile.js';
 
 registerWorldPackageMaterialAdapter( 'elsemesh.village-materials/2', {
 	async prepare( { connector, signal, component } ) {
@@ -14,7 +14,7 @@ registerWorldPackageMaterialAdapter( 'elsemesh.village-materials/2', {
 	},
 	resolve( { profileRole, index, gltf, context, connector } ) {
 		const role = profileRole;
-		if ( ! role || ! VILLAGE_MATERIAL_ROLES.includes( role ) ) return null;
+		if ( ! role || ! VILLAGE_MATERIAL_PROFILE_ROLES.includes( role ) ) return null;
 		if ( ! connector?.manifest?.rules?.requiredFeatures?.includes( 'elsemesh.village-materials/1' ) ) throw new Error( 'Village material profile is missing elsemesh.village-materials/1' );
 		const vdata = gltf.meshes.flat().filter( primitive => primitive.material === index ).map( primitive => primitive.attributes._ELSEMESH_VDATA );
 		if ( vdata.some( attribute => ! attribute || attribute.itemSize !== 4 ) ) throw new Error( `Village material ${role} requires a VEC4 _ELSEMESH_VDATA attribute` );
