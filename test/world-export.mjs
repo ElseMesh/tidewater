@@ -330,6 +330,17 @@ try {
 		assert.equal( image.mimeType, 'image/png', 'stone graph inputs are embedded in the signed GLB' );
 		assert.deepEqual( [ ...image.bytes.subarray( 0, 8 ) ], [ 137, 80, 78, 71, 13, 10, 26, 10 ] );
 	}
+	const roofMaterials = villageGLB.materials.filter( material => material.extras?.elsemeshWorld?.materialRole === 'roofMetal' );
+	assert.equal( roofMaterials.length, 1, 'village roof metal is represented by one renderer-neutral graph' );
+	assert.equal( roofMaterials[ 0 ].extras.elsemeshMaterial.profile, 'elsemesh.material-graph/1' );
+	assert.ok( roofMaterials[ 0 ].extras.elsemeshMaterial.graph.outputs.metalness );
+	assert.ok( roofMaterials[ 0 ].extras.elsemeshMaterial.graph.outputs.surfaceNormal );
+	assert.equal( roofMaterials[ 0 ].occlusionTexture.strength, 0 );
+	for ( const textureInfo of [ roofMaterials[ 0 ].pbrMetallicRoughness.metallicRoughnessTexture, roofMaterials[ 0 ].normalTexture, roofMaterials[ 0 ].occlusionTexture ] ) {
+		const image = villageGLB.images[ villageGLB.textures[ textureInfo.index ].source ];
+		assert.equal( image.mimeType, 'image/png', 'roof graph inputs are embedded in the signed GLB' );
+		assert.deepEqual( [ ...image.bytes.subarray( 0, 8 ) ], [ 137, 80, 78, 71, 13, 10, 26, 10 ] );
+	}
 	assert.equal( fabricMaterials[ 0 ].doubleSided, true );
 	const lanternMaterialIndexes = new Set( villageGLB.materials.flatMap( ( material, index ) => material.name.includes( 'lantern-' ) ? [ index ] : [] ) );
 	assert.deepEqual( [ ...lanternMaterialIndexes ].map( index => villageGLB.materials[ index ].extras?.elsemeshMaterial?.role ).sort(), [ 'hard', 'wood' ], 'export includes static hanging lanterns with the trusted hard and wood materials' );
@@ -440,6 +451,9 @@ try {
 		} else if ( object.material.name === 'Procedural village stone' ) {
 			assert.match( object.material.surface, /s\.ao \*= emg_surfaceAO/, 'the package stone graph uses the engine occlusion output' );
 			villageRoles.add( 'stone' );
+		} else if ( object.material.name === 'Procedural village roofMetal' ) {
+			assert.match( object.material.surface, /s\.metalness = emg_metalness/, 'the package roof graph uses the engine metalness output' );
+			villageRoles.add( 'roofMetal' );
 		} else villageRoles.add( object.material.name );
 	} } );
 	assert.equal( villageRuntimeMeshes, villageGLB.meshes[ 0 ].length, 'hosted package loader creates each village material batch' );

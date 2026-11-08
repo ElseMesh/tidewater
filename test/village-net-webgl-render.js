@@ -15,8 +15,8 @@ try {
 		return response.arrayBuffer();
 	} );
 	const parsedGLB = parseGLB( glbBytes );
-	const graphMaterialIndexes = new Map( parsedGLB.materials.flatMap( ( material, index ) => material.name === 'Procedural village net' || [ 'thatch', 'fabric', 'stone' ].includes( material.extras?.elsemeshWorld?.materialRole ) ? [ [ material.name, index ] ] : [] ) );
-	if ( graphMaterialIndexes.size !== 4 ) throw new Error( 'signed village GLB is missing its net, thatch, fabric, or stone graph material' );
+	const graphMaterialIndexes = new Map( parsedGLB.materials.flatMap( ( material, index ) => material.name === 'Procedural village net' || [ 'thatch', 'fabric', 'stone', 'roofMetal' ].includes( material.extras?.elsemeshWorld?.materialRole ) ? [ [ material.name, index ] ] : [] ) );
+	if ( graphMaterialIndexes.size !== 5 ) throw new Error( 'signed village GLB is missing a net, thatch, fabric, stone, or roof-metal graph material' );
 	const graphAttributes = new Map( [ ...graphMaterialIndexes ].map( ( [ name, index ] ) => {
 		const primitive = parsedGLB.meshes.flat().find( candidate => candidate.material === index );
 		if ( ! primitive?.attributes._ELSEMESH_VDATA ) throw new Error( `signed ${name} GLB mesh is missing its VEC4 _ELSEMESH_VDATA` );
@@ -35,12 +35,13 @@ try {
 		if ( name === 'Procedural village fabric' ? meshes.length < 1 : meshes.length !== 1 ) throw new Error( `unexpected signed ${name} material mesh count: ${meshes.length}` );
 	}
 	const compiled = applyWebGLWorldMaterialGraphs( THREE, gltf.scene );
-	if ( compiled !== 4 ) throw new Error( `expected four engine-compiled graphs, found ${compiled}` );
+	if ( compiled !== 5 ) throw new Error( `expected five engine-compiled graphs, found ${compiled}` );
 	const netMesh = graphMeshes.get( 'Procedural village net' )[ 0 ];
 	const thatchMesh = graphMeshes.get( 'Procedural village thatch' )[ 0 ];
 	const fabricMesh = graphMeshes.get( 'Procedural village fabric' )[ 0 ];
 	const stoneMesh = graphMeshes.get( 'Procedural village stone' )[ 0 ];
-	for ( const mesh of [ netMesh, thatchMesh, fabricMesh, stoneMesh ] ) if ( ! mesh.material.userData?.elsemeshWorldMaterialGraph ) throw new Error( `${mesh.material.name} did not pass through the engine graph compiler` );
+	const roofMetalMesh = graphMeshes.get( 'Procedural village roofMetal' )[ 0 ];
+	for ( const mesh of [ netMesh, thatchMesh, fabricMesh, stoneMesh, roofMetalMesh ] ) if ( ! mesh.material.userData?.elsemeshWorldMaterialGraph ) throw new Error( `${mesh.material.name} did not pass through the engine graph compiler` );
 	if ( netMesh.material.side !== THREE.DoubleSide || ! netMesh.material.transparent || netMesh.material.depthWrite ) throw new Error( 'net material lost its signed glTF blend or double-sided state' );
 	const focusGeometryCluster = mesh => {
 		const geometry = mesh.geometry, index = geometry.index?.array, positions = geometry.getAttribute( 'position' )?.array, data = geometry.getAttribute( 'vdata' )?.array;
@@ -86,13 +87,13 @@ try {
 	const gl = renderer.getContext();
 	const pixels = new Uint8Array( 640 * 480 * 4 );
 	const metrics = {};
-	for ( const [ label, mesh ] of [ [ 'net', netMesh ], [ 'thatch', thatchMesh ], [ 'fabric', fabricMesh ], [ 'stone', stoneMesh ] ] ) {
+	for ( const [ label, mesh ] of [ [ 'net', netMesh ], [ 'thatch', thatchMesh ], [ 'fabric', fabricMesh ], [ 'stone', stoneMesh ], [ 'roofMetal', roofMetalMesh ] ] ) {
 		for ( const target of graphMeshes.values() ) target[ 0 ].visible = target[ 0 ] === mesh;
 		const bounds = new THREE.Box3().setFromObject( mesh );
 		const center = bounds.getCenter( new THREE.Vector3() );
 		const size = bounds.getSize( new THREE.Vector3() );
 		const distance = label === 'fabric' ? Math.max( size.length() * 1.3, 0.2 ) : Math.max( size.length() * 0.9, 0.8 );
-		if ( label === 'fabric' ) {
+		if ( label === 'fabric' || label === 'roofMetal' ) {
 			const normals = mesh.geometry.getAttribute( 'normal' ).array;
 			const direction = new THREE.Vector3();
 			for ( let i = 0; i < normals.length; i += 3 ) direction.add( new THREE.Vector3( normals[ i ], normals[ i + 1 ], normals[ i + 2 ] ) );

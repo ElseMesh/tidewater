@@ -3,7 +3,7 @@ import { commonModule } from '../../../../src/engine/render/wgsl/common.js';
 import { standard } from '../../../../src/materials/Materials.js';
 import { createWebGPUMaterialGraph } from '../../../../src/materials/WorldMaterialGraph.js';
 import { VillageTextures } from './TextureBaker.js';
-import { TIDEWATER_NET_MATERIAL_GRAPH, TIDEWATER_THATCH_MATERIAL_GRAPH, TIDEWATER_FABRIC_MATERIAL_GRAPH, TIDEWATER_STONE_MATERIAL_GRAPH } from '../../VillageMaterialGraphs.js';
+import { TIDEWATER_NET_MATERIAL_GRAPH, TIDEWATER_THATCH_MATERIAL_GRAPH, TIDEWATER_FABRIC_MATERIAL_GRAPH, TIDEWATER_STONE_MATERIAL_GRAPH, TIDEWATER_ROOF_METAL_MATERIAL_GRAPH } from '../../VillageMaterialGraphs.js';
 
 // Shared PBR materials for the village, pier and props.
 //
@@ -345,52 +345,12 @@ export function createWoodMaterial( T ) {
 // vdata: x seed, y rust amount, z galvanized (1) / painted (0)
 
 export function createRoofMetalMaterial( T ) {
-
-	const m = villageMaterial( { roughness: 0.5, metalness: 0.2 }, T, [ 'roofA', 'roofN', 'hardN' ], { surface: /* wgsl */`
-	let aTint = in.vs.vTint;
-	let aData = in.vs.vData;
-	let seed = aData.x;
-	let rustAmt = aData.y;
-	let galv = aData.z;
-	let uvm = in.uv;
-	let fw = fwidth( uvm );
-	let near = 1.0 - smoothstep( 0.0015, 0.006, max( fw.x, fw.y ) );
-	let sheetF = uvm.y / 0.84 + floor( seed * 13.0 );
-	let sheetId = floor( sheetF );
-	let sheetR = vlmHash21( sheetId, seed * 91.0 );
-	let tuv = vec2f( sheetF, uvm.x / 1.68 + sheetR * 5.37 );
-	let M = textureSample( vlgRoofA, smpAnisoRepeat, tuv );
-	let N = textureSample( vlgRoofN, smpAnisoRepeat, tuv );
-	let macroV = textureSample( vlgRoofA, smpAnisoRepeat, tuv * vec2f( 0.13, 0.09 ) + vec2f( seed, seed * 1.7 ) );
-
-	let eave = 1.0 - smoothstep( 0.0, 0.9, uvm.x );
-	let replaced = step( 0.86, sheetR );
-	let rustIn = clamp( rustAmt + 0.15 + replaced * 0.2 + ( macroV.r - 0.4 ) * 0.5, 0.0, 1.0 );
-	// rust channel quantiles: 50% 0.25, 70% 0.31, 90% 0.42 -> rust 0.4 ~10%, 0.6 ~25%, 0.8 ~45%
-	let thr = mix( 0.62, 0.23, rustIn ) - eave * 0.2;
-	let rust = smoothstep( thr - 0.04, thr + 0.04, M.r );
-	let fade = clamp( M.b * 0.7 + macroV.b * 0.3, 0.0, 1.0 );
-
-	let paintCol = mix( aTint, aTint * 0.7 + vec3f( 0.12, 0.1, 0.085 ), fade * 0.55 ) * ( sheetR * 0.16 + 0.9 );
-	let patchCol = paintCol * vec3f( 0.72, 0.68, 0.66 ) + vec3f( 0.03, 0.025, 0.02 );
-	let galvCol = vec3f( 0.34, 0.35, 0.35 ) * ( fade * 0.35 + 0.78 );
-	let base = mix( mix( paintCol, patchCol, replaced ), galvCol, galv );
-	let rustCol = mix( vec3f( 0.12, 0.045, 0.02 ), vec3f( 0.4, 0.17, 0.065 ), M.g );
-	var col = mix( base, rustCol, rust );
-	col = col * ( 1.0 - M.a * 0.45 );
-	col = col * mix( 1.0, N.a, 0.55 );
-
-	// texture X runs along the eave (mesh v), texture Y up the slope (mesh u)
-	let sT = vlmSlopeOf( N );
-	let Hd = textureSample( vlgHardN, smpAnisoRepeat, uvm * 1.7 );
-	let sl = vec2f( sT.y, sT.x ) + vlmSlopeOf( Hd ) * ( rust * 0.8 + 0.2 ) * near;
-	s.normal = vlmNormalFromSlope( in.P, in.N, in.uv, sl );
-
-	s.albedo = col;
-	s.metalness = mix( mix( 0.04, 0.5, galv ), 0.0, rust );
-	s.roughness = clamp( mix( mix( 0.55, 0.42, galv ) + ( N.b - 0.5 ) * 0.4 + fade * 0.15, 0.9, rust ) + M.a * 0.08, 0.05, 1.0 );
-	s.ao = N.a;
-` } );
+	const m = createWebGPUMaterialGraph( {
+		name: 'VillageRoofMetal',
+		pbrMetallicRoughness: { roughnessFactor: 0.5, metallicFactor: 0.2 },
+	}, TIDEWATER_ROOF_METAL_MATERIAL_GRAPH, {
+		graphTextures: { metallicRoughness: T.roofA, normal: T.roofN, occlusion: T.hardN },
+	} );
 	m.name = 'VillageRoofMetal';
 	return m;
 
