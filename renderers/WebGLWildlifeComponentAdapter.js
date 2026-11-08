@@ -1,7 +1,7 @@
 import { registerWorldComponentBackendBatchAdapter } from '../../../src/network/WorldComponentBackendRegistry.js';
 import { WildlifeSimulation, DEFAULT_WILDLIFE_ENVIRONMENT } from '../wildlife/WildlifeSimulation.js';
 import { WebGLWildlifeAdapter } from './WebGLWildlifeAdapter.js';
-import { WebGLSwashProbe } from './WebGLSwashProbe.js';
+import { WebGLSwashProbe } from '../../../src/fallback/WebGLSwashProbe.js';
 
 const COMPONENT_TYPE = 'elsemesh.example-island-wildlife/1';
 
