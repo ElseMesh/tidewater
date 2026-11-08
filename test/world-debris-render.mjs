@@ -117,8 +117,8 @@ H.scene.add( sea );
 let villageMats = null, villageTextures = null;
 try {
 
-	const { createVillageMaterials } = await import( '../../../src/world/village/VillageMaterials.js' );
-	const { VillageTextures } = await import( '../../../src/world/village/TextureBaker.js' );
+	const { createVillageMaterials } = await import( '../renderers/webgpu-village/VillageMaterials.js' );
+	const { VillageTextures } = await import( '../renderers/webgpu-village/TextureBaker.js' );
 	villageTextures = new VillageTextures();
 	villageMats = createVillageMaterials( villageTextures );
 	console.log( 'using real village materials' );

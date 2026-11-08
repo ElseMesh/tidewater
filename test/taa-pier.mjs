@@ -22,6 +22,7 @@ import { TemporalUpscale } from '../../../src/post/TemporalUpscale.js';
 import { AntiAlias } from '../../../src/post/AntiAlias.js';
 import { TIDEWATER_LAYOUT as WORLD } from '../layout.js';
 import * as fishPresentation from '../FishPresentation.js';
+import { createVillageMaterialContext } from '../renderers/webgpu-village/VillageMaterialContext.js';
 
 const OUT = process.argv[ 2 ] || '/var/tmp/taa-pier';
 const MODE = process.argv[ 3 ] || 'taa';
@@ -31,7 +32,7 @@ const Hs = await worldHarness( { width: W, height: H, sun: [ - 0.55, 0.45, 0.5 ]
 const { E, GPU, scene, camera, mr, shadows, rt } = Hs;
 
 const terrain = new TerrainData( { worldLayout: TIDEWATER_LAYOUT } );
-const village = new Village( { scene, terrain, colliders: new Colliders(), worldLayout: TIDEWATER_LAYOUT, fishPresentation } );
+const village = new Village( { scene, terrain, colliders: new Colliders(), worldLayout: TIDEWATER_LAYOUT, fishPresentation, createMaterialContext: createVillageMaterialContext } );
 {
 
 	// water below the pier (flat), so the plank gaps show it

@@ -14,12 +14,13 @@ import { computeShoreField } from '../../../src/world/ShoreField.js';
 import { installGroundBounce } from '../../../src/materials/GroundBounce.js';
 import * as fishPresentation from '../FishPresentation.js';
 import source from '../world-source.json' with { type: 'json' };
+import { createVillageMaterialContext } from '../renderers/webgpu-village/VillageMaterialContext.js';
 
 const out = process.argv[ 2 ] && ! process.argv[ 2 ].startsWith( '--' ) ? process.argv[ 2 ] : '/var/tmp';
 const H = await worldHarness( { sun: [ 0.5, 0.5, 0.45 ] } );
 const data = new TerrainData( { worldLayout: TIDEWATER_LAYOUT } );
 const colliders = new Colliders();
-const village = new Village( { scene: H.scene, terrain: data, colliders, worldLayout: TIDEWATER_LAYOUT, fishPresentation } );
+const village = new Village( { scene: H.scene, terrain: data, colliders, worldLayout: TIDEWATER_LAYOUT, fishPresentation, createMaterialContext: createVillageMaterialContext } );
 const surfaceProfile = normalizeTerrainSurfaceProfile( source.components.find( component => component.type === 'elsemesh.terrain-surface/1' ).data.surfaceProfile );
 const shore = computeShoreField( data, { res: 512, swellDir: surfaceProfile.swellDirection } );
 const gpu = new TerrainGPU( data, shore );

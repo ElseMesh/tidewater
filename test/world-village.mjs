@@ -10,6 +10,7 @@ import { Colliders } from '../../../src/world/Colliders.js';
 import { Village } from '../../../src/world/Village.js';
 import { Material } from '../../../src/engine/render/Material.js';
 import * as fishPresentation from '../FishPresentation.js';
+import { createVillageMaterialContext } from '../renderers/webgpu-village/VillageMaterialContext.js';
 
 const OUT = process.argv[ 2 ] || '/var/tmp/tidewater-village-';
 const ONLY = process.argv[ 3 ] ? process.argv[ 3 ].split( ',' ) : null;
@@ -22,7 +23,7 @@ const terrain = new TerrainData( { worldLayout: TIDEWATER_LAYOUT } );
 console.log( 'terrain data', ( performance.now() - t0 ).toFixed( 0 ), 'ms' );
 const colliders = new Colliders();
 t0 = performance.now();
-const village = new Village( { scene: H.scene, terrain, colliders, worldLayout: TIDEWATER_LAYOUT, fishPresentation } );
+const village = new Village( { scene: H.scene, terrain, colliders, worldLayout: TIDEWATER_LAYOUT, fishPresentation, createMaterialContext: createVillageMaterialContext } );
 console.log( 'village build', ( performance.now() - t0 ).toFixed( 0 ), 'ms', village.getStats() );
 
 // ---- ground: coarse heightfield around the village (after the village flattened its pads)

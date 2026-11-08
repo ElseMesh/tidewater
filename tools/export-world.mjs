@@ -34,7 +34,7 @@ import { encodeTerrainSurfaceAsset } from '../../../src/network/TerrainSurfaceAs
 import '../../../test/headless.mjs';
 import { GPU } from '../../../src/engine/gpu/GPU.js';
 import { readTexture } from '../../../src/engine/gpu/Readback.js';
-import { VillageTextures } from '../../../src/world/village/TextureBaker.js';
+import { VillageTextures } from '../renderers/webgpu-village/TextureBaker.js';
 import { encodeVillageMaterialAsset, wrapCompressedVillageMaterialAsset } from '../VillageMaterialAsset.js';
 import { TIDEWATER_WHALE_PROFILE } from '../WhaleProfile.js';
 import { writeWorldAssetIndex } from '../../../tools/world-asset-index.mjs';

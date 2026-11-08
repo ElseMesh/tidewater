@@ -1,7 +1,6 @@
 import { registerWorldPackageMaterialAdapter } from '../../src/network/WorldPackageMaterialAdapterRegistry.js';
 import { decodeWorldComponentAsset } from '../../src/network/WorldComponentAssetCodecRegistry.js';
-import { VillageTextures } from '../../src/world/village/TextureBaker.js';
-import { createVillageMaterials } from '../../src/world/village/VillageMaterials.js';
+import { createVillageMaterialContext, disposeVillageMaterialContext } from './renderers/webgpu-village/VillageMaterialContext.js';
 
 registerWorldPackageMaterialAdapter( 'elsemesh.village-materials/2', {
 	async prepare( { connector, signal, component } ) {
@@ -9,18 +8,8 @@ registerWorldPackageMaterialAdapter( 'elsemesh.village-materials/2', {
 		if ( signal?.aborted ) throw signal.reason || new DOMException( 'World unloaded', 'AbortError' );
 		const decoded = await decodeWorldComponentAsset( 'village-materials/1', packed );
 		if ( signal?.aborted ) throw signal.reason || new DOMException( 'World unloaded', 'AbortError' );
-		const textures = new VillageTextures( { bakedMaps: decoded.maps } );
-		try {
-			textures.prepareBakedMaps();
-			const context = { textures, materials: createVillageMaterials( textures ) };
-			return { context, dispose() {
-				for ( const material of Object.values( context.materials ) ) material.dispose?.();
-				textures.dispose();
-			} };
-		} catch ( error ) {
-			textures.dispose();
-			throw error;
-		}
+		const context = createVillageMaterialContext( { bakedMaps: decoded.maps } );
+		return { context, dispose: () => disposeVillageMaterialContext( context ) };
 	},
 	resolve( { profileRole, index, gltf, context, connector } ) {
 		const role = profileRole;
