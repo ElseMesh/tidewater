@@ -1,7 +1,7 @@
 import { Vector3, Matrix4 } from '../../../src/engine/index.js';
 import { hash1, vnoise3 } from '../../../src/engine/render/GroundDetailGeometry.js';
 import { Part, mat4, fixWinding, slabPart, CAP_U } from '../../../src/world/village/GeoBuilder.js';
-import { WOOD, HARD, C, lin, mulc, buoy } from '../../../src/world/Props.js';
+import { WOOD, HARD, C, lin, mulc } from './MaterialData.js';
 
 export { hash1, vnoise3 };
 
@@ -23,6 +23,16 @@ const TAU = Math.PI * 2;
 const _v = new Vector3();
 const _n = new Vector3();
 const IDENT = new Matrix4();
+
+function netBuoy( B, x, y, z, color, seed, o = {} ) {
+
+	B.pushAt( x, y, z, o.ry || 0, o.rx || 0, o.rz || 0 );
+	B.lathe( 'hard', 0, 0, 0, [ [ 0.0, 0.0 ], [ 0.08, 0.03 ], [ 0.09, 0.12 ], [ 0.0, 0.2 ] ], {
+		segs: 7, tint: color, data: HARD( seed, 0, 0, 0.42 ),
+	} );
+	B.pop();
+
+}
 
 // ---------------------------------------------------------------------------
 // noise helpers
@@ -1145,7 +1155,7 @@ export function netScrap( B, ground, x, z, rand, o = {} ) {
 	if ( rand() < 0.5 ) {
 
 		const fx = P[ 0 ][ 0 ][ 0 ], fz = P[ 0 ][ 0 ][ 2 ];
-		buoy( B, fx, ground( fx, fz ) + 0.075, fz, C.orange, C.orange, 2, rand(), { rz: Math.PI / 2, ry: rand() * TAU } );
+		netBuoy( B, fx, ground( fx, fz ) + 0.075, fz, C.orange, rand(), { rz: Math.PI / 2, ry: rand() * TAU } );
 
 	}
 
