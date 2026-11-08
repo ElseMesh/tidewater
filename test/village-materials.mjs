@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import '../../../test/headless.mjs';
 import '../../../test/smaa-shim.mjs';
+import { setupLife } from '../../../test/life-harness.mjs';
 import '../register-behavior.js';
 import { GPU } from '../../../src/engine/gpu/GPU.js';
 import { readTexture } from '../../../src/engine/gpu/Readback.js';
@@ -54,7 +55,8 @@ const previewBytes = new Uint8Array( await readFile( new URL( `../assets/${previ
 const materialData = await decodeVillageMaterialAsset( materialBytes );
 assert.equal( materialData.metadata.protocol, 'elsemesh.village-material-data/1' );
 assert.equal( materialData.metadata.rendererProfile, 'original-elsemesh-village-v1' );
-await GPU.init( { headless: true } );
+const life = await setupLife( { W: 640, H: 480 } );
+life.shadowsOn = false;
 const materials = Object.fromEntries( VILLAGE_MATERIAL_ROLES.map( role => [ role, { name: role, userData: {}, dispose() { this.disposed = true; } } ] ) );
 const materialContext = { materials, textures: { bake() {} } };
 const assetIndex = [
@@ -110,7 +112,23 @@ const ownedContext = root.userData.worldPackage.materialAdapterContexts.get( 'el
 assert.ok( ownedContext?.textures?.baked, 'the renderer must use packaged maps instead of re-baking hidden project state' );
 const map = await readTexture( ownedContext.textures.textures.woodA );
 assert.deepEqual( new Uint8Array( map.data ), materialData.maps.woodA, 'the GPU texture must match the packaged level-zero bytes' );
+const netMeshes = meshes.filter( mesh => mesh.material.name === 'Procedural village net' );
+assert.equal( netMeshes.length, 1, 'signed village package contains one net graph batch' );
+for ( const mesh of meshes ) mesh.visible = mesh === netMeshes[ 0 ];
+life.scene.add( root );
+const netCenter = netMeshes[ 0 ].getWorldPosition( new THREE.Vector3() );
+const netRadius = Math.max( netMeshes[ 0 ].geometry.boundingSphere?.radius || 0, 1 );
+life.camera.position.set( netCenter.x, netCenter.y, netCenter.z + netRadius * 2.5 );
+life.camera.lookAt( netCenter );
+await life.run( 3 );
+const netPixels = new Uint8Array( ( await readTexture( life.ldr.texture ) ).data );
+const background = netPixels.slice( 0, 3 );
+let netChangedPixels = 0;
+for ( let i = 0; i < netPixels.length; i += 4 ) {
+	if ( Math.abs( netPixels[ i ] - background[ 0 ] ) + Math.abs( netPixels[ i + 1 ] - background[ 1 ] ) + Math.abs( netPixels[ i + 2 ] - background[ 2 ] ) > 24 ) netChangedPixels ++;
+}
+assert.ok( netChangedPixels > 30, `signed Tidewater net graph renders visible WebGPU pixels (${netChangedPixels})` );
 disposeWorldPackage( root );
 assert.ok( Object.values( materials ).every( material => ! material.disposed ), 'package cleanup must preserve App-owned procedural materials' );
 GPU.device.destroy();
-console.log( 'Hosted island uses packaged village maps with trusted shaders and preserves original vertex parameters' );
+console.log( `Hosted island package passes and Tidewater net graph renders ${netChangedPixels} visible WebGPU pixels` );
