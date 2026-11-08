@@ -11,8 +11,8 @@ import { readTexture } from '../../../src/engine/gpu/Readback.js';
 import { loadWorldPackage, disposeWorldPackage } from '../../../src/network/WorldPackage.js';
 import { decodeVillageMaterialAsset } from '../VillageMaterialAsset.js';
 import { VILLAGE_MATERIAL_PROFILE, VILLAGE_MATERIAL_ROLES } from '../VillageMaterialProfile.js';
-import { TIDEWATER_NET_MATERIAL_GRAPH, TIDEWATER_THATCH_MATERIAL_GRAPH, TIDEWATER_FABRIC_MATERIAL_GRAPH, TIDEWATER_STONE_MATERIAL_GRAPH, TIDEWATER_ROOF_METAL_MATERIAL_GRAPH } from '../VillageMaterialGraphs.js';
-import { createRoofMetalMaterial } from '../renderers/webgpu-village/VillageMaterials.js';
+import { TIDEWATER_NET_MATERIAL_GRAPH, TIDEWATER_THATCH_MATERIAL_GRAPH, TIDEWATER_FABRIC_MATERIAL_GRAPH, TIDEWATER_STONE_MATERIAL_GRAPH, TIDEWATER_ROOF_METAL_MATERIAL_GRAPH, TIDEWATER_HARD_MATERIAL_GRAPH } from '../VillageMaterialGraphs.js';
+import { createHardMaterial, createRoofMetalMaterial } from '../renderers/webgpu-village/VillageMaterials.js';
 import { createWebGLMaterialGraph } from '../../../src/materials/WorldMaterialGraph.js';
 import { compileWorldMaterialGraph } from '../../../src/materials/WorldMaterialGraphCompiler.js';
 
@@ -71,6 +71,14 @@ assert.match( roofMetalGraphWebGL.glsl.fragment, /emgTexture_metallicRoughness/ 
 assert.match( roofMetalGraphWebGL.glsl.occlusion, /reflectedLight\.indirectDiffuse/ );
 const builtInRoofMaterial = createRoofMetalMaterial( { roofA: {}, roofN: {}, hardN: {} } );
 assert.match( builtInRoofMaterial.surface, /s\.metalness = emg_metalness/, 'the built-in WebGPU village binds the same graph as hosted GLBs' );
+const hardGraphWebGPU = compileWorldMaterialGraph( TIDEWATER_HARD_MATERIAL_GRAPH, 'webgpu' );
+const hardGraphWebGL = compileWorldMaterialGraph( TIDEWATER_HARD_MATERIAL_GRAPH, 'webgl' );
+assert.deepEqual( new Set( hardGraphWebGPU.textureSlots ), new Set( [ 'metallicRoughness', 'normal', 'occlusion', 'emissive' ] ) );
+assert.match( hardGraphWebGPU.surface, /s\.metalness = emg_metalness/ );
+assert.match( hardGraphWebGPU.surface, /s\.ao \*= emg_occlusion/ );
+assert.match( hardGraphWebGL.glsl.occlusion, /reflectedLight\.indirectDiffuse/ );
+const builtInHardMaterial = createHardMaterial( { hardA: {}, hardN: {}, rope: {}, grime: {} } );
+assert.match( builtInHardMaterial.surface, /s\.metalness = emg_metalness/, 'the built-in WebGPU hardware and rope bind the shared graph' );
 
 const source = JSON.parse( await readFile( new URL( '../world-source.json', import.meta.url ) ) );
 const village = source.objects.find( object => object.id === 'elsemesh-object:island-village' );
@@ -121,7 +129,7 @@ root.traverse( object => { if ( object.isMesh ) meshes.push( object ); } );
 assert.ok( meshes.length >= VILLAGE_MATERIAL_ROLES.length );
 const roles = new Set();
 for ( const mesh of meshes ) {
-	if ( mesh.material.name === 'Procedural village net' || mesh.material.name === 'Procedural village roofMetal' || mesh.material.surface?.includes( 'emg_streakAlbedo' ) || mesh.material.surface?.includes( 'emg_fabricAlbedo' ) || mesh.material.surface?.includes( 'emg_surfaceColor' ) ) {
+	if ( mesh.material.name === 'Procedural village net' || mesh.material.name.endsWith( 'hard' ) || mesh.material.name === 'Procedural village roofMetal' || mesh.material.surface?.includes( 'emg_streakAlbedo' ) || mesh.material.surface?.includes( 'emg_fabricAlbedo' ) || mesh.material.surface?.includes( 'emg_surfaceColor' ) ) {
 		assert.equal( mesh.geometry.getAttribute( 'vdata' )?.itemSize, 4 );
 		assert.equal( mesh.geometry.getAttribute( 'color' )?.itemSize, 3 );
 		if ( mesh.material.name === 'Procedural village net' ) {
@@ -137,6 +145,9 @@ for ( const mesh of meshes ) {
 		} else if ( mesh.material.name === 'Procedural village roofMetal' ) {
 			assert.match( mesh.material.surface, /s\.metalness = emg_metalness/, 'the roof graph carries authored metalness into both engine backends' );
 			roles.add( 'roofMetal' );
+		} else if ( mesh.material.name.endsWith( 'hard' ) ) {
+			assert.match( mesh.material.surface, /s\.ao \*= emg_occlusion/, 'the hardware and rope graph carries its authored AO data' );
+			roles.add( 'hard' );
 		} else {
 			assert.match( mesh.material.surface, /s\.ao \*= emg_surfaceAO/ );
 			roles.add( 'stone' );
@@ -170,11 +181,13 @@ const stoneMeshes = meshes.filter( mesh => mesh.material.name === 'Procedural vi
 assert.equal( stoneMeshes.length, 1, 'signed village package contains one engine-compiled stone graph batch' );
 const roofMetalMeshes = meshes.filter( mesh => mesh.material.name === 'Procedural village roofMetal' );
 assert.equal( roofMetalMeshes.length, 1, 'signed village package contains one engine-compiled roof-metal graph batch' );
-const focusGeometryCluster = mesh => {
+const hardMeshes = meshes.filter( mesh => mesh.material.name.endsWith( 'hard' ) );
+assert.ok( hardMeshes.length >= 1, 'signed village package contains engine-compiled hardware and rope graph batches' );
+const focusGeometryCluster = ( mesh, { flagOnly = false } = {} ) => {
 	const geometry = mesh.geometry, index = geometry.index?.array, positions = geometry.getAttribute( 'position' )?.array, data = geometry.getAttribute( 'vdata' )?.array;
-	if ( ! index || ! positions || ! data ) throw new Error( 'fabric render fixture requires indexed geometry, positions, and material data' );
+	if ( ! index || ! positions || ! data ) throw new Error( 'material render fixture requires indexed geometry, positions, and material data' );
 	const cellSize = 4, cellFor = triangle => {
-		if ( data[ index[ triangle ] * 4 + 2 ] <= 5000 ) return null;
+		if ( flagOnly && data[ index[ triangle ] * 4 + 2 ] <= 5000 ) return null;
 		const center = [ 0, 1, 2 ].map( axis => ( positions[ index[ triangle ] * 3 + axis ] + positions[ index[ triangle + 1 ] * 3 + axis ] + positions[ index[ triangle + 2 ] * 3 + axis ] ) / 3 );
 		return { center, key: center.map( value => Math.floor( value / cellSize ) ).join( ',' ) };
 	};
@@ -190,22 +203,29 @@ const focusGeometryCluster = mesh => {
 	for ( let triangle = 0; triangle < index.length; triangle += 3 ) if ( cellFor( triangle )?.key === target ) focused.push( index[ triangle ], index[ triangle + 1 ], index[ triangle + 2 ] );
 	if ( focused.length < 30 ) throw new Error( 'fabric render fixture found no representative local triangle cluster' );
 	geometry.setIndex( focused );
+	geometry.computeBoundingBox();
 	geometry.computeBoundingSphere();
 };
-focusGeometryCluster( fabricMeshes[ 0 ] );
+focusGeometryCluster( fabricMeshes[ 0 ], { flagOnly: true } );
 const renderMaterial = async mesh => {
 	for ( const candidate of meshes ) candidate.visible = candidate === mesh;
 	const bounds = new THREE.Box3().setFromObject( mesh );
 	const center = bounds.getCenter( new THREE.Vector3() );
 	const radius = Math.max( bounds.getSize( new THREE.Vector3() ).length() * 0.5, 0.1 );
 	const viewDirection = new THREE.Vector3( 0, 0, 1 );
-	if ( mesh === fabricMeshes[ 0 ] ) {
-		const normals = mesh.geometry.getAttribute( 'normal' ).array;
+	const cameraDistance = radius * 2.5;
+	if ( mesh === fabricMeshes[ 0 ] || mesh === hardMeshes[ 0 ] ) {
+		const normals = mesh.geometry.getAttribute( 'normal' );
+		const indices = mesh.geometry.index?.array;
 		viewDirection.set( 0, 0, 0 );
-		for ( let i = 0; i < normals.length; i += 3 ) viewDirection.add( new THREE.Vector3( normals[ i ], normals[ i + 1 ], normals[ i + 2 ] ) );
+		if ( indices ) {
+			for ( const index of indices ) viewDirection.add( new THREE.Vector3().fromBufferAttribute( normals, index ) );
+		} else {
+			for ( let i = 0; i < normals.count; i ++ ) viewDirection.add( new THREE.Vector3().fromBufferAttribute( normals, i ) );
+		}
 		viewDirection.normalize().applyQuaternion( mesh.getWorldQuaternion( new THREE.Quaternion() ) );
 	}
-	life.camera.position.copy( center ).addScaledVector( viewDirection, radius * 2.5 );
+	life.camera.position.copy( center ).addScaledVector( viewDirection, cameraDistance );
 	life.camera.lookAt( center );
 	await life.run( 3 );
 	const pixels = new Uint8Array( ( await readTexture( life.ldr.texture ) ).data );
@@ -214,7 +234,7 @@ const renderMaterial = async mesh => {
 	for ( let i = 0; i < pixels.length; i += 4 ) {
 		if ( Math.abs( pixels[ i ] - background[ 0 ] ) + Math.abs( pixels[ i + 1 ] - background[ 1 ] ) + Math.abs( pixels[ i + 2 ] - background[ 2 ] ) > 24 ) changedPixels ++;
 	}
-	const role = mesh === netMeshes[ 0 ] ? 'net' : mesh === thatchMeshes[ 0 ] ? 'thatch' : mesh === stoneMeshes[ 0 ] ? 'stone' : mesh === roofMetalMeshes[ 0 ] ? 'roofMetal' : 'fabric';
+	const role = mesh === netMeshes[ 0 ] ? 'net' : mesh === thatchMeshes[ 0 ] ? 'thatch' : mesh === stoneMeshes[ 0 ] ? 'stone' : mesh === roofMetalMeshes[ 0 ] ? 'roofMetal' : mesh === hardMeshes[ 0 ] ? 'hard' : 'fabric';
 	assert.ok( changedPixels >= ( role === 'fabric' ? 1 : 30 ), `signed Tidewater ${role} graph renders visible WebGPU pixels (${changedPixels})` );
 	return changedPixels;
 };
@@ -223,7 +243,8 @@ const thatchChangedPixels = await renderMaterial( thatchMeshes[ 0 ] );
 const fabricChangedPixels = await renderMaterial( fabricMeshes[ 0 ] );
 const stoneChangedPixels = await renderMaterial( stoneMeshes[ 0 ] );
 const roofMetalChangedPixels = await renderMaterial( roofMetalMeshes[ 0 ] );
+const hardChangedPixels = await renderMaterial( hardMeshes[ 0 ] );
 disposeWorldPackage( root );
 assert.ok( Object.values( materials ).every( material => ! material.disposed ), 'package cleanup must preserve App-owned procedural materials' );
 GPU.device.destroy();
-console.log( `Hosted island package passes; Tidewater net/thatch/fabric/stone/roof-metal graphs render ${netChangedPixels}/${thatchChangedPixels}/${fabricChangedPixels}/${stoneChangedPixels}/${roofMetalChangedPixels} visible WebGPU pixels` );
+console.log( `Hosted island package passes; Tidewater net/thatch/fabric/stone/roof-metal/hard graphs render ${netChangedPixels}/${thatchChangedPixels}/${fabricChangedPixels}/${stoneChangedPixels}/${roofMetalChangedPixels}/${hardChangedPixels} visible WebGPU pixels` );

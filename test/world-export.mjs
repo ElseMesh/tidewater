@@ -341,9 +341,23 @@ try {
 		assert.equal( image.mimeType, 'image/png', 'roof graph inputs are embedded in the signed GLB' );
 		assert.deepEqual( [ ...image.bytes.subarray( 0, 8 ) ], [ 137, 80, 78, 71, 13, 10, 26, 10 ] );
 	}
+	const hardMaterials = villageGLB.materials.filter( material => material.extras?.elsemeshWorld?.materialRole === 'hard' );
+	assert.equal( hardMaterials.length, 3, 'hardware, sign, and lantern batches share one renderer-neutral material graph' );
+	for ( const hardMaterial of hardMaterials ) {
+		assert.equal( hardMaterial.extras.elsemeshMaterial.profile, 'elsemesh.material-graph/1' );
+		assert.ok( hardMaterial.extras.elsemeshMaterial.graph.outputs.metalness );
+		assert.ok( hardMaterial.extras.elsemeshMaterial.graph.outputs.surfaceNormal );
+		assert.equal( hardMaterial.occlusionTexture.strength, 0 );
+		assert.deepEqual( hardMaterial.emissiveFactor, [ 0, 0, 0 ], 'the graph uses the emissive texture slot as signed linearized grayscale data' );
+		for ( const textureInfo of [ hardMaterial.pbrMetallicRoughness.metallicRoughnessTexture, hardMaterial.normalTexture, hardMaterial.occlusionTexture, hardMaterial.emissiveTexture ] ) {
+			const image = villageGLB.images[ villageGLB.textures[ textureInfo.index ].source ];
+			assert.equal( image.mimeType, 'image/png', 'hard-surface graph inputs are embedded in the signed GLB' );
+			assert.deepEqual( [ ...image.bytes.subarray( 0, 8 ) ], [ 137, 80, 78, 71, 13, 10, 26, 10 ] );
+		}
+	}
 	assert.equal( fabricMaterials[ 0 ].doubleSided, true );
 	const lanternMaterialIndexes = new Set( villageGLB.materials.flatMap( ( material, index ) => material.name.includes( 'lantern-' ) ? [ index ] : [] ) );
-	assert.deepEqual( [ ...lanternMaterialIndexes ].map( index => villageGLB.materials[ index ].extras?.elsemeshMaterial?.role ).sort(), [ 'hard', 'wood' ], 'export includes static hanging lanterns with the trusted hard and wood materials' );
+	assert.deepEqual( [ ...lanternMaterialIndexes ].map( index => villageGLB.materials[ index ].extras?.elsemeshWorld?.materialRole || villageGLB.materials[ index ].extras?.elsemeshMaterial?.role ).sort(), [ 'hard', 'wood' ], 'export includes static hanging lanterns with the trusted hard and wood materials' );
 	const lanternPrimitives = villageGLB.meshes[ 0 ].filter( primitive => lanternMaterialIndexes.has( primitive.material ) );
 	assert.equal( lanternPrimitives.length, 2, 'export includes separate lantern wood and hard geometry batches' );
 	assert.ok( lanternPrimitives.every( primitive => primitive.indices?.length > 0 && primitive.attributes._ELSEMESH_VDATA?.itemSize === 4 ), 'exported lantern geometry retains indexed meshes and renderer material data' );
@@ -454,6 +468,9 @@ try {
 		} else if ( object.material.name === 'Procedural village roofMetal' ) {
 			assert.match( object.material.surface, /s\.metalness = emg_metalness/, 'the package roof graph uses the engine metalness output' );
 			villageRoles.add( 'roofMetal' );
+		} else if ( object.material.name.endsWith( 'hard' ) ) {
+			assert.match( object.material.surface, /s\.ao \*= emg_occlusion/, 'the package hard-surface graph uses the engine occlusion output' );
+			villageRoles.add( 'hard' );
 		} else villageRoles.add( object.material.name );
 	} } );
 	assert.equal( villageRuntimeMeshes, villageGLB.meshes[ 0 ].length, 'hosted package loader creates each village material batch' );

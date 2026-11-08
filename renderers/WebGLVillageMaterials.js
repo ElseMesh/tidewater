@@ -2,7 +2,6 @@ import { worldMaterialRole } from '../../../src/network/WorldMaterialProfileRegi
 
 const ROLE_SPECS = Object.freeze( {
 	wood: { albedo: 'woodA', packed: 'woodN', metalness: 0 },
-	hard: { packed: 'hardN', metalness: 0.25 },
 } );
 
 function makeTexture( THREE, data, spec, { color = false, anisotropy = 1 } = {} ) {
@@ -55,25 +54,6 @@ function packedMapTextures( THREE, data, spec, anisotropy ) {
 	};
 }
 
-function derivedColorMap( THREE, data, spec, role, anisotropy ) {
-	const color = new Uint8Array( data.length );
-	for ( let i = 0; i < data.length; i += 4 ) {
-		const r = data[ i ] / 255, g = data[ i + 1 ] / 255, b = data[ i + 2 ] / 255;
-		if ( role === 'hard' ) {
-			const rust = r * 0.55;
-			color[ i ] = Math.round( 105 * ( 1 - rust ) + 102 * rust );
-			color[ i + 1 ] = Math.round( 105 * ( 1 - rust ) + 48 * rust );
-			color[ i + 2 ] = Math.round( 100 * ( 1 - rust ) + 22 * rust );
-			color[ i + 3 ] = 255;
-		} else {
-			color.set( data.subarray( i, i + 4 ), i );
-		}
-		// These channels are authored as linear RGBA8 data, not sRGB color values.
-		if ( role === 'hard' ) color[ i + 3 ] = 255;
-	}
-	return makeTexture( THREE, color, spec, { anisotropy } );
-}
-
 // Applies the signed baked village maps to the GLB's trusted ElseMesh material roles.
 // The WebGL path uses standard PBR maps; it does not execute world-provided shaders.
 export function createWebGLVillageMaterials( THREE, decoded, { anisotropy = 1 } = {} ) {
@@ -84,16 +64,12 @@ export function createWebGLVillageMaterials( THREE, decoded, { anisotropy = 1 } 
 		const packedSpec = sourceSpec( packedName, decoded );
 		const packed = decoded.maps[ packedName ];
 		if ( ! ( packed instanceof Uint8Array ) || packed.byteLength !== packedSpec.width * packedSpec.height * 4 ) throw new Error( `WebGL village role ${role} has no valid ${packedName} map` );
-		const maps = packedName === 'net'
-			? packedNetTextures( THREE, packed, packedSpec, anisotropy )
-			: packedMapTextures( THREE, packed, packedSpec, anisotropy );
-		const albedoName = config.albedo || ( role === 'hard' ? 'hardA' : null );
+		const maps = packedMapTextures( THREE, packed, packedSpec, anisotropy );
+		const albedoName = config.albedo;
 		const albedoSpec = albedoName ? sourceSpec( albedoName, decoded ) : null;
 		const albedo = albedoSpec ? decoded.maps[ albedoName ] : null;
 		if ( albedoSpec && ( ! ( albedo instanceof Uint8Array ) || albedo.byteLength !== albedoSpec.width * albedoSpec.height * 4 ) ) throw new Error( `WebGL village role ${role} has no valid ${config.albedo} map` );
-		const colorMap = role === 'hard'
-			? derivedColorMap( THREE, albedo || packed, albedoSpec || packedSpec, role, anisotropy )
-			: albedoSpec ? opaqueColorMap( THREE, albedo, albedoSpec, anisotropy ) : null;
+		const colorMap = albedoSpec ? opaqueColorMap( THREE, albedo, albedoSpec, anisotropy ) : null;
 		materials[ role ] = new THREE.MeshStandardMaterial( {
 			color: 0xffffff,
 			vertexColors: true,

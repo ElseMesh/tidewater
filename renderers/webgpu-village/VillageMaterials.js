@@ -3,7 +3,7 @@ import { commonModule } from '../../../../src/engine/render/wgsl/common.js';
 import { standard } from '../../../../src/materials/Materials.js';
 import { createWebGPUMaterialGraph } from '../../../../src/materials/WorldMaterialGraph.js';
 import { VillageTextures } from './TextureBaker.js';
-import { TIDEWATER_NET_MATERIAL_GRAPH, TIDEWATER_THATCH_MATERIAL_GRAPH, TIDEWATER_FABRIC_MATERIAL_GRAPH, TIDEWATER_STONE_MATERIAL_GRAPH, TIDEWATER_ROOF_METAL_MATERIAL_GRAPH } from '../../VillageMaterialGraphs.js';
+import { TIDEWATER_NET_MATERIAL_GRAPH, TIDEWATER_THATCH_MATERIAL_GRAPH, TIDEWATER_FABRIC_MATERIAL_GRAPH, TIDEWATER_STONE_MATERIAL_GRAPH, TIDEWATER_ROOF_METAL_MATERIAL_GRAPH, TIDEWATER_HARD_MATERIAL_GRAPH } from '../../VillageMaterialGraphs.js';
 
 // Shared PBR materials for the village, pier and props.
 //
@@ -380,44 +380,13 @@ export function createThatchMaterial( T ) {
 // rope: vdata.w = 2 + rope radius (uv: u along the rope, v around, metres)
 
 export function createHardMaterial( T ) {
-
-	const m = villageMaterial( { roughness: 0.5, metalness: 0.5 }, T, [ 'hardA', 'hardN', 'rope', 'grime' ], { surface: /* wgsl */`
-	let aTint = in.vs.vTint;
-	let aData = in.vs.vData;
-	let seed = aData.x;
-	let rustAmt = aData.y;
-	let isRope = step( 1.5, aData.w );
-	let uv0 = in.uv;
-	let off = vec2f( vlmHash21( seed, 2.3 ), vlmHash21( seed, 8.9 ) );
-	let tuv = uv0 + off;
-	let HA = textureSample( vlgHardA, smpAnisoRepeat, tuv );
-	let HN = textureSample( vlgHardN, smpAnisoRepeat, tuv );
-	let hasRust = step( 0.001, rustAmt );
-	let thr = mix( 0.95, 0.3, rustAmt );
-	let rust = smoothstep( thr - 0.06, thr + 0.06, HA.r ) * hasRust;
-	var base = aTint * ( 1.0 - HA.b * 0.2 ) * ( ( HA.r - 0.5 ) * 0.1 + 1.0 );
-	base = mix( base, vec3f( 0.3, 0.3, 0.29 ), HA.g * 0.55 * hasRust * ( 1.0 - rust ) );
-	let rustCol = mix( vec3f( 0.12, 0.045, 0.02 ), vec3f( 0.4, 0.17, 0.06 ), smoothstep( 0.3, 0.9, HA.r ) );
-	let hardCol = mix( base, rustCol, rust ) * mix( 1.0, HN.a, 0.5 );
-	let hardRough = mix( clamp( aData.w + ( HN.b - 0.5 ) * 0.35 - HA.g * 0.15 * hasRust, 0.04, 1.0 ), 0.88, rust );
-	let hardS = vlmSlopeOf( HN ) * ( rust * 0.8 + 0.25 );
-
-	// rope: uvs normalised by the circumference so the three strands wrap seamlessly
-	let ropeR = max( aData.w - 2.0, 0.004 );
-	let R = textureSample( vlgRope, smpAnisoRepeat, uv0 / ( ropeR * VLM_TAU ) + vec2f( aData.x * 3.1, 0.0 ) );
-	let ropeCol = aTint * mix( 0.45, 1.25, R.r ) * mix( 1.0, R.g, 0.6 );
-	let rn = R.ba * 2.0 - 1.0;
-	let ropeS = rn / sqrt( max( 1.0 - dot( rn, rn ), 0.04 ) );
-
-	let res = vlmTidal( in.P, mix( hardCol, ropeCol, isRope ), mix( hardRough, 0.93, isRope ) );
-	s.normal = vlmNormalFromSlope( in.P, in.N, in.uv, mix( hardS, ropeS, isRope ) );
-	s.albedo = res.col;
-	s.roughness = res.rough;
-	s.metalness = aData.z * ( 1.0 - max( rust, res.wet ) ) * ( 1.0 - isRope );
-	s.ao = mix( HN.a, R.g, isRope );
-` } );
+	const m = createWebGPUMaterialGraph( {
+		name: 'VillageHard',
+		pbrMetallicRoughness: { roughnessFactor: 0.5, metallicFactor: 0.5 },
+	}, TIDEWATER_HARD_MATERIAL_GRAPH, {
+		graphTextures: { metallicRoughness: T.hardA, normal: T.hardN, occlusion: T.rope, emissive: T.grime },
+	} );
 	m.name = 'VillageHard';
-	m.modules.push( tidalModule );
 	return m;
 
 }

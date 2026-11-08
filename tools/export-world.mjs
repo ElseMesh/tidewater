@@ -17,7 +17,7 @@ import { Rocks } from '../Rocks.js';
 import { Colliders } from '../../../src/world/Colliders.js';
 import { Builder, Batch } from '../village/GeoBuilder.js';
 import { VILLAGE_MATERIAL_PROFILE, VILLAGE_MATERIAL_ROLES } from '../VillageMaterialProfile.js';
-import { TIDEWATER_NET_MATERIAL_GRAPH, TIDEWATER_THATCH_MATERIAL_GRAPH, TIDEWATER_FABRIC_MATERIAL_GRAPH, TIDEWATER_STONE_MATERIAL_GRAPH, TIDEWATER_ROOF_METAL_MATERIAL_GRAPH } from '../VillageMaterialGraphs.js';
+import { TIDEWATER_NET_MATERIAL_GRAPH, TIDEWATER_THATCH_MATERIAL_GRAPH, TIDEWATER_FABRIC_MATERIAL_GRAPH, TIDEWATER_STONE_MATERIAL_GRAPH, TIDEWATER_ROOF_METAL_MATERIAL_GRAPH, TIDEWATER_HARD_MATERIAL_GRAPH } from '../VillageMaterialGraphs.js';
 import { InstancedProps } from '../Props.js';
 import { DebrisPlacer } from '../DebrisPlacement.js';
 import { SCANNED_DEBRIS_ASSETS } from '../debris/ScannedAssets.js';
@@ -136,11 +136,17 @@ const villageRoofPNGs = {
 	normal: encodePNG( 512, 1024, villageMaps.roofN ),
 	hardNormal: encodePNG( 512, 512, villageMaps.hardN ),
 };
-const villageGLB = applyVillageMaterialGraphs( exportBatchGLB( generated.villageBatches, 'Procedural village', true ), villageNetPNG, villageThatchPNGs, villageStonePNGs, villageRoofPNGs );
+const villageHardPNGs = {
+	channels: encodePNG( 512, 512, villageMaps.hardA ),
+	normal: encodePNG( 512, 512, villageMaps.hardN ),
+	rope: encodePNG( 256, 256, villageMaps.rope ),
+	grime: encodePNG( 512, 512, linearRGBAtoSRGB( villageMaps.grime ) ),
+};
+const villageGLB = applyVillageMaterialGraphs( exportBatchGLB( generated.villageBatches, 'Procedural village', true ), villageNetPNG, villageThatchPNGs, villageStonePNGs, villageRoofPNGs, villageHardPNGs );
 const villageAssetId = `sha256:${createHash( 'sha256' ).update( villageGLB ).digest( 'hex' )}`;
 const villageBounds = boundsForGLB( villageGLB );
 staticAssets.set( villageAssetId, villageGLB );
-const villageLODGLB = applyVillageMaterialGraphs( await readFile( path.join( WORLD_ROOT, 'lod-source', 'village-low.glb' ) ), villageNetPNG, villageThatchPNGs, villageStonePNGs, villageRoofPNGs );
+const villageLODGLB = applyVillageMaterialGraphs( await readFile( path.join( WORLD_ROOT, 'lod-source', 'village-low.glb' ) ), villageNetPNG, villageThatchPNGs, villageStonePNGs, villageRoofPNGs, villageHardPNGs );
 const villageLODAssetId = `sha256:${createHash( 'sha256' ).update( villageLODGLB ).digest( 'hex' )}`;
 const villageBaseData = parseGLB( villageGLB );
 const villageLODData = parseGLB( villageLODGLB );
@@ -769,7 +775,7 @@ function linearRGBAtoSRGB( rgba ) {
 	return encoded;
 }
 
-function applyVillageMaterialGraphs( sourceBytes, netPNG, thatchPNGs, stonePNGs, roofPNGs ) {
+function applyVillageMaterialGraphs( sourceBytes, netPNG, thatchPNGs, stonePNGs, roofPNGs, hardPNGs ) {
 	const source = Buffer.from( sourceBytes );
 	if ( source.readUInt32LE( 0 ) !== 0x46546c67 || source.readUInt32LE( 4 ) !== 2 ) throw new Error( 'Tidewater village LOD is not a GLB v2 asset' );
 	const jsonLength = source.readUInt32LE( 12 );
@@ -808,6 +814,10 @@ function applyVillageMaterialGraphs( sourceBytes, netPNG, thatchPNGs, stonePNGs,
 	const roofChannels = addTexture( 'Tidewater corrugated roof channels', roofPNGs.channels );
 	const roofNormal = addTexture( 'Tidewater corrugated roof normal and roughness', roofPNGs.normal );
 	const roofHardNormal = addTexture( 'Tidewater roof secondary normal and occlusion', roofPNGs.hardNormal );
+	const hardChannels = addTexture( 'Tidewater hard-surface rust and scratch channels', hardPNGs.channels );
+	const hardNormal = addTexture( 'Tidewater hard-surface normal and roughness', hardPNGs.normal );
+	const ropeChannels = addTexture( 'Tidewater rope shade, AO, and normal channels', hardPNGs.rope );
+	const hardGrime = addTexture( 'Tidewater hard-surface splash grime channels', hardPNGs.grime );
 	for ( const material of netMaterials ) {
 		const pbr = material.pbrMetallicRoughness ||= {};
 		pbr.metallicFactor = 0; pbr.roughnessFactor = 0.9;
@@ -876,6 +886,22 @@ function applyVillageMaterialGraphs( sourceBytes, netPNG, thatchPNGs, stonePNGs,
 			...material.extras,
 			elsemeshWorld: { ...material.extras.elsemeshWorld, materialRole: 'roofMetal' },
 			elsemeshMaterial: { profile: 'elsemesh.material-graph/1', role: 'graph', graph: TIDEWATER_ROOF_METAL_MATERIAL_GRAPH },
+		};
+	}
+	const hardMaterials = gltf.materials.filter( material => material.extras?.elsemeshMaterial?.profile === VILLAGE_MATERIAL_PROFILE && material.extras.elsemeshMaterial.role === 'hard' );
+	if ( hardMaterials.length === 0 ) throw new Error( 'Tidewater village asset has no authored hard-surface material to migrate' );
+	for ( const material of hardMaterials ) {
+		const pbr = material.pbrMetallicRoughness ||= {};
+		pbr.metallicFactor = 0.5; pbr.roughnessFactor = 0.5;
+		pbr.metallicRoughnessTexture = { index: hardChannels };
+		material.normalTexture = { index: hardNormal, scale: 1 };
+		material.occlusionTexture = { index: ropeChannels, strength: 0 };
+		material.emissiveTexture = { index: hardGrime };
+		material.emissiveFactor = [ 0, 0, 0 ];
+		material.extras = {
+			...material.extras,
+			elsemeshWorld: { ...material.extras.elsemeshWorld, materialRole: 'hard' },
+			elsemeshMaterial: { profile: 'elsemesh.material-graph/1', role: 'graph', graph: TIDEWATER_HARD_MATERIAL_GRAPH },
 		};
 	}
 	gltf.buffers[ 0 ].byteLength = binary.length;

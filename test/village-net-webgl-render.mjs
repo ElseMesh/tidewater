@@ -90,10 +90,10 @@ try {
 	}
 	assert.equal( result?.status, 'complete', `Tidewater WebGL village graph render completed: ${result?.text || 'no page result'}` );
 	const metrics = JSON.parse( result.text );
-	assert( metrics.net >= 30 && metrics.thatch >= 30 && metrics.fabric >= 5 && metrics.stone >= 30 && metrics.roofMetal >= 30, `signed Tidewater net/thatch/fabric/stone/roof-metal graphs render visible pixels (${metrics.net}/${metrics.thatch}/${metrics.fabric}/${metrics.stone}/${metrics.roofMetal})` );
+	assert( metrics.net >= 30 && metrics.hard >= 30 && metrics.thatch >= 30 && metrics.fabric >= 5 && metrics.stone >= 30 && metrics.roofMetal >= 30, `signed Tidewater net/hard/thatch/fabric/stone/roof-metal graphs render visible pixels (${metrics.net}/${metrics.hard}/${metrics.thatch}/${metrics.fabric}/${metrics.stone}/${metrics.roofMetal})` );
 	assert( metrics.programs > 0, 'WebGL compiled the signed Tidewater graph shaders' );
 	assert.equal( metrics.glError, 0, 'WebGL reports no graphics error' );
-	console.log( `Tidewater WebGL net/thatch/fabric/stone/roof-metal graph render passed (${metrics.net}/${metrics.thatch}/${metrics.fabric}/${metrics.stone}/${metrics.roofMetal} visible pixels; ${metrics.programs} program(s); no GL errors)` );
+	console.log( `Tidewater WebGL net/hard/thatch/fabric/stone/roof-metal graph render passed (${metrics.net}/${metrics.hard}/${metrics.thatch}/${metrics.fabric}/${metrics.stone}/${metrics.roofMetal} visible pixels; ${metrics.programs} program(s); no GL errors)` );
 } finally {
 	socket?.close();
 	if ( browser ) await stopBrowser( browser );

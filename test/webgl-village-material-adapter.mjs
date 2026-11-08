@@ -17,8 +17,9 @@ const bytes = new Uint8Array( await readFile( new URL( `../assets/${assetId.slic
 const fallback = { THREE, renderer: { capabilities: { getMaxAnisotropy: () => 1 } } };
 const result = await adapter( { fallback, assets: new Map( [ [ assetId, bytes ] ] ) }, component );
 assert.equal( result?.installed, true, 'the WebGL adapter awaits and installs the decoded signed material maps' );
-assert.equal( result.runtime.sharedMaterials.length, 2, "Tidewater's graph-owned net, thatch, fabric, stone, and roof-metal roles are absent from the world WebGL material adapter" );
+assert.equal( result.runtime.sharedMaterials.length, 1, "Tidewater's graph-owned hard, net, thatch, fabric, stone, and roof-metal roles are absent from the world WebGL material adapter" );
 assert.equal( result.runtime.resolveWorldMaterialProfile( { profile: 'elsemesh.village/1', role: 'wood' } ), result.runtime.sharedMaterials.find( material => material.name === 'WebGL village wood' ), 'static-model materials resolve through the installed world profile runtime' );
+assert.equal( result.runtime.resolveWorldMaterialProfile( { profile: 'elsemesh.village/1', role: 'hard' } ), null, 'hard surfaces use the signed engine-compiled material graph' );
 assert.equal( result.runtime.resolveWorldMaterialProfile( { profile: 'elsemesh.other/1', role: 'wood' } ), null, 'the profile runtime declines profiles it does not own' );
 result.runtime.dispose();
 
