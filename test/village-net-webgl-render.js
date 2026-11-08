@@ -15,8 +15,8 @@ try {
 		return response.arrayBuffer();
 	} );
 	const parsedGLB = parseGLB( glbBytes );
-	const graphMaterialIndexes = new Map( parsedGLB.materials.flatMap( ( material, index ) => material.name === 'Procedural village net' || material.extras?.elsemeshWorld?.materialRole === 'thatch' ? [ [ material.name, index ] ] : [] ) );
-	if ( graphMaterialIndexes.size !== 2 ) throw new Error( 'signed village GLB is missing its net or thatch graph material' );
+	const graphMaterialIndexes = new Map( parsedGLB.materials.flatMap( ( material, index ) => material.name === 'Procedural village net' || [ 'thatch', 'fabric' ].includes( material.extras?.elsemeshWorld?.materialRole ) ? [ [ material.name, index ] ] : [] ) );
+	if ( graphMaterialIndexes.size !== 3 ) throw new Error( 'signed village GLB is missing its net, thatch, or fabric graph material' );
 	const graphAttributes = new Map( [ ...graphMaterialIndexes ].map( ( [ name, index ] ) => {
 		const primitive = parsedGLB.meshes.flat().find( candidate => candidate.material === index );
 		if ( ! primitive?.attributes._ELSEMESH_VDATA ) throw new Error( `signed ${name} GLB mesh is missing its VEC4 _ELSEMESH_VDATA` );
@@ -31,13 +31,39 @@ try {
 		object.geometry.setAttribute( '_ELSEMESH_VDATA', new THREE.BufferAttribute( graphAttributes.get( name ).array, 4 ) );
 		graphMeshes.get( name ).push( object );
 	} );
-	for ( const [ name, meshes ] of graphMeshes ) if ( meshes.length !== 1 ) throw new Error( `expected one signed ${name} material mesh, found ${meshes.length}` );
+	for ( const [ name, meshes ] of graphMeshes ) {
+		if ( name === 'Procedural village fabric' ? meshes.length < 1 : meshes.length !== 1 ) throw new Error( `unexpected signed ${name} material mesh count: ${meshes.length}` );
+	}
 	const compiled = applyWebGLWorldMaterialGraphs( THREE, gltf.scene );
-	if ( compiled !== 2 ) throw new Error( `expected two engine-compiled graphs, found ${compiled}` );
+	if ( compiled !== 3 ) throw new Error( `expected three engine-compiled graphs, found ${compiled}` );
 	const netMesh = graphMeshes.get( 'Procedural village net' )[ 0 ];
 	const thatchMesh = graphMeshes.get( 'Procedural village thatch' )[ 0 ];
-	for ( const mesh of [ netMesh, thatchMesh ] ) if ( ! mesh.material.userData?.elsemeshWorldMaterialGraph ) throw new Error( `${mesh.material.name} did not pass through the engine graph compiler` );
+	const fabricMesh = graphMeshes.get( 'Procedural village fabric' )[ 0 ];
+	for ( const mesh of [ netMesh, thatchMesh, fabricMesh ] ) if ( ! mesh.material.userData?.elsemeshWorldMaterialGraph ) throw new Error( `${mesh.material.name} did not pass through the engine graph compiler` );
 	if ( netMesh.material.side !== THREE.DoubleSide || ! netMesh.material.transparent || netMesh.material.depthWrite ) throw new Error( 'net material lost its signed glTF blend or double-sided state' );
+	const focusGeometryCluster = mesh => {
+		const geometry = mesh.geometry, index = geometry.index?.array, positions = geometry.getAttribute( 'position' )?.array, data = geometry.getAttribute( 'vdata' )?.array;
+		if ( ! index || ! positions || ! data ) throw new Error( 'fabric render fixture requires indexed geometry, positions, and material data' );
+		const cellSize = 4, cellFor = triangle => {
+			if ( data[ index[ triangle ] * 4 + 2 ] <= 5000 ) return null;
+			const center = [ 0, 1, 2 ].map( axis => ( positions[ index[ triangle ] * 3 + axis ] + positions[ index[ triangle + 1 ] * 3 + axis ] + positions[ index[ triangle + 2 ] * 3 + axis ] ) / 3 );
+			return { key: center.map( value => Math.floor( value / cellSize ) ).join( ',' ) };
+		};
+		const bins = new Map();
+		for ( let triangle = 0; triangle < index.length; triangle += 3 ) {
+			const cell = cellFor( triangle );
+			if ( ! cell ) continue;
+			const { key } = cell;
+			bins.set( key, ( bins.get( key ) || 0 ) + 1 );
+		}
+		const target = [ ...bins ].sort( ( a, b ) => b[ 1 ] - a[ 1 ] )[ 0 ]?.[ 0 ];
+		const focused = [];
+		for ( let triangle = 0; triangle < index.length; triangle += 3 ) if ( cellFor( triangle )?.key === target ) focused.push( index[ triangle ], index[ triangle + 1 ], index[ triangle + 2 ] );
+		if ( focused.length < 30 ) throw new Error( 'fabric render fixture found no representative local triangle cluster' );
+		geometry.setIndex( focused );
+		geometry.computeBoundingSphere();
+	};
+	focusGeometryCluster( fabricMesh );
 
 	const scene = new THREE.Scene();
 	const backgroundColor = new THREE.Color( 0x18232b );
@@ -59,13 +85,19 @@ try {
 	const gl = renderer.getContext();
 	const pixels = new Uint8Array( 640 * 480 * 4 );
 	const metrics = {};
-	for ( const [ label, mesh ] of [ [ 'net', netMesh ], [ 'thatch', thatchMesh ] ] ) {
+	for ( const [ label, mesh ] of [ [ 'net', netMesh ], [ 'thatch', thatchMesh ], [ 'fabric', fabricMesh ] ] ) {
 		for ( const target of graphMeshes.values() ) target[ 0 ].visible = target[ 0 ] === mesh;
 		const bounds = new THREE.Box3().setFromObject( mesh );
 		const center = bounds.getCenter( new THREE.Vector3() );
 		const size = bounds.getSize( new THREE.Vector3() );
-		const distance = Math.max( size.length() * 0.9, 0.8 );
-		camera.position.set( center.x, center.y + size.y * 0.12, center.z + distance );
+		const distance = label === 'fabric' ? Math.max( size.length() * 1.3, 0.2 ) : Math.max( size.length() * 0.9, 0.8 );
+		if ( label === 'fabric' ) {
+			const normals = mesh.geometry.getAttribute( 'normal' ).array;
+			const direction = new THREE.Vector3();
+			for ( let i = 0; i < normals.length; i += 3 ) direction.add( new THREE.Vector3( normals[ i ], normals[ i + 1 ], normals[ i + 2 ] ) );
+			direction.normalize().applyQuaternion( mesh.getWorldQuaternion( new THREE.Quaternion() ) );
+			camera.position.copy( center ).addScaledVector( direction, distance );
+		} else camera.position.set( center.x, center.y + size.y * 0.12, center.z + distance );
 		camera.lookAt( center );
 		renderer.render( scene, camera );
 		gl.readPixels( 0, 0, 640, 480, gl.RGBA, gl.UNSIGNED_BYTE, pixels );

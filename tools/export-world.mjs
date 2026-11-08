@@ -17,7 +17,7 @@ import { Rocks } from '../Rocks.js';
 import { Colliders } from '../../../src/world/Colliders.js';
 import { Builder, Batch } from '../village/GeoBuilder.js';
 import { VILLAGE_MATERIAL_PROFILE, VILLAGE_MATERIAL_ROLES } from '../VillageMaterialProfile.js';
-import { TIDEWATER_NET_MATERIAL_GRAPH, TIDEWATER_THATCH_MATERIAL_GRAPH } from '../VillageMaterialGraphs.js';
+import { TIDEWATER_NET_MATERIAL_GRAPH, TIDEWATER_THATCH_MATERIAL_GRAPH, TIDEWATER_FABRIC_MATERIAL_GRAPH } from '../VillageMaterialGraphs.js';
 import { InstancedProps } from '../Props.js';
 import { DebrisPlacer } from '../DebrisPlacement.js';
 import { SCANNED_DEBRIS_ASSETS } from '../debris/ScannedAssets.js';
@@ -802,6 +802,22 @@ function applyVillageMaterialGraphs( sourceBytes, netPNG, thatchPNGs ) {
 			...material.extras,
 			elsemeshWorld: { ...material.extras.elsemeshWorld, materialRole: 'thatch' },
 			elsemeshMaterial: { profile: 'elsemesh.material-graph/1', role: 'graph', graph: TIDEWATER_THATCH_MATERIAL_GRAPH },
+		};
+	}
+	const fabricMaterials = gltf.materials.filter( material => material.extras?.elsemeshMaterial?.profile === VILLAGE_MATERIAL_PROFILE && material.extras.elsemeshMaterial.role === 'fabric' );
+	if ( fabricMaterials.length === 0 ) throw new Error( 'Tidewater village asset has no authored fabric material to migrate' );
+	for ( const material of fabricMaterials ) {
+		const pbr = material.pbrMetallicRoughness ||= {};
+		pbr.metallicFactor = 0; pbr.roughnessFactor = 0.88;
+		pbr.metallicRoughnessTexture = { index: netTexture };
+		material.occlusionTexture = { index: thatchGrime, strength: 0 };
+		material.alphaMode = 'MASK';
+		material.alphaCutoff = 0.5;
+		material.doubleSided = true;
+		material.extras = {
+			...material.extras,
+			elsemeshWorld: { ...material.extras.elsemeshWorld, materialRole: 'fabric' },
+			elsemeshMaterial: { profile: 'elsemesh.material-graph/1', role: 'graph', graph: TIDEWATER_FABRIC_MATERIAL_GRAPH },
 		};
 	}
 	gltf.buffers[ 0 ].byteLength = binary.length;

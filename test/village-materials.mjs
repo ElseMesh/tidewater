@@ -11,7 +11,7 @@ import { readTexture } from '../../../src/engine/gpu/Readback.js';
 import { loadWorldPackage, disposeWorldPackage } from '../../../src/network/WorldPackage.js';
 import { decodeVillageMaterialAsset } from '../VillageMaterialAsset.js';
 import { VILLAGE_MATERIAL_PROFILE, VILLAGE_MATERIAL_ROLES } from '../VillageMaterialProfile.js';
-import { TIDEWATER_NET_MATERIAL_GRAPH, TIDEWATER_THATCH_MATERIAL_GRAPH } from '../VillageMaterialGraphs.js';
+import { TIDEWATER_NET_MATERIAL_GRAPH, TIDEWATER_THATCH_MATERIAL_GRAPH, TIDEWATER_FABRIC_MATERIAL_GRAPH } from '../VillageMaterialGraphs.js';
 import { createWebGLMaterialGraph } from '../../../src/materials/WorldMaterialGraph.js';
 import { compileWorldMaterialGraph } from '../../../src/materials/WorldMaterialGraphCompiler.js';
 
@@ -30,7 +30,7 @@ assert.match( netGraphWebGL.glsl.fragment, /vEmg_colorRGB \* emg_albedo/, 'WebGL
 const netGraphTexture = new THREE.DataTexture( new Uint8Array( [ 128, 128, 128, 255 ] ), 1, 1, THREE.RGBAFormat, THREE.UnsignedByteType );
 const netSourceMaterial = new THREE.MeshStandardMaterial( { side: THREE.DoubleSide, transparent: true, depthWrite: false, metalnessMap: netGraphTexture } );
 const webglNet = createWebGLMaterialGraph( THREE, netSourceMaterial, TIDEWATER_NET_MATERIAL_GRAPH );
-const netGraphShader = { vertexShader: '#include <common>\n#include <begin_vertex>\n#include <defaultnormal_vertex>\n#include <worldpos_vertex>', fragmentShader: '#include <common>\n#include <lights_physical_fragment>', uniforms: {} };
+const netGraphShader = { vertexShader: '#include <common>\n#include <begin_vertex>\n#include <defaultnormal_vertex>\n#include <worldpos_vertex>', fragmentShader: '#include <common>\n#include <alphatest_fragment>\n#include <lights_physical_fragment>', uniforms: {} };
 webglNet.material.onBeforeCompile( netGraphShader );
 assert.match( netGraphShader.vertexShader, /emgWindDirection/ );
 assert.match( netGraphShader.fragmentShader, /texture2D\( emgTexture_metallicRoughness/ );
@@ -47,6 +47,14 @@ assert.match( thatchGraphWebGPU.surface, /s\.ao \*= emg_occlusion/ );
 assert.match( thatchGraphWebGPU.surface, /perturbNormalByMap/ );
 assert.match( thatchGraphWebGL.glsl.occlusion, /reflectedLight\.indirectDiffuse/ );
 assert.match( thatchGraphWebGL.glsl.fragment, /texture2D\( emgTexture_occlusion/ );
+const fabricGraphWebGPU = compileWorldMaterialGraph( TIDEWATER_FABRIC_MATERIAL_GRAPH, 'webgpu', { doubleSided: true } );
+const fabricGraphWebGL = compileWorldMaterialGraph( TIDEWATER_FABRIC_MATERIAL_GRAPH, 'webgl', { doubleSided: true } );
+assert.deepEqual( new Set( fabricGraphWebGPU.textureSlots ), new Set( [ 'metallicRoughness', 'occlusion' ] ) );
+assert.match( fabricGraphWebGPU.vertex, /frame\.time/ );
+assert.match( fabricGraphWebGPU.vertex, /frame\.windDir/ );
+assert.match( fabricGraphWebGPU.surface, /s\.alpha \*= emg_fabricCoverage/ );
+assert.match( fabricGraphWebGL.glsl.vertex, /emgWindDirection/ );
+assert.match( fabricGraphWebGL.glsl.fragment, /gl_FrontFacing/ );
 
 const source = JSON.parse( await readFile( new URL( '../world-source.json', import.meta.url ) ) );
 const village = source.objects.find( object => object.id === 'elsemesh-object:island-village' );
@@ -97,15 +105,19 @@ root.traverse( object => { if ( object.isMesh ) meshes.push( object ); } );
 assert.ok( meshes.length >= VILLAGE_MATERIAL_ROLES.length );
 const roles = new Set();
 for ( const mesh of meshes ) {
-	if ( mesh.material.name === 'Procedural village net' || mesh.material.surface?.includes( 'emg_streakAlbedo' ) ) {
+	if ( mesh.material.name === 'Procedural village net' || mesh.material.surface?.includes( 'emg_streakAlbedo' ) || mesh.material.surface?.includes( 'emg_fabricAlbedo' ) ) {
 		assert.equal( mesh.geometry.getAttribute( 'vdata' )?.itemSize, 4 );
 		assert.equal( mesh.geometry.getAttribute( 'color' )?.itemSize, 3 );
 		if ( mesh.material.name === 'Procedural village net' ) {
 			assert.match( mesh.material.surface, /emg_tintedAlbedo/, 'the package net is compiled by the generic engine material-graph path' );
 			roles.add( 'net' );
-		} else {
+		} else if ( mesh.material.surface.includes( 'emg_streakAlbedo' ) ) {
 			assert.match( mesh.material.surface, /s\.ao \*= emg_occlusion/, 'the packaged thatch graph uses the shared occlusion output' );
 			roles.add( 'thatch' );
+		} else {
+			assert.match( mesh.material.vertex, /emg_moved/, 'the packaged fabric graph carries its shared wind and flag movement' );
+			assert.match( mesh.material.surface, /s\.alpha \*= emg_fabricCoverage/ );
+			roles.add( 'fabric' );
 		}
 		continue;
 	}
@@ -130,11 +142,44 @@ assert.equal( netMeshes.length, 1, 'signed village package contains one net grap
 life.scene.add( root );
 const thatchMeshes = meshes.filter( mesh => mesh.material.surface?.includes( 'emg_streakAlbedo' ) );
 assert.equal( thatchMeshes.length, 1, 'signed village package contains one engine-compiled thatch graph batch' );
+const fabricMeshes = meshes.filter( mesh => mesh.material.surface?.includes( 'emg_fabricAlbedo' ) );
+assert.ok( fabricMeshes.length > 0, 'signed village package contains engine-compiled cloth, net, or flag geometry' );
+const focusGeometryCluster = mesh => {
+	const geometry = mesh.geometry, index = geometry.index?.array, positions = geometry.getAttribute( 'position' )?.array, data = geometry.getAttribute( 'vdata' )?.array;
+	if ( ! index || ! positions || ! data ) throw new Error( 'fabric render fixture requires indexed geometry, positions, and material data' );
+	const cellSize = 4, cellFor = triangle => {
+		if ( data[ index[ triangle ] * 4 + 2 ] <= 5000 ) return null;
+		const center = [ 0, 1, 2 ].map( axis => ( positions[ index[ triangle ] * 3 + axis ] + positions[ index[ triangle + 1 ] * 3 + axis ] + positions[ index[ triangle + 2 ] * 3 + axis ] ) / 3 );
+		return { center, key: center.map( value => Math.floor( value / cellSize ) ).join( ',' ) };
+	};
+	const bins = new Map();
+	for ( let triangle = 0; triangle < index.length; triangle += 3 ) {
+		const cell = cellFor( triangle );
+		if ( ! cell ) continue;
+		const { key } = cell;
+		bins.set( key, ( bins.get( key ) || 0 ) + 1 );
+	}
+	const target = [ ...bins ].sort( ( a, b ) => b[ 1 ] - a[ 1 ] )[ 0 ]?.[ 0 ];
+	const focused = [];
+	for ( let triangle = 0; triangle < index.length; triangle += 3 ) if ( cellFor( triangle )?.key === target ) focused.push( index[ triangle ], index[ triangle + 1 ], index[ triangle + 2 ] );
+	if ( focused.length < 30 ) throw new Error( 'fabric render fixture found no representative local triangle cluster' );
+	geometry.setIndex( focused );
+	geometry.computeBoundingSphere();
+};
+focusGeometryCluster( fabricMeshes[ 0 ] );
 const renderMaterial = async mesh => {
 	for ( const candidate of meshes ) candidate.visible = candidate === mesh;
-	const center = mesh.getWorldPosition( new THREE.Vector3() );
-	const radius = Math.max( mesh.geometry.boundingSphere?.radius || 0, 1 );
-	life.camera.position.set( center.x, center.y, center.z + radius * 2.5 );
+	const bounds = new THREE.Box3().setFromObject( mesh );
+	const center = bounds.getCenter( new THREE.Vector3() );
+	const radius = Math.max( bounds.getSize( new THREE.Vector3() ).length() * 0.5, 0.1 );
+	const viewDirection = new THREE.Vector3( 0, 0, 1 );
+	if ( mesh === fabricMeshes[ 0 ] ) {
+		const normals = mesh.geometry.getAttribute( 'normal' ).array;
+		viewDirection.set( 0, 0, 0 );
+		for ( let i = 0; i < normals.length; i += 3 ) viewDirection.add( new THREE.Vector3( normals[ i ], normals[ i + 1 ], normals[ i + 2 ] ) );
+		viewDirection.normalize().applyQuaternion( mesh.getWorldQuaternion( new THREE.Quaternion() ) );
+	}
+	life.camera.position.copy( center ).addScaledVector( viewDirection, radius * 2.5 );
 	life.camera.lookAt( center );
 	await life.run( 3 );
 	const pixels = new Uint8Array( ( await readTexture( life.ldr.texture ) ).data );
@@ -143,12 +188,14 @@ const renderMaterial = async mesh => {
 	for ( let i = 0; i < pixels.length; i += 4 ) {
 		if ( Math.abs( pixels[ i ] - background[ 0 ] ) + Math.abs( pixels[ i + 1 ] - background[ 1 ] ) + Math.abs( pixels[ i + 2 ] - background[ 2 ] ) > 24 ) changedPixels ++;
 	}
-	assert.ok( changedPixels > 30, `signed Tidewater ${mesh === netMeshes[ 0 ] ? 'net' : 'thatch'} graph renders visible WebGPU pixels (${changedPixels})` );
+	const role = mesh === netMeshes[ 0 ] ? 'net' : mesh === thatchMeshes[ 0 ] ? 'thatch' : 'fabric';
+	assert.ok( changedPixels >= ( role === 'fabric' ? 1 : 30 ), `signed Tidewater ${role} graph renders visible WebGPU pixels (${changedPixels})` );
 	return changedPixels;
 };
 const netChangedPixels = await renderMaterial( netMeshes[ 0 ] );
 const thatchChangedPixels = await renderMaterial( thatchMeshes[ 0 ] );
+const fabricChangedPixels = await renderMaterial( fabricMeshes[ 0 ] );
 disposeWorldPackage( root );
 assert.ok( Object.values( materials ).every( material => ! material.disposed ), 'package cleanup must preserve App-owned procedural materials' );
 GPU.device.destroy();
-console.log( `Hosted island package passes; Tidewater net/thatch graphs render ${netChangedPixels}/${thatchChangedPixels} visible WebGPU pixels` );
+console.log( `Hosted island package passes; Tidewater net/thatch/fabric graphs render ${netChangedPixels}/${thatchChangedPixels}/${fabricChangedPixels} visible WebGPU pixels` );

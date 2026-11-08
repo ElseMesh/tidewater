@@ -5,7 +5,6 @@ const ROLE_SPECS = Object.freeze( {
 	hard: { packed: 'hardN', metalness: 0.25 },
 	roofMetal: { packed: 'roofN', metalness: 0.35 },
 	stone: { albedo: 'stoneA', packed: 'stoneN', metalness: 0 },
-	fabric: { packed: 'net', metalness: 0, roughness: 0.9 },
 } );
 
 function makeTexture( THREE, data, spec, { color = false, anisotropy = 1 } = {} ) {
@@ -113,25 +112,6 @@ export function createWebGLVillageMaterials( THREE, decoded, { anisotropy = 1 } 
 		materials[ role ].name = `WebGL village ${role}`;
 	}
 	return materials;
-}
-
-function packedNetTextures( THREE, data, spec, anisotropy ) {
-	const pixels = spec.width * spec.height;
-	const normal = new Uint8Array( pixels * 4 );
-	const occlusion = new Uint8Array( pixels * 4 );
-	const alpha = new Uint8Array( pixels * 4 );
-	for ( let i = 0; i < pixels; i ++ ) {
-		const source = i * 4, x = data[ source + 2 ] / 127.5 - 1, y = data[ source + 3 ] / 127.5 - 1;
-		normal[ source ] = data[ source + 2 ]; normal[ source + 1 ] = data[ source + 3 ];
-		normal[ source + 2 ] = Math.round( ( Math.sqrt( Math.max( 0, 1 - x * x - y * y ) ) * 0.5 + 0.5 ) * 255 ); normal[ source + 3 ] = 255;
-		occlusion[ source ] = data[ source + 1 ]; occlusion[ source + 3 ] = 255;
-		alpha[ source + 1 ] = data[ source ]; alpha[ source + 3 ] = 255;
-	}
-	return {
-		normalMap: makeTexture( THREE, normal, spec, { anisotropy } ),
-		aoMap: makeTexture( THREE, occlusion, spec, { anisotropy } ),
-		alphaMap: makeTexture( THREE, alpha, spec, { anisotropy } ),
-	};
 }
 
 export function applyWebGLVillageMaterials( root, materials ) {

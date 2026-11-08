@@ -1,10 +1,9 @@
-import { DoubleSide } from '../../../../src/engine/index.js';
 import { ShaderModule } from '../../../../src/engine/gpu/Shader.js';
 import { commonModule } from '../../../../src/engine/render/wgsl/common.js';
 import { standard } from '../../../../src/materials/Materials.js';
 import { createWebGPUMaterialGraph } from '../../../../src/materials/WorldMaterialGraph.js';
 import { VillageTextures } from './TextureBaker.js';
-import { TIDEWATER_NET_MATERIAL_GRAPH, TIDEWATER_THATCH_MATERIAL_GRAPH } from '../../VillageMaterialGraphs.js';
+import { TIDEWATER_NET_MATERIAL_GRAPH, TIDEWATER_THATCH_MATERIAL_GRAPH, TIDEWATER_FABRIC_MATERIAL_GRAPH } from '../../VillageMaterialGraphs.js';
 
 // Shared PBR materials for the village, pier and props.
 //
@@ -558,83 +557,19 @@ export function createStoneMaterial( T ) {
 
 }
 
-// sway for cloth / nets (vertex snippet; positionLocal = v.position)
-const SWAY = /* wgsl */`
-	let w = v.vdata.y;
-	let ph = frame.time * 1.7 + v.position.x * 0.6 + v.position.z * 0.45 + v.vdata.x * 20.0;
-	let gust = sin( ph ) * 0.6 + sin( ph * 2.3 + 1.7 ) * 0.3 + 0.55;
-	let flutter = sin( frame.time * 7.0 + v.position.y * 9.0 + v.vdata.x * 50.0 ) * 0.25;
-	let swayPos = v.position + vec3f( frame.windDir.x, flutter * 0.3, frame.windDir.y ) * ( ( gust + flutter ) * ( frame.windSpeed * 0.011 * w ) );
-`;
-
-// ---------------------------------------------------------------------------
-// FABRIC: laundry / tarps, knotted fishing nets and pennant flags in one double sided,
-// alpha tested material (one draw call).
-// vdata: x seed, y sway weight (flag: distance from the pole), z mode:
-//   z = 0          cloth
-//   0 < z < 5000   net, z = mesh size (m)
-//   z > 5000       flag, z = pole x + 10000, w = pole z (the cloth swings downwind on the GPU)
-
+// Cloth, tarps, nets, and flags share the signed renderer-neutral graph.
 export function createFabricMaterial( T ) {
-
-	const m = villageMaterial( { roughness: 0.88, metalness: 0, side: DoubleSide, alphaTest: 0.5 }, T, [ 'net', 'grime' ], {
-		vertex: SWAY + /* wgsl */`
-	let aData = v.vdata;
-	let isFlag = step( 5000.0, aData.z );
-	// flag: oriented downwind around its pole
-	let a = aData.y;
-	let dir = normalize( vec3f( frame.windDir.x, 0.0, frame.windDir.y ) );
-	let perp = vec3f( - dir.z, 0.0, dir.x );
-	let strength = smoothstep( 0.5, 9.0, frame.windSpeed );
-	let phase = frame.time * 7.5 - a * 5.0 + aData.x * 30.0;
-	let wave = sin( phase ) * ( a * 0.09 ) * ( strength * 0.7 + 0.3 );
-	let droop = ( 1.0 - strength ) * a * 0.55;
-	let flagPos = vec3f( aData.z - 10000.0, v.position.y - droop, aData.w ) + dir * ( a * ( 1.0 - droop * 0.4 ) ) + perp * wave;
-	v.position = mix( swayPos, flagPos, isFlag );
-`,
-		surface: /* wgsl */`
-	let aTint = in.vs.vTint;
-	let aData = in.vs.vData;
-	let isFlag = step( 5000.0, aData.z );
-	let isNet = step( 0.001, aData.z ) * ( 1.0 - isFlag );
-	let uvm = in.uv;
-
-	// net
-	let tile = max( aData.z, 0.02 ) * 4.0;
-	let nuv = uvm / tile;
-	let Nt = textureSample( vlgNet, smpAnisoRepeat, nuv );
-	let fwn = fwidth( nuv );
-	let far = smoothstep( 0.05, 0.1, max( fwn.x, fwn.y ) );
-	let sc = in.pixel;
-	let ign = fract( fract( sc.x * 0.06711056 + sc.y * 0.00583715 ) * 52.9829189 );
-	let netAlpha = mix( Nt.r, step( ign, 0.55 ), far );
-	let netCol = aTint * mix( 0.5, 1.05, Nt.g ) * mix( 1.0, 0.8, far );
-	let nn = Nt.ba * 2.0 - 1.0;
-	let netS = nn / sqrt( max( 1.0 - dot( nn, nn ), 0.04 ) ) * ( 1.0 - far );
-
-	// cloth: woven canvas, sun faded
-	let weave = vlmN01( sin( uvm.x * 900.0 ) ) * vlmN01( sin( uvm.y * 900.0 ) );
-	let wf = 1.0 - smoothstep( 0.0005, 0.002, fwidth( uvm.x ) );
-	let fadeN = textureSample( vlgGrime, smpAnisoRepeat, uvm * 0.8 + aData.x ).a;
-	let clothCol = mix( aTint, aTint * 0.6 + vec3f( 0.3 ), fadeN * 0.5 ) * ( weave * 0.12 * wf + 0.94 );
-
-	// flag normal (the cloth swings downwind around its pole, see the vertex snippet)
-	let a = aData.y;
-	let dir = normalize( vec3f( frame.windDir.x, 0.0, frame.windDir.y ) );
-	let perp = vec3f( - dir.z, 0.0, dir.x );
-	let strength = smoothstep( 0.5, 9.0, frame.windSpeed );
-	let phase = frame.time * 7.5 - a * 5.0 + aData.x * 30.0;
-	let slopeW = cos( phase ) * 0.45 * ( a + 0.2 ) * ( strength * 0.7 + 0.3 );
-	let flagN = normalize( perp - dir * slopeW ) * select( - 1.0, 1.0, in.front );
-
-	s.normal = normalize( mix( vlmNormalFromSlope( in.P, in.N, in.uv, netS * isNet ), flagN, isFlag ) );
-	s.alpha = mix( 1.0, netAlpha, isNet );
-	s.albedo = mix( mix( clothCol, netCol, isNet ), aTint * ( fadeN * 0.15 + 0.88 ), isFlag );
-`,
+	const m = createWebGPUMaterialGraph( {
+		name: 'VillageFabric',
+		doubleSided: true,
+		alphaMode: 'MASK',
+		alphaCutoff: 0.5,
+		pbrMetallicRoughness: { roughnessFactor: 0.88, metallicFactor: 0 },
+	}, TIDEWATER_FABRIC_MATERIAL_GRAPH, {
+		graphTextures: { metallicRoughness: T.net, occlusion: T.grime },
 	} );
 	m.name = 'VillageFabric';
 	return m;
-
 }
 
 // ---------------------------------------------------------------------------

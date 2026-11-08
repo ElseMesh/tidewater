@@ -90,10 +90,10 @@ try {
 	}
 	assert.equal( result?.status, 'complete', `Tidewater WebGL village graph render completed: ${result?.text || 'no page result'}` );
 	const metrics = JSON.parse( result.text );
-	assert( metrics.net >= 30 && metrics.thatch >= 30, 'signed Tidewater net and thatch graphs render visible pixels' );
+	assert( metrics.net >= 30 && metrics.thatch >= 30 && metrics.fabric >= 5, `signed Tidewater net/thatch/fabric graphs render visible pixels (${metrics.net}/${metrics.thatch}/${metrics.fabric})` );
 	assert( metrics.programs > 0, 'WebGL compiled the signed Tidewater graph shaders' );
 	assert.equal( metrics.glError, 0, 'WebGL reports no graphics error' );
-	console.log( `Tidewater WebGL net/thatch graph render passed (${metrics.net}/${metrics.thatch} visible pixels; ${metrics.programs} program(s); no GL errors)` );
+	console.log( `Tidewater WebGL net/thatch/fabric graph render passed (${metrics.net}/${metrics.thatch}/${metrics.fabric} visible pixels; ${metrics.programs} program(s); no GL errors)` );
 } finally {
 	socket?.close();
 	if ( browser ) await stopBrowser( browser );

@@ -313,6 +313,14 @@ try {
 		assert.equal( image.mimeType, 'image/png', 'thatch graph inputs are embedded in the signed GLB' );
 		assert.deepEqual( [ ...image.bytes.subarray( 0, 8 ) ], [ 137, 80, 78, 71, 13, 10, 26, 10 ] );
 	}
+	const fabricMaterials = villageGLB.materials.filter( material => material.extras?.elsemeshWorld?.materialRole === 'fabric' );
+	assert.equal( fabricMaterials.length, 1, 'village cloth, nets, and flags use one renderer-neutral graph' );
+	assert.equal( fabricMaterials[ 0 ].extras.elsemeshMaterial.profile, 'elsemesh.material-graph/1' );
+	assert.ok( fabricMaterials[ 0 ].extras.elsemeshMaterial.graph.outputs.vertexPosition, 'fabric graph carries wind and flag vertex motion' );
+	assert.ok( fabricMaterials[ 0 ].extras.elsemeshMaterial.graph.outputs.opacity, 'fabric graph carries authored net coverage' );
+	assert.equal( fabricMaterials[ 0 ].alphaMode, 'MASK' );
+	assert.equal( fabricMaterials[ 0 ].alphaCutoff, 0.5 );
+	assert.equal( fabricMaterials[ 0 ].doubleSided, true );
 	const lanternMaterialIndexes = new Set( villageGLB.materials.flatMap( ( material, index ) => material.name.includes( 'lantern-' ) ? [ index ] : [] ) );
 	assert.deepEqual( [ ...lanternMaterialIndexes ].map( index => villageGLB.materials[ index ].extras?.elsemeshMaterial?.role ).sort(), [ 'hard', 'wood' ], 'export includes static hanging lanterns with the trusted hard and wood materials' );
 	const lanternPrimitives = villageGLB.meshes[ 0 ].filter( primitive => lanternMaterialIndexes.has( primitive.material ) );
@@ -415,6 +423,10 @@ try {
 		} else if ( object.material.name === 'Procedural village thatch' ) {
 			assert.match( object.material.surface, /s\.ao \*= emg_occlusion/, 'the package thatch graph uses the engine occlusion output' );
 			villageRoles.add( 'thatch' );
+		} else if ( object.material.name === 'Procedural village fabric' ) {
+			assert.match( object.material.surface, /emg_fabricAlbedo/, 'the package fabric graph is compiled by ElseMesh' );
+			assert.match( object.material.vertex, /emg_moved/, 'the package fabric graph retains world-authored movement' );
+			villageRoles.add( 'fabric' );
 		} else villageRoles.add( object.material.name );
 	} } );
 	assert.equal( villageRuntimeMeshes, villageGLB.meshes[ 0 ].length, 'hosted package loader creates each village material batch' );
