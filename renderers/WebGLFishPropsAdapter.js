@@ -101,7 +101,7 @@ function applyBodyMarkings( color, record, attributes, index, local, presentatio
 			break;
 		}
 		case 'redSnapper':
-			color.multiplyScalar( 1 - smoothstep( 0.6, 0.95, Math.sin( y * 210 + z * 120 ) ) * 0.14 );
+			// Scale-row shading is per-pixel in fishMaterial().
 			break;
 		case 'grouper': {
 			const zz = 0.5 - z;
@@ -258,6 +258,10 @@ function fishMaterial( T, presentation ) {
 				diffuseColor.rgb *= 0.96 + scaleShade * 0.07 - pocket * 0.1 + cellK;
 				diffuseColor.rgb *= n1 * 0.14 + 0.93;
 				diffuseColor.rgb *= n2 * 0.2 + 0.9;
+				if ( floor( vFishInfo.x + 0.5 ) == ${ pattern.redSnapper.toFixed( 1 ) } ) {
+					float rows = smoothstep( 0.6, 0.95, sin( vFishLocal.y * 210.0 + vFishLocal.z * 120.0 ) ) * max( sfade, 0.3 ) * 0.15;
+					diffuseColor.rgb *= 1.0 - rows;
+				}
 				if ( floor( vFishInfo.x + 0.5 ) == ${ pattern.angel.toFixed( 1 ) } && floor( vFishData.y + 0.01 ) < 0.5 ) {
 					float rims = smoothstep( 0.72, 0.95, sf ) * max( sfade, 0.35 );
 					diffuseColor.rgb = mix( diffuseColor.rgb, vec3( 0.62, 0.48, 0.06 ), rims * 0.6 );
