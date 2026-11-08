@@ -1,6 +1,6 @@
 import { Vector3 } from '../../src/engine/index.js';
 import { Noise2D, mulberry32, smoothstep as sstep } from '../../src/util/Noise.js';
-import { C, lin, mulc, WOOD, buoy, ropeCoil, bucket, rowboat, oar, woodpile } from '../../src/world/Props.js';
+import { C, lin, mulc, WOOD, buoy, ropeCoil, bucket, rowboat, oar, woodpile } from './Props.js';
 import {
 	KIND, stone, minGround, driftLog, branch, plank, coconut, husk, weedMat, seagrassWrack, frond, shell, coralPiece,
 	tyre, bottle, flipFlop, ropeScrap, netScrap, wheelbarrow, plankPile, floatBuoy,

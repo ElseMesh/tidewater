@@ -5,10 +5,10 @@ import { TerrainData } from '../terrain/TerrainData.js';
 import { TIDEWATER_LAYOUT } from '../layout.js';
 import { createVegetationPlacement } from '../renderers/webgpu-vegetation/Scatter.js';
 import { buildPalmNear, PART } from '../renderers/webgpu-vegetation/PlantGeometry.js';
-import { Village } from '../../../src/world/Village.js';
+import { Village } from '../Village.js';
 import { Colliders } from '../../../src/world/Colliders.js';
-import { Builder } from '../../../src/world/village/GeoBuilder.js';
-import { InstancedProps } from '../../../src/world/Props.js';
+import { Builder } from '../village/GeoBuilder.js';
+import { InstancedProps } from '../Props.js';
 import { DebrisPlacer } from '../DebrisPlacement.js';
 import * as fishPresentation from '../FishPresentation.js';
 

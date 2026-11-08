@@ -1,8 +1,8 @@
 import { Matrix4 } from '../../../src/engine/index.js';
 import { Colliders } from '../../../src/world/Colliders.js';
-import { buildPier } from '../../../src/world/Pier.js';
-import { Rand } from '../../../src/world/Props.js';
-import { Village } from '../../../src/world/Village.js';
+import { buildPier } from '../Pier.js';
+import { Rand } from '../Props.js';
+import { Village } from '../Village.js';
 import { mulberry32 } from '../../../src/util/Noise.js';
 import { TIDEWATER_LAYOUT } from '../layout.js';
 import * as fishPresentation from '../FishPresentation.js';

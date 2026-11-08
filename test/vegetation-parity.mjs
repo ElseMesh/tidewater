@@ -6,7 +6,7 @@ import '../register-behavior.js';
 import * as fishPresentation from '../FishPresentation.js';
 import { TerrainData } from '../terrain/TerrainData.js';
 import { TIDEWATER_LAYOUT } from '../layout.js';
-import { Village } from '../../../src/world/Village.js';
+import { Village } from '../Village.js';
 import { Colliders } from '../../../src/world/Colliders.js';
 import { createVegetationPlacement, buildGrassMask } from '../renderers/webgpu-vegetation/Scatter.js';
 import { decodeGrassDensityAsset } from '../../../src/network/GrassDensityAsset.js';

@@ -8,19 +8,20 @@ import { TerrainGPU } from '../../../src/world/TerrainGPU.js';
 import { Terrain, normalizeTerrainSurfaceProfile } from '../../../src/world/Terrain.js';
 import { Rocks } from '../../../src/world/Rocks.js';
 import { Colliders } from '../../../src/world/Colliders.js';
-import { Village } from '../../../src/world/Village.js';
+import { Village } from '../Village.js';
 import { BoatModel } from '../../../src/world/BoatModel.js';
 import { computeShoreField } from '../../../src/world/ShoreField.js';
 import { installGroundBounce } from '../../../src/materials/GroundBounce.js';
 import * as fishPresentation from '../FishPresentation.js';
+import { Builder, Batch } from '../village/GeoBuilder.js';
+import { InstancedProps } from '../Props.js';
 import source from '../world-source.json' with { type: 'json' };
-import { createVillageMaterialContext } from '../renderers/webgpu-village/VillageMaterialContext.js';
 
 const out = process.argv[ 2 ] && ! process.argv[ 2 ].startsWith( '--' ) ? process.argv[ 2 ] : '/var/tmp';
 const H = await worldHarness( { sun: [ 0.5, 0.5, 0.45 ] } );
 const data = new TerrainData( { worldLayout: TIDEWATER_LAYOUT } );
 const colliders = new Colliders();
-const village = new Village( { scene: H.scene, terrain: data, colliders, worldLayout: TIDEWATER_LAYOUT, fishPresentation, createMaterialContext: createVillageMaterialContext } );
+const village = new Village( { scene: H.scene, terrain: data, colliders, worldLayout: TIDEWATER_LAYOUT, fishPresentation } );
 const surfaceProfile = normalizeTerrainSurfaceProfile( source.components.find( component => component.type === 'elsemesh.terrain-surface/1' ).data.surfaceProfile );
 const shore = computeShoreField( data, { res: 512, swellDir: surfaceProfile.swellDirection } );
 const gpu = new TerrainGPU( data, shore );
@@ -38,7 +39,7 @@ if ( ! process.argv.includes( '--no-debris' ) ) {
 	const { Debris } = await import( '../../../src/world/Debris.js' );
 	const { DebrisPlacer, debrisCastsShadow } = await import( '../DebrisPlacement.js' );
 	const { scannedAssetRuntimeDescriptors } = await import( '../debris/ScannedAssets.js' );
-	debris = new Debris( { scene: H.scene, terrain, village, vegetation: null, rocks, colliders, worldLayout: TIDEWATER_LAYOUT, createPlacer: placement => new DebrisPlacer( placement ), isShadowCaster: debrisCastsShadow, scannedAssets: scannedAssetRuntimeDescriptors( '/models/debris/' ) } );
+	debris = new Debris( { scene: H.scene, terrain, village, vegetation: null, rocks, colliders, worldLayout: TIDEWATER_LAYOUT, createBuilder: () => new Builder(), createBatch: () => new Batch(), createInstancedProps: builder => new InstancedProps( builder ), createPlacer: placement => new DebrisPlacer( placement ), isShadowCaster: debrisCastsShadow, scannedAssets: scannedAssetRuntimeDescriptors( '/models/debris/' ) } );
 
 }
 

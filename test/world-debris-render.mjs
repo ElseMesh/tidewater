@@ -15,6 +15,8 @@ import { Colliders } from '../../../src/world/Colliders.js';
 import { standard } from '../../../src/materials/Materials.js';
 import { TIDEWATER_LAYOUT } from '../layout.js';
 import { scannedAssetRuntimeDescriptors } from '../debris/ScannedAssets.js';
+import { Builder, Batch } from '../village/GeoBuilder.js';
+import { InstancedProps } from '../Props.js';
 
 const OUT = process.argv[ 2 ] || '/var/tmp/elsemesh-debris-';
 const ROOT = new URL( '../../../public', import.meta.url ).pathname;
@@ -136,7 +138,7 @@ const { Debris } = await import( '../../../src/world/Debris.js' );
 const { DebrisPlacer, debrisCastsShadow } = await import( '../DebrisPlacement.js' );
 const colliders = new Colliders();
 t0 = performance.now();
-const debris = new Debris( { scene: H.scene, terrain: { data, gpu }, village: { materials: villageMats, textures: villageTextures, buildings: [], getFootprints: () => [], path: null }, colliders, worldLayout: TIDEWATER_LAYOUT, createPlacer: placement => new DebrisPlacer( placement ), isShadowCaster: debrisCastsShadow, scannedAssets: scannedAssetRuntimeDescriptors( '/models/debris/' ) } );
+const debris = new Debris( { scene: H.scene, terrain: { data, gpu }, village: { materials: villageMats, textures: villageTextures, buildings: [], getFootprints: () => [], path: null }, colliders, worldLayout: TIDEWATER_LAYOUT, createBuilder: () => new Builder(), createBatch: () => new Batch(), createInstancedProps: builder => new InstancedProps( builder ), createPlacer: placement => new DebrisPlacer( placement ), isShadowCaster: debrisCastsShadow, scannedAssets: scannedAssetRuntimeDescriptors( '/models/debris/' ) } );
 assert.equal( debris.stats().shadowTriangles, 15368, 'Tidewater world shadow policy preserves the existing caster geometry' );
 console.log( 'debris built', ( performance.now() - t0 ).toFixed( 0 ), 'ms' );
 await debris.scanned.promise;
