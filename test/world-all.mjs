@@ -36,7 +36,8 @@ if ( ! process.argv.includes( '--no-debris' ) ) {
 
 	const { Debris } = await import( '../../../src/world/Debris.js' );
 	const { DebrisPlacer, debrisCastsShadow } = await import( '../DebrisPlacement.js' );
-	debris = new Debris( { scene: H.scene, terrain, village, vegetation: null, rocks, colliders, worldLayout: TIDEWATER_LAYOUT, createPlacer: placement => new DebrisPlacer( placement ), isShadowCaster: debrisCastsShadow } );
+	const { scannedAssetRuntimeDescriptors } = await import( '../debris/ScannedAssets.js' );
+	debris = new Debris( { scene: H.scene, terrain, village, vegetation: null, rocks, colliders, worldLayout: TIDEWATER_LAYOUT, createPlacer: placement => new DebrisPlacer( placement ), isShadowCaster: debrisCastsShadow, scannedAssets: scannedAssetRuntimeDescriptors( '/models/debris/' ) } );
 
 }
 

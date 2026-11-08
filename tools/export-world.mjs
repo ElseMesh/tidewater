@@ -19,7 +19,7 @@ import { Builder, Batch } from '../../../src/world/village/GeoBuilder.js';
 import { VILLAGE_MATERIAL_PROFILE, VILLAGE_MATERIAL_ROLES } from '../VillageMaterialProfile.js';
 import { InstancedProps } from '../../../src/world/Props.js';
 import { DebrisPlacer } from '../DebrisPlacement.js';
-import { SCAN_ASSETS } from '../../../src/world/debris/ScannedDebris.js';
+import { SCANNED_DEBRIS_ASSETS } from '../debris/ScannedAssets.js';
 import { createVegetationPlacement, buildGrassMask } from '../renderers/webgpu-vegetation/Scatter.js';
 import { encodeVegetationPlacements } from '../VegetationPlacements.js';
 import { encodeGrassDensityAsset } from '../../../src/network/GrassDensityAsset.js';
@@ -195,7 +195,7 @@ if ( reefComponents.length + 8 > 128 ) throw new Error( 'Island world exceeds th
 const debrisAssetIDs = new Map();
 const debrisLODAssetIDs = new Map();
 const debrisAssetBounds = new Map();
-for ( const assetName of SCAN_ASSETS ) {
+for ( const { id: assetName } of SCANNED_DEBRIS_ASSETS ) {
 	const originalGLB = await readFile( path.join( REPO, 'public', 'models', 'debris', `${assetName}.glb` ) );
 	const albedo = await readFile( path.join( REPO, 'public', 'models', 'debris', `${assetName}_albedo.jpg` ) );
 	const packagedGLB = exportScannedLOD( originalGLB, albedo, assetName, 1 );
@@ -318,7 +318,7 @@ const source = {
 		scale: [ 1, 1, 1 ],
 		collision: { shape: 'none', enabled: false },
 	}, ...debris.map( ( instance, index ) => {
-		const assetName = SCAN_ASSETS[ instance.asset ];
+		const assetName = SCANNED_DEBRIS_ASSETS[ instance.asset ].id;
 		const rotation = new Quaternion().setFromEuler( new Euler( instance.roll || 0, instance.yaw, instance.pitch || 0, 'YXZ' ) ).toArray();
 		return {
 			id: `elsemesh-object:scanned-debris-${index}`,
