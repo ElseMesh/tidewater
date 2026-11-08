@@ -5,6 +5,7 @@ import { fishingHabitatAt } from '../game/Bites.js';
 import { WebGLFishingRodPresentation } from './WebGLFishingRodPresentation.js';
 import { FishingInputController } from '../FishingInputController.js';
 import { Guide } from '../game/Guide.js';
+import { canFishInWorld, stepFishingBite, strikeFishing, stepFishingFight } from '../game/FishingGameplay.js';
 
 const CATCH_CARD_MS = 9000;
 
@@ -154,7 +155,7 @@ export class WebGLGameAdapter {
 		const boatGauges = this.boatGameplay?.step( dt, player.mode ) || { fuel: null, sonar: null };
 		if ( rod && input ) {
 			this.timeOfDay = timeOfDay;
-			const canFish = ! freeCam && ( player.mode === 'walk' || player.mode === 'deck' );
+			const canFish = canFishInWorld( { mode: player.mode, freeCam, photoMode: this.engineUI?._photo } );
 			const panelOpen = this.hud.standOpen || this.hud.invOpen;
 			const { leftDown, leftHeld: left } = this.fishingInput.update( {
 				rod, runtime: this.runtime, input, canFish, panelOpen,
@@ -163,12 +164,7 @@ export class WebGLGameAdapter {
 				onStrike: () => this._strike().catch( error => console.error( 'Fishing fight worker failed', error ) ),
 			} );
 			if ( rod.state === 'floating' ) {
-				this.runtime.stepBite( dt, { habitat: () => this._habitat( rod ), hour: timeOfDay } ).then( result => {
-					if ( rod.state !== 'floating' ) return;
-					rod.dip = result.dip;
-					if ( result.event === 'take' ) this.audio?.fishSplash?.( rod.bobber, 0.35 );
-					if ( result.event === 'escaped' ) this.toast( 'It took the bait and ran', 1800 );
-				} ).catch( error => console.error( 'Fishing bite worker failed', error ) );
+				stepFishingBite( { runtime: this.runtime, rod, dt, habitat: () => this._habitat( rod ), hour: timeOfDay, audio: this.audio, toast: ( ...args ) => this.toast( ...args ) } ).catch( error => console.error( 'Fishing bite worker failed', error ) );
 			}
 			if ( this.runtime.fight ) this._stepFight( dt, left && ! panelOpen, timeOfDay ).catch( error => console.error( 'Fishing fight worker failed', error ) );
 			rod.update( dt, { visible: canFish, fight: this.runtime.fight } );
@@ -234,37 +230,17 @@ export class WebGLGameAdapter {
 
 	async _strike() {
 
-		const rod = this.rod, bite = this.runtime.bite;
-		if ( ! bite || bite.phase === 'wait' ) return;
-		if ( bite.phase === 'nibble' ) {
-			this.toast( 'Not yet · wait for it to pull under', 1500 );
-			return;
-		}
-		if ( bite.phase !== 'take' ) return;
-		const stats = this.state.stats;
-		if ( await this.runtime.strike( { lineKg: stats.lineKg, reelSpeed: stats.reelSpeed, distance: Math.max( 3, rod.lineOut ) } ) ) {
-			rod.hook();
-			this.toast( 'Fish on!', 1200 );
-		}
+		return strikeFishing( { runtime: this.runtime, state: this.state, rod: this.rod, toast: ( ...args ) => this.toast( ...args ) } );
 
 	}
 
 	async _stepFight( dt, reeling, timeOfDay ) {
 
-		const result = await this.runtime.stepFight( dt, reeling, timeOfDay );
-		const fight = result.fight;
-		if ( ! fight || ! result.state ) return;
-		if ( fight?.surge > 0.6 && ! fight._splashed ) this.audio?.fishSplash?.( this.rod.bobber, 0.3 + 0.5 * Math.min( 1, fight.kg / 8 ) );
-		if ( fight ) fight._splashed = fight.surge > 0.6 ? true : fight.surge < 0.3 ? false : fight._splashed;
-		if ( result.state === 'fighting' ) return;
-		this.rod.dip = 0;
-		if ( result.state === 'caught' ) {
-			this.audio?.fishSplash?.( this.rod.bobber, 0.8 );
-			this.audio?.fishFlop?.();
-			this.landing = { species: fight.species, kg: fight.kg, card: result.catchInfo, cardT: 0, shown: false };
-			this.rod.land();
-		} else if ( result.state === 'snapped' ) { this.toast( 'Snap! The line broke', 2400 ); this.audio?.lineSnap?.(); this.rod.setState( 'idle' ); }
-		else { this.toast( 'It threw the hook', 2000 ); this.rod.endFight(); }
+		return stepFishingFight( {
+			runtime: this.runtime, rod: this.rod, dt, reeling, hour: timeOfDay, audio: this.audio,
+			toast: ( ...args ) => this.toast( ...args ),
+			onCaught: result => { this.landing = { species: result.fight.species, kg: result.fight.kg, card: result.catchInfo, cardT: 0, shown: false }; },
+		} );
 
 	}
 

@@ -10,6 +10,7 @@ import { Minimap } from './Minimap.js';
 import { Guide } from './Guide.js';
 import { worldFishPresentationFor } from '../../../src/network/WorldFishPresentation.js';
 import { FishingInputController } from '../FishingInputController.js';
+import { canFishInWorld, stepFishingBite, strikeFishing, stepFishingFight } from './FishingGameplay.js';
 
 // how long the catch card stays up unless dismissed (ms)
 const CATCH_CARD_MS = 9000;
@@ -183,7 +184,7 @@ export class Game {
 
 		const app = this.app, p = app.player;
 		const ui = app.ui?.ui || app.hud;
-		return ! app.freeCam && ( p.mode === 'walk' || p.mode === 'deck' ) && ! ui?._photo;
+		return canFishInWorld( { mode: p.mode, freeCam: app.freeCam, photoMode: ui?._photo } );
 
 	}
 
@@ -411,76 +412,38 @@ export class Game {
 
 	updateBite( dt ) {
 
-		return this.runtime.stepBite( dt, { habitat: () => this.habitat(), hour: this.hour } ).then( result => {
-			if ( this.rod.state !== 'floating' ) return;
-			this.rod.dip = result.dip;
-			if ( result.event === 'take' && this.app.audio && this.app.audio.fishSplash ) this.app.audio.fishSplash( this.rod.bobber, 0.35 );
-			if ( result.event === 'escaped' ) this.toast( 'It took the bait and ran', 1800 );
-		} );
+		return stepFishingBite( { runtime: this.runtime, rod: this.rod, dt, habitat: () => this.habitat(), hour: this.hour, audio: this.app.audio, toast: ( ...args ) => this.toast( ...args ) } );
 
 	}
 
 	async strike() {
 
-		const b = this.bite;
-		if ( ! b || b.phase === 'wait' || b.phase === 'nibble' ) {
-
-			// too early: a nibbling fish isn't hooked yet; it keeps nibbling (a hint, no penalty)
-			if ( b && b.phase === 'nibble' ) this.toast( 'Not yet · wait for it to pull under', 1500 );
-			return;
-
-		}
-
-		const g = this.state.stats;
-		const fight = await this.runtime.strike( { lineKg: g.lineKg, reelSpeed: g.reelSpeed, distance: Math.max( 3, this.rod.lineOut ) } );
-		if ( ! fight ) return;
-		this.rod.hook();
-		this.toast( 'Fish on!', 1200 );
+		return strikeFishing( { runtime: this.runtime, state: this.state, rod: this.rod, toast: ( ...args ) => this.toast( ...args ) } );
 
 	}
 
 	async updateFight( dt, reeling ) {
 
-		const result = await this.runtime.stepFight( dt, reeling, this.hour );
-		const f = result.fight, st = result.state;
-		if ( ! f || ! st ) return;
-		// the fish thrashes at the surface as each run starts
-		const au = this.app.audio;
-		if ( f.surge > 0.6 && ! f._splashed && au && au.fishSplash ) au.fishSplash( this.rod.bobber, 0.3 + 0.5 * Math.min( 1, f.kg / 8 ) );
-		f._splashed = f.surge > 0.6 ? true : f.surge < 0.3 ? false : f._splashed;
-		if ( st === 'fighting' ) return;
-		this.rod.dip = 0;
-		const name = this.fishCatalog[ f.species ].name;
-		if ( st === 'caught' ) {
+		return stepFishingFight( {
+			runtime: this.runtime, rod: this.rod, dt, reeling, hour: this.hour, audio: this.app.audio,
+			toast: ( ...args ) => this.toast( ...args ),
+			onCaught: ( result ) => {
 
-			const entry = result.entry;
-			const info = result.catchInfo;
-			if ( au && au.fishSplash ) au.fishSplash( this.rod.bobber, 0.8 );
-			if ( au && au.fishFlop ) au.fishFlop();
-			// the catch card (with a HUD) while the fish hangs on the line; a toast otherwise
-			if ( this.hud ) this.landing = { species: f.species, kg: f.kg, card: info, cardT: 0 };
-			else {
+				const f = result.fight, name = this.fishCatalog[ result.fight.species ].name;
 
-				if ( entry ) this.toast( `${ info.record ? 'New record! ' : '' }${ name } · ${ entry.kg.toFixed( 2 ) } kg · $${ entry.value }`, 3600 );
-				else this.toast( `${ name } · ${ f.kg.toFixed( 1 ) } kg · no room in the ${ this.state.upgrades.hold > 0 ? 'hold' : 'cooler' }, let it go`, 3600 );
-				this.landing = { species: f.species, kg: f.kg };
+				const entry = result.entry, info = result.catchInfo;
+				// the catch card (with a HUD) while the fish hangs on the line; a toast otherwise
+				if ( this.hud ) this.landing = { species: f.species, kg: f.kg, card: info, cardT: 0 };
+				else {
 
-			}
+					if ( entry ) this.toast( `${ info.record ? 'New record! ' : '' }${ name } · ${ entry.kg.toFixed( 2 ) } kg · $${ entry.value }`, 3600 );
+					else this.toast( `${ name } · ${ f.kg.toFixed( 1 ) } kg · no room in the ${ this.state.upgrades.hold > 0 ? 'hold' : 'cooler' }, let it go`, 3600 );
+					this.landing = { species: f.species, kg: f.kg };
 
-			this.rod.land();
+				}
 
-		} else if ( st === 'snapped' ) {
-
-			this.toast( 'Snap! The line broke', 2400 );
-			if ( au && au.lineSnap ) au.lineSnap();
-			this.rod.setState( 'idle' );
-
-		} else {
-
-			this.toast( 'It threw the hook', 2000 );
-			this.rod.endFight();
-
-		}
+			},
+		} );
 
 	}
 
