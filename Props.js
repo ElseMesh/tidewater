@@ -1,7 +1,7 @@
 import { Color, Matrix4, Vector3 } from '../../src/engine/index.js';
 import { Builder, gridPart, sagPoints } from './village/GeoBuilder.js';
 import { mat4, slabPart } from '../../src/engine/geometry/ProceduralGeometry.js';
-import { FishProps } from '../../src/world/fish/FishProps.js';
+import { FishProps } from './fish/FishProps.js';
 import { mulberry32 } from '../../src/util/Noise.js';
 
 // Procedural harbour / village props. Every emitter writes into a GeoBuilder `B`

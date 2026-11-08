@@ -39,7 +39,7 @@ import { encodeVillageMaterialAsset, wrapCompressedVillageMaterialAsset } from '
 import { TIDEWATER_WHALE_PROFILE } from '../WhaleProfile.js';
 import { writeWorldAssetIndex } from '../../../tools/world-asset-index.mjs';
 import { generateTidewaterReefURLs } from './generate-reef-asset-urls.mjs';
-import { fishPropGeometry } from '../../../src/world/fish/FishProps.js';
+import { fishPropGeometry } from '../fish/FishProps.js';
 
 const REPO = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '../../..' );
 const WORLD_ROOT = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..' );

@@ -4,7 +4,7 @@
 import { setupLife } from '../../../test/life-harness.mjs';
 import * as E from '../../../src/engine/index.js';
 import { FishSchools } from '../../../src/world/Fish.js';
-import { FishProps } from '../../../src/world/fish/FishProps.js';
+import { FishProps } from '../fish/FishProps.js';
 import * as fishPresentation from '../FishPresentation.js';
 import { FISH_SCHOOL_POPULATION } from '../FishSchoolPopulation.js';
 import { TIDEWATER_LAYOUT } from '../layout.js';

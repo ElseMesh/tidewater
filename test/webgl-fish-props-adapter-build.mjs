@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { encodeFishPropPlacements } from '../FishPropPlacements.js';
 import { worldComponentBackendAdapter, worldComponentBackendBatchAdapter } from '../../../src/network/WorldComponentBackendRegistry.js';
-import { deformFishPropPoint, fishPropGeometry } from '../../../src/world/fish/FishProps.js';
+import { deformFishPropPoint, fishPropGeometry } from '../fish/FishProps.js';
 import * as fishPresentation from '../FishPresentation.js';
 import '../register-behavior.js';
 import { WebGLFishPropsAdapter } from '../renderers/WebGLFishPropsAdapter.js';

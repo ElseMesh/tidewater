@@ -1,7 +1,7 @@
 import { registerWorldComponentBackendAdapter } from '../../../src/network/WorldComponentBackendRegistry.js';
 import { decodeWorldComponentAsset } from '../../../src/network/WorldComponentAssetCodecRegistry.js';
 import { worldFishPresentationFor } from '../../../src/network/WorldFishPresentation.js';
-import { FishProps } from '../../../src/world/fish/FishProps.js';
+import { FishProps } from '../fish/FishProps.js';
 
 const COMPONENT_TYPE = 'elsemesh.static-fish-props/1';
 registerWorldComponentBackendAdapter( 'webgpu', COMPONENT_TYPE, installFishProps );

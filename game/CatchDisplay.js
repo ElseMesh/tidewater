@@ -1,5 +1,5 @@
 import { Matrix4, Quaternion, Vector3 } from '../../../src/engine/index.js';
-import { FishProps } from '../../../src/world/fish/FishProps.js';
+import { FishProps } from '../fish/FishProps.js';
 import { PLACEMENT, SPECIES } from '../FishPresentation.js';
 import { fishIds, fishLengthCm } from '../FishTable.js';
 
