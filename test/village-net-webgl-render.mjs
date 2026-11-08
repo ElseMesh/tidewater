@@ -20,7 +20,7 @@ async function stopBrowser( browser ) {
 	try { process.kill( - browser.pid, 'SIGKILL' ); } catch {}
 }
 
-const profile = mkdtempSync( join( '/var/tmp', 'tidewater-village-net-webgl-' ) );
+const profile = mkdtempSync( join( '/var/tmp', 'tidewater-village-graphs-webgl-' ) );
 const source = JSON.parse( readFileSync( join( engineRoot, 'worlds/tidewater/world-source.json' ), 'utf8' ) );
 const village = source.objects.find( object => object.id === 'elsemesh-object:island-village' );
 assert( village?.assetId?.startsWith( 'sha256:' ), 'signed Tidewater source identifies the village GLB' );
@@ -88,12 +88,12 @@ try {
 		if ( result?.status === 'complete' || result?.status === 'failed' ) break;
 		await sleep( 50 );
 	}
-	assert.equal( result?.status, 'complete', `Tidewater WebGL net graph render completed: ${result?.text || 'no page result'}` );
+	assert.equal( result?.status, 'complete', `Tidewater WebGL village graph render completed: ${result?.text || 'no page result'}` );
 	const metrics = JSON.parse( result.text );
-	assert( metrics.changedPixels >= 30, `signed Tidewater net graph renders visible pixels (${metrics.changedPixels})` );
-	assert( metrics.programs > 0, 'WebGL compiled the signed Tidewater graph shader' );
+	assert( metrics.net >= 30 && metrics.thatch >= 30, 'signed Tidewater net and thatch graphs render visible pixels' );
+	assert( metrics.programs > 0, 'WebGL compiled the signed Tidewater graph shaders' );
 	assert.equal( metrics.glError, 0, 'WebGL reports no graphics error' );
-	console.log( `Tidewater WebGL net graph render passed (${metrics.changedPixels} visible pixels; ${metrics.programs} program(s); no GL errors)` );
+	console.log( `Tidewater WebGL net/thatch graph render passed (${metrics.net}/${metrics.thatch} visible pixels; ${metrics.programs} program(s); no GL errors)` );
 } finally {
 	socket?.close();
 	if ( browser ) await stopBrowser( browser );

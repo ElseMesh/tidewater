@@ -4,7 +4,7 @@ import { commonModule } from '../../../../src/engine/render/wgsl/common.js';
 import { standard } from '../../../../src/materials/Materials.js';
 import { createWebGPUMaterialGraph } from '../../../../src/materials/WorldMaterialGraph.js';
 import { VillageTextures } from './TextureBaker.js';
-import { TIDEWATER_NET_MATERIAL_GRAPH } from '../../VillageMaterialGraphs.js';
+import { TIDEWATER_NET_MATERIAL_GRAPH, TIDEWATER_THATCH_MATERIAL_GRAPH } from '../../VillageMaterialGraphs.js';
 
 // Shared PBR materials for the village, pier and props.
 //
@@ -403,31 +403,13 @@ export function createRoofMetalMaterial( T ) {
 // vdata: x seed, y age (0 golden .. 1 grey)
 
 export function createThatchMaterial( T ) {
-
-	const m = villageMaterial( { roughness: 0.95, metalness: 0 }, T, [ 'thatchA', 'thatchN', 'grime' ], { surface: /* wgsl */`
-	let aData = in.vs.vData;
-	let seed = aData.x;
-	let age = aData.y;
-	let uvm = in.uv;
-	let tuv = vec2f( uvm.y + vlmHash21( seed, 1.3 ) * 7.0, uvm.x );
-	let A = textureSample( vlgThatchA, smpAnisoRepeat, tuv );
-	let N = textureSample( vlgThatchN, smpAnisoRepeat, tuv );
-	// macro variation: patches of newer / older thatch and rain streaks down the slope
-	let Gm = textureSample( vlgGrime, smpAnisoRepeat, vec2f( tuv.x * 0.23, tuv.y * 0.19 ) + seed );
-	let Gs = textureSample( vlgGrime, smpAnisoRepeat, vec2f( tuv.x * 0.5, tuv.y * 0.25 ) + seed * 1.7 );
-
-	let lum = dot( A.rgb, vec3f( 0.3, 0.59, 0.11 ) );
-	let greyed = vec3f( lum ) * vec3f( 0.95, 0.9, 0.8 );
-	let ageL = clamp( age + ( Gm.a - 0.5 ) * 0.9, 0.0, 1.0 );
-	var col = mix( A.rgb, greyed, ageL * 0.8 ) * ( Gm.a * 0.35 + 0.82 ) * ( 1.0 - ageL * 0.2 );
-	col = col * ( 1.0 - Gs.r * 0.25 ) * ( 1.0 - Gs.b * 0.35 );
-	col = col * mix( 1.0, N.a, 0.55 );
-	let sT = vlmSlopeOf( N );
-	s.normal = vlmNormalFromSlope( in.P, in.N, in.uv, vec2f( sT.y, sT.x ) );
-	s.albedo = col;
-	s.roughness = N.b;
-	s.ao = N.a;
-` } );
+	const m = createWebGPUMaterialGraph( {
+		name: 'VillageThatch',
+		doubleSided: false,
+		pbrMetallicRoughness: { roughnessFactor: 0.95, metallicFactor: 0 },
+	}, TIDEWATER_THATCH_MATERIAL_GRAPH, {
+		graphTextures: { metallicRoughness: T.thatchA, normal: T.thatchN, occlusion: T.grime },
+	} );
 	m.name = 'VillageThatch';
 	return m;
 

@@ -11,7 +11,7 @@ import { readTexture } from '../../../src/engine/gpu/Readback.js';
 import { loadWorldPackage, disposeWorldPackage } from '../../../src/network/WorldPackage.js';
 import { decodeVillageMaterialAsset } from '../VillageMaterialAsset.js';
 import { VILLAGE_MATERIAL_PROFILE, VILLAGE_MATERIAL_ROLES } from '../VillageMaterialProfile.js';
-import { TIDEWATER_NET_MATERIAL_GRAPH } from '../VillageMaterialGraphs.js';
+import { TIDEWATER_NET_MATERIAL_GRAPH, TIDEWATER_THATCH_MATERIAL_GRAPH } from '../VillageMaterialGraphs.js';
 import { createWebGLMaterialGraph } from '../../../src/materials/WorldMaterialGraph.js';
 import { compileWorldMaterialGraph } from '../../../src/materials/WorldMaterialGraphCompiler.js';
 
@@ -39,6 +39,14 @@ assert.match( netGraphShader.fragmentShader, /vEmg_colorRGB \* emg_albedo/ );
 webglNet.material.dispose();
 netSourceMaterial.dispose();
 netGraphTexture.dispose();
+
+const thatchGraphWebGPU = compileWorldMaterialGraph( TIDEWATER_THATCH_MATERIAL_GRAPH, 'webgpu' );
+const thatchGraphWebGL = compileWorldMaterialGraph( TIDEWATER_THATCH_MATERIAL_GRAPH, 'webgl' );
+assert.deepEqual( new Set( thatchGraphWebGPU.textureSlots ), new Set( [ 'metallicRoughness', 'normal', 'occlusion' ] ) );
+assert.match( thatchGraphWebGPU.surface, /s\.ao \*= emg_occlusion/ );
+assert.match( thatchGraphWebGPU.surface, /perturbNormalByMap/ );
+assert.match( thatchGraphWebGL.glsl.occlusion, /reflectedLight\.indirectDiffuse/ );
+assert.match( thatchGraphWebGL.glsl.fragment, /texture2D\( emgTexture_occlusion/ );
 
 const source = JSON.parse( await readFile( new URL( '../world-source.json', import.meta.url ) ) );
 const village = source.objects.find( object => object.id === 'elsemesh-object:island-village' );
@@ -89,11 +97,16 @@ root.traverse( object => { if ( object.isMesh ) meshes.push( object ); } );
 assert.ok( meshes.length >= VILLAGE_MATERIAL_ROLES.length );
 const roles = new Set();
 for ( const mesh of meshes ) {
-	if ( mesh.material.name === 'Procedural village net' ) {
+	if ( mesh.material.name === 'Procedural village net' || mesh.material.surface?.includes( 'emg_streakAlbedo' ) ) {
 		assert.equal( mesh.geometry.getAttribute( 'vdata' )?.itemSize, 4 );
 		assert.equal( mesh.geometry.getAttribute( 'color' )?.itemSize, 3 );
-		assert.match( mesh.material.surface, /emg_tintedAlbedo/, 'the package net is compiled by the generic engine material-graph path' );
-		roles.add( 'net' );
+		if ( mesh.material.name === 'Procedural village net' ) {
+			assert.match( mesh.material.surface, /emg_tintedAlbedo/, 'the package net is compiled by the generic engine material-graph path' );
+			roles.add( 'net' );
+		} else {
+			assert.match( mesh.material.surface, /s\.ao \*= emg_occlusion/, 'the packaged thatch graph uses the shared occlusion output' );
+			roles.add( 'thatch' );
+		}
 		continue;
 	}
 	if ( ! mesh.material.userData?.borrowedWorldMaterial ) continue;
@@ -114,21 +127,28 @@ const map = await readTexture( ownedContext.textures.textures.woodA );
 assert.deepEqual( new Uint8Array( map.data ), materialData.maps.woodA, 'the GPU texture must match the packaged level-zero bytes' );
 const netMeshes = meshes.filter( mesh => mesh.material.name === 'Procedural village net' );
 assert.equal( netMeshes.length, 1, 'signed village package contains one net graph batch' );
-for ( const mesh of meshes ) mesh.visible = mesh === netMeshes[ 0 ];
 life.scene.add( root );
-const netCenter = netMeshes[ 0 ].getWorldPosition( new THREE.Vector3() );
-const netRadius = Math.max( netMeshes[ 0 ].geometry.boundingSphere?.radius || 0, 1 );
-life.camera.position.set( netCenter.x, netCenter.y, netCenter.z + netRadius * 2.5 );
-life.camera.lookAt( netCenter );
-await life.run( 3 );
-const netPixels = new Uint8Array( ( await readTexture( life.ldr.texture ) ).data );
-const background = netPixels.slice( 0, 3 );
-let netChangedPixels = 0;
-for ( let i = 0; i < netPixels.length; i += 4 ) {
-	if ( Math.abs( netPixels[ i ] - background[ 0 ] ) + Math.abs( netPixels[ i + 1 ] - background[ 1 ] ) + Math.abs( netPixels[ i + 2 ] - background[ 2 ] ) > 24 ) netChangedPixels ++;
-}
-assert.ok( netChangedPixels > 30, `signed Tidewater net graph renders visible WebGPU pixels (${netChangedPixels})` );
+const thatchMeshes = meshes.filter( mesh => mesh.material.surface?.includes( 'emg_streakAlbedo' ) );
+assert.equal( thatchMeshes.length, 1, 'signed village package contains one engine-compiled thatch graph batch' );
+const renderMaterial = async mesh => {
+	for ( const candidate of meshes ) candidate.visible = candidate === mesh;
+	const center = mesh.getWorldPosition( new THREE.Vector3() );
+	const radius = Math.max( mesh.geometry.boundingSphere?.radius || 0, 1 );
+	life.camera.position.set( center.x, center.y, center.z + radius * 2.5 );
+	life.camera.lookAt( center );
+	await life.run( 3 );
+	const pixels = new Uint8Array( ( await readTexture( life.ldr.texture ) ).data );
+	const background = pixels.slice( 0, 3 );
+	let changedPixels = 0;
+	for ( let i = 0; i < pixels.length; i += 4 ) {
+		if ( Math.abs( pixels[ i ] - background[ 0 ] ) + Math.abs( pixels[ i + 1 ] - background[ 1 ] ) + Math.abs( pixels[ i + 2 ] - background[ 2 ] ) > 24 ) changedPixels ++;
+	}
+	assert.ok( changedPixels > 30, `signed Tidewater ${mesh === netMeshes[ 0 ] ? 'net' : 'thatch'} graph renders visible WebGPU pixels (${changedPixels})` );
+	return changedPixels;
+};
+const netChangedPixels = await renderMaterial( netMeshes[ 0 ] );
+const thatchChangedPixels = await renderMaterial( thatchMeshes[ 0 ] );
 disposeWorldPackage( root );
 assert.ok( Object.values( materials ).every( material => ! material.disposed ), 'package cleanup must preserve App-owned procedural materials' );
 GPU.device.destroy();
-console.log( `Hosted island package passes and Tidewater net graph renders ${netChangedPixels} visible WebGPU pixels` );
+console.log( `Hosted island package passes; Tidewater net/thatch graphs render ${netChangedPixels}/${thatchChangedPixels} visible WebGPU pixels` );

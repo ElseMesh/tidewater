@@ -4,7 +4,6 @@ const ROLE_SPECS = Object.freeze( {
 	wood: { albedo: 'woodA', packed: 'woodN', metalness: 0 },
 	hard: { packed: 'hardN', metalness: 0.25 },
 	roofMetal: { packed: 'roofN', metalness: 0.35 },
-	thatch: { albedo: 'thatchA', packed: 'thatchN', metalness: 0 },
 	stone: { albedo: 'stoneA', packed: 'stoneN', metalness: 0 },
 	fabric: { packed: 'net', metalness: 0, roughness: 0.9 },
 } );

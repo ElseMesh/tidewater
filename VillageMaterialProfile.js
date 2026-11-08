@@ -2,7 +2,7 @@
 // through its generic world material-profile registry.
 export const VILLAGE_MATERIAL_PROFILE = 'elsemesh.village/1';
 export const VILLAGE_MATERIAL_ROLES = Object.freeze( [ 'wood', 'hard', 'roofMetal', 'thatch', 'stone', 'fabric', 'net' ] );
-export const VILLAGE_MATERIAL_PROFILE_ROLES = Object.freeze( VILLAGE_MATERIAL_ROLES.filter( role => role !== 'net' ) );
+export const VILLAGE_MATERIAL_PROFILE_ROLES = Object.freeze( VILLAGE_MATERIAL_ROLES.filter( role => role !== 'net' && role !== 'thatch' ) );
 export const VILLAGE_MATERIAL_RENDERER_PROFILE = 'original-elsemesh-village-v1';
 export const VILLAGE_MATERIAL_MAPS = Object.freeze( [
 	{ name: 'woodA', width: 1024, height: 1024, tileMeters: [ 2, 1 ], channels: [ 'weathered-albedo', 'paint-chip-mask' ] },

@@ -303,6 +303,16 @@ try {
 	const netImage = villageGLB.images[ villageGLB.textures[ netTextureIndex ].source ];
 	assert.equal( netImage.mimeType, 'image/png' );
 	assert.deepEqual( [ ...netImage.bytes.subarray( 0, 8 ) ], [ 137, 80, 78, 71, 13, 10, 26, 10 ], 'the graph texture is embedded in the signed GLB' );
+	const thatchMaterials = villageGLB.materials.filter( material => material.extras?.elsemeshWorld?.materialRole === 'thatch' );
+	assert.equal( thatchMaterials.length, 1, 'village thatch is represented by one renderer-neutral material graph' );
+	assert.equal( thatchMaterials[ 0 ].extras.elsemeshMaterial.profile, 'elsemesh.material-graph/1' );
+	assert.ok( thatchMaterials[ 0 ].extras.elsemeshMaterial.graph.outputs.occlusion, 'the shared graph carries the source ambient-occlusion channel' );
+	assert.equal( thatchMaterials[ 0 ].occlusionTexture.strength, 0, 'the authored grime texture remains available to the graph without applying the standard AO slot twice' );
+	for ( const textureInfo of [ thatchMaterials[ 0 ].pbrMetallicRoughness.metallicRoughnessTexture, thatchMaterials[ 0 ].normalTexture, thatchMaterials[ 0 ].occlusionTexture ] ) {
+		const image = villageGLB.images[ villageGLB.textures[ textureInfo.index ].source ];
+		assert.equal( image.mimeType, 'image/png', 'thatch graph inputs are embedded in the signed GLB' );
+		assert.deepEqual( [ ...image.bytes.subarray( 0, 8 ) ], [ 137, 80, 78, 71, 13, 10, 26, 10 ] );
+	}
 	const lanternMaterialIndexes = new Set( villageGLB.materials.flatMap( ( material, index ) => material.name.includes( 'lantern-' ) ? [ index ] : [] ) );
 	assert.deepEqual( [ ...lanternMaterialIndexes ].map( index => villageGLB.materials[ index ].extras?.elsemeshMaterial?.role ).sort(), [ 'hard', 'wood' ], 'export includes static hanging lanterns with the trusted hard and wood materials' );
 	const lanternPrimitives = villageGLB.meshes[ 0 ].filter( primitive => lanternMaterialIndexes.has( primitive.material ) );
@@ -402,6 +412,9 @@ try {
 			assert.equal( object.material.depthWrite, false );
 			assert.equal( object.material.side, 'double' );
 			villageRoles.add( 'net' );
+		} else if ( object.material.name === 'Procedural village thatch' ) {
+			assert.match( object.material.surface, /s\.ao \*= emg_occlusion/, 'the package thatch graph uses the engine occlusion output' );
+			villageRoles.add( 'thatch' );
 		} else villageRoles.add( object.material.name );
 	} } );
 	assert.equal( villageRuntimeMeshes, villageGLB.meshes[ 0 ].length, 'hosted package loader creates each village material batch' );

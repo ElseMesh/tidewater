@@ -113,3 +113,117 @@ export const TIDEWATER_NET_MATERIAL_GRAPH = Object.freeze( {
 	nodes: Object.freeze( nodes.map( node => Object.freeze( node ) ) ),
 	outputs: Object.freeze( { baseColor: 'tintedAlbedo', roughness: 'netRoughness', metalness: 'netMetalness', opacity: 'opacity', vertexPosition: 'moved', surfaceNormal: 'surfaceNormal' } ),
 } );
+
+// The source thatch material uses only authored maps, UVs, and per-vertex age/seed.
+// Keep those inputs in signed glTF slots and let ElseMesh compile this same graph
+// for WebGPU and WebGL.
+const thatchNodes = [];
+const thatchInput = ( id, name ) => thatchNodes.push( { id, op: 'input', name } );
+const thatchValue = ( id, value ) => thatchNodes.unshift( { id, op: 'constant', value } );
+const thatchOp = ( id, op, ...args ) => thatchNodes.push( { id, op, args } );
+const thatchSample = ( id, slot, uv ) => thatchNodes.push( { id, op: 'textureSample', slot, uv } );
+
+thatchInput( 'uv', 'uv' );
+thatchInput( 'data', 'vdata' );
+thatchInput( 'worldPosition', 'worldPosition' );
+thatchInput( 'worldNormal', 'worldNormal' );
+thatchOp( 'seed', 'x', 'data' );
+thatchOp( 'age', 'y', 'data' );
+thatchOp( 'u', 'y', 'uv' );
+thatchOp( 'v', 'x', 'uv' );
+thatchValue( 'hashXScale', 12.9898 );
+thatchValue( 'hashYScale', 78.233 );
+thatchValue( 'hashY', 1.3 );
+thatchValue( 'hashScale', 43758.5453 );
+thatchValue( 'seven', 7 );
+thatchOp( 'hashX', 'multiply', 'seed', 'hashXScale' );
+thatchOp( 'hashYValue', 'multiply', 'hashY', 'hashYScale' );
+thatchOp( 'hashSum', 'add', 'hashX', 'hashYValue' );
+thatchOp( 'hashSin', 'sin', 'hashSum' );
+thatchOp( 'hashWide', 'multiply', 'hashSin', 'hashScale' );
+thatchOp( 'hash', 'fract', 'hashWide' );
+thatchOp( 'hashOffset', 'multiply', 'hash', 'seven' );
+thatchOp( 'tu', 'add', 'u', 'hashOffset' );
+thatchOp( 'tuv', 'vec2', 'tu', 'v' );
+thatchSample( 'albedoMap', 'metallicRoughness', 'tuv' );
+thatchSample( 'normalMap', 'normal', 'tuv' );
+thatchOp( 'grimeU', 'x', 'tuv' );
+thatchOp( 'grimeV', 'y', 'tuv' );
+thatchValue( 'grimeUScale', 0.23 );
+thatchValue( 'grimeVScale', 0.19 );
+thatchValue( 'grimeUScaleFine', 0.5 );
+thatchValue( 'grimeVScaleFine', 0.25 );
+thatchOp( 'gmU', 'multiply', 'grimeU', 'grimeUScale' );
+thatchOp( 'gmV', 'multiply', 'grimeV', 'grimeVScale' );
+thatchOp( 'gmUV', 'vec2', 'gmU', 'gmV' );
+thatchOp( 'seed2', 'vec2', 'seed', 'seed' );
+thatchOp( 'gmUVSeed', 'add', 'gmUV', 'seed2' );
+thatchSample( 'grimeMacro', 'occlusion', 'gmUVSeed' );
+thatchOp( 'gsU', 'multiply', 'grimeU', 'grimeUScaleFine' );
+thatchOp( 'gsV', 'multiply', 'grimeV', 'grimeVScaleFine' );
+thatchOp( 'gsUV', 'vec2', 'gsU', 'gsV' );
+thatchValue( 'seedFineScale', 1.7 );
+thatchOp( 'seedFine', 'multiply', 'seed', 'seedFineScale' );
+thatchOp( 'seedFine2', 'vec2', 'seedFine', 'seedFine' );
+thatchOp( 'gsUVSeed', 'add', 'gsUV', 'seedFine2' );
+thatchSample( 'grimeStreaks', 'occlusion', 'gsUVSeed' );
+thatchOp( 'albedoRGB', 'rgb', 'albedoMap' );
+thatchValue( 'lumaWeights', [ 0.3, 0.59, 0.11 ] );
+thatchOp( 'lum', 'dot', 'albedoRGB', 'lumaWeights' );
+thatchValue( 'greyTint', [ 0.95, 0.9, 0.8 ] );
+thatchOp( 'greyed', 'multiply', 'greyTint', 'lum' );
+thatchOp( 'gmAlpha', 'w', 'grimeMacro' );
+thatchValue( 'half', 0.5 );
+thatchValue( 'ageNoise', 0.9 );
+thatchOp( 'gmCentered', 'subtract', 'gmAlpha', 'half' );
+thatchOp( 'ageNoiseValue', 'multiply', 'gmCentered', 'ageNoise' );
+thatchOp( 'ageRaw', 'add', 'age', 'ageNoiseValue' );
+thatchValue( 'zero', 0 );
+thatchValue( 'one', 1 );
+thatchOp( 'ageL', 'clamp', 'ageRaw', 'zero', 'one' );
+thatchValue( 'ageGreyScale', 0.8 );
+thatchOp( 'ageGreyMix', 'multiply', 'ageL', 'ageGreyScale' );
+thatchOp( 'agedColor', 'mix', 'albedoRGB', 'greyed', 'ageGreyMix' );
+thatchValue( 'gmColorScale', 0.35 );
+thatchValue( 'gmColorBase', 0.82 );
+thatchOp( 'gmTint', 'multiply', 'gmAlpha', 'gmColorScale' );
+thatchOp( 'gmTintFactor', 'add', 'gmTint', 'gmColorBase' );
+thatchValue( 'ageFadeScale', 0.2 );
+thatchOp( 'ageFade', 'multiply', 'ageL', 'ageFadeScale' );
+thatchOp( 'ageFadeFactor', 'subtract', 'one', 'ageFade' );
+thatchOp( 'agedTint', 'multiply', 'agedColor', 'gmTintFactor' );
+thatchOp( 'agedAlbedo', 'multiply', 'agedTint', 'ageFadeFactor' );
+thatchOp( 'streakR', 'x', 'grimeStreaks' );
+thatchOp( 'streakB', 'z', 'grimeStreaks' );
+thatchValue( 'streakRScale', 0.25 );
+thatchValue( 'streakBScale', 0.35 );
+thatchOp( 'streakRShade', 'multiply', 'streakR', 'streakRScale' );
+thatchOp( 'streakBShade', 'multiply', 'streakB', 'streakBScale' );
+thatchOp( 'streakRFactor', 'subtract', 'one', 'streakRShade' );
+thatchOp( 'streakBFactor', 'subtract', 'one', 'streakBShade' );
+thatchOp( 'streakTint', 'multiply', 'agedAlbedo', 'streakRFactor' );
+thatchOp( 'streakAlbedo', 'multiply', 'streakTint', 'streakBFactor' );
+thatchOp( 'normalXY', 'xy', 'normalMap' );
+thatchValue( 'two', 2 );
+thatchOp( 'normalScaled', 'multiply', 'normalXY', 'two' );
+thatchValue( 'one2', [ 1, 1 ] );
+thatchOp( 'normalSlopeBase', 'subtract', 'normalScaled', 'one2' );
+thatchOp( 'normalSlopeDot', 'dot', 'normalSlopeBase', 'normalSlopeBase' );
+thatchOp( 'normalRemainder', 'subtract', 'one', 'normalSlopeDot' );
+thatchValue( 'normalFloor', 0.04 );
+thatchOp( 'normalDenominatorSq', 'max', 'normalRemainder', 'normalFloor' );
+thatchOp( 'normalDenominator', 'sqrt', 'normalDenominatorSq' );
+thatchOp( 'normalDenominator2', 'vec2', 'normalDenominator', 'normalDenominator' );
+thatchOp( 'normalSlope', 'divide', 'normalSlopeBase', 'normalDenominator2' );
+thatchOp( 'slopeX', 'y', 'normalSlope' );
+thatchOp( 'slopeY', 'x', 'normalSlope' );
+thatchOp( 'swappedSlope', 'vec2', 'slopeX', 'slopeY' );
+thatchOp( 'perturbedNormal', 'normalFromSlope', 'worldPosition', 'worldNormal', 'uv', 'swappedSlope' );
+thatchOp( 'roughness', 'z', 'normalMap' );
+thatchOp( 'occlusion', 'w', 'normalMap' );
+
+export const TIDEWATER_THATCH_MATERIAL_GRAPH = Object.freeze( {
+	format: 'elsemesh.material-graph/1',
+	nodes: Object.freeze( thatchNodes.map( node => Object.freeze( node ) ) ),
+	outputs: Object.freeze( { baseColor: 'streakAlbedo', roughness: 'roughness', occlusion: 'occlusion', surfaceNormal: 'perturbedNormal' } ),
+} );

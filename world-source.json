@@ -543,7 +543,7 @@
       "elsemesh.portal-handoff/1",
       "elsemesh.portal-preview-static/1"
     ],
-    "maxPackageBytes": 134217728
+    "maxPackageBytes": 167772160
   },
   "hosts": [],
   "objects": [
@@ -620,10 +620,10 @@
       "id": "elsemesh-object:island-village",
       "kind": "asset-instance",
       "label": "Procedural village, pier and harbor",
-      "assetId": "sha256:9ed1cea5dc422ad1ed201fdab8d92ed9d5b53f81b0e77ee1d8706912f4bc1eca",
+      "assetId": "sha256:e6979bd08f23a8cffda567fbcd726f66cf88dba2ecf3c38726c7a0fc76a15990",
       "lods": [
         {
-          "assetId": "sha256:d6e65afff8014cc3bd1f0e68de8445e99300cb51fc50357fae9102bb94177408",
+          "assetId": "sha256:5f94c7f093361513e94b5d2d2e9481cca6b839239c22455edbbeed3a92a35195",
           "maxScreenFraction": 0.45
         }
       ],
