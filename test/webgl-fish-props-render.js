@@ -16,7 +16,9 @@ try {
 	renderer.toneMapping = THREE.NoToneMapping;
 
 	const scene = new THREE.Scene();
-	const background = 0x18232c;
+	// Match the WebGPU harness's rendered clear pixel so side-by-side captures
+	// emphasize fish materials instead of a different canvas background.
+	const background = 0x050c14;
 	scene.background = new THREE.Color( background );
 	const camera = new THREE.PerspectiveCamera( 34, canvas.width / canvas.height, 0.1, 80 );
 	camera.position.set( 0, 4.1, 13.5 );
