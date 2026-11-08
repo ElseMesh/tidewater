@@ -22,13 +22,6 @@ without a graphics context. `webgpu-fish-props-adapter-build.mjs` creates the
 registered component with a headless WebGPU device and checks GPU buffer
 creation and cleanup. Neither check renders pixels or measures FPS.
 
-`webgpu-fish-static-model-profile.mjs` renders a profile-tagged GLB through the
-generic static-model instance-set adapter. It checks Tidewater's
-`_ELSEMESH_VDATA` mapping, both opaque per-instance material vectors, and
-color/shadow shader compilation. This exercises the material-profile fixture;
-the signed Tidewater package still uses its legacy fish-prop component until
-WebGL has the same profile path.
-
 `webgl-fish-props-render.mjs` and `fish-props-webgpu-render.mjs` render the same
 fixed market-prop records from the same camera in isolated WebGL and headless
 WebGPU fixtures. They confirm visible output and shader/device success and save

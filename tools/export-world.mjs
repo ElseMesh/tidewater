@@ -26,7 +26,6 @@ import { encodeGrassDensityAsset } from '../../../src/network/GrassDensityAsset.
 import { Reef } from '../Reef.js';
 import { encodeReefPlacements } from '../ReefPlacements.js';
 import { encodeFishPropPlacements, MAX_FISH_PROP_PLACEMENT_BYTES } from '../FishPropPlacements.js';
-import { FISH_PROP_MATERIAL_PROFILE } from '../FishPropMaterialProfile.js';
 import { BANK } from '../../../src/audio/soundBank.js';
 import { MIX } from '../../../src/audio/SoundScape.js';
 import { bakeTerrainMaps } from '../../../src/world/terrain/TerrainBake.js';
@@ -648,7 +647,7 @@ function exportFishPropGLB( name, position, normal, vdata, indices ) {
 		asset: { version: '2.0', generator: 'Tidewater static fish model exporter/1' },
 		scene: 0, scenes: [ { nodes: [ 0 ] } ], nodes: [ { name } ],
 		meshes: [ { name, primitives: [ { attributes, indices: indexAccessor, material: 0, mode: 4 } ] } ],
-		materials: [ { name: `${name} authored material profile`, extras: { elsemeshMaterial: { profile: FISH_PROP_MATERIAL_PROFILE, role: 'prop' } }, pbrMetallicRoughness: { baseColorFactor: [ 1, 1, 1, 1 ], metallicFactor: 0, roughnessFactor: 0.8 }, doubleSided: true } ],
+		materials: [ { name: `${name} portable PBR`, pbrMetallicRoughness: { baseColorFactor: [ 1, 1, 1, 1 ], metallicFactor: 0, roughnessFactor: 0.8 }, doubleSided: true } ],
 		accessors, bufferViews, buffers: [ { byteLength: binary.length } ],
 	};
 	const json = Buffer.from( JSON.stringify( gltf ) );

@@ -108,6 +108,7 @@ try {
 			const parsed = parseGLB( bytes );
 			const primitive = parsed.meshes[ 0 ][ 0 ];
 			assert.ok( primitive.indices?.length > 0 && primitive.attributes.POSITION && primitive.attributes.NORMAL && primitive.attributes._ELSEMESH_VDATA?.itemSize === 4, `${model.id} exports indexed geometry, normals, and material vertex data` );
+			assert.equal( parsed.materials[ 0 ].extras?.elsemeshMaterial, undefined, `${model.id} sidecar uses portable glTF PBR without a Tidewater renderer profile` );
 		}
 	}
 	assert.deepEqual( fishSetBytes, fishSetBytesFirst, 'the generic fish model-set descriptor is deterministic' );
