@@ -22,6 +22,13 @@ without a graphics context. `webgpu-fish-props-adapter-build.mjs` creates the
 registered component with a headless WebGPU device and checks GPU buffer
 creation and cleanup. Neither check renders pixels or measures FPS.
 
+`webgl-fish-props-render.mjs` and `fish-props-webgpu-render.mjs` render the same
+fixed market-prop records from the same camera in isolated WebGL and headless
+WebGPU fixtures. They confirm visible output and shader/device success and save
+captures under `/var/tmp`. The captures are intended for visual review; they do
+not yet assert pixel-level parity or prove that every WebGPU fish marking and
+material feature has a WebGL equivalent.
+
 `webgl-shore-query-parity.mjs` compares WebGPU and WebGL against Tidewater's
 packaged terrain and shoreline field, then records two 18-second underway boat
 traces. The first uses FFT and shoreline inputs without interactive wake or
