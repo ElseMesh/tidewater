@@ -1,6 +1,6 @@
 import { Scene, PerspectiveCamera, Matrix4, Quaternion, Vector3, Vector4 } from '../../../src/engine/index.js';
 import { GPU, Texture, MeshRenderer, FullscreenPass, createViewUniforms, setFrameCamera, UniformBlock } from '../../../src/engine/webgpu.js';
-import { FishProps } from '../fish/FishProps.js';
+import { FishProps } from '../../../src/world/fish/FishProps.js';
 import { ACES_WGSL } from '../../../src/post/PostFX.js';
 import { fishIds, fishLengthCm } from '../FishTable.js';
 

@@ -1,17 +1,16 @@
 import * as THREE from '../../../src/engine/index.js';
 import { mulberry32 } from '../../../src/util/Noise.js';
 import { MultiKindInstanceBatch } from '../../../src/engine/render/MultiKindInstanceBatch.js';
-import { fishGeometry } from './FishGeometry.js';
+import { fishGeometry } from '../../../src/world/fish/FishGeometry.js';
 import { rayGeometry, turtleGeometry } from './CreatureGeometry.js';
-import { createSwimMaterial } from './FishMaterial.js';
+import { createSwimMaterial } from '../../../src/world/fish/FishMaterial.js';
 import { bandFade } from '../../../src/materials/LODFade.js';
 import { WhaleWater } from '../../../src/ocean/WhaleWater.js';
 import { FrameUniforms } from '../../../src/engine/render/Frame.js';
 
 // Fish and other swimmers of the reef and the bay, simulated on the CPU and drawn in a single
 // render object (MultiKindInstanceBatch: one indirect draw per model and level of detail) with the
-// procedural fish models (fish/FishGeometry.js, fish/CreatureGeometry.js) and material
-// (fish/FishMaterial.js).
+// engine's procedural fish model and material plus the world's ray and turtle meshes.
 //
 // Habitats and behaviours:
 //  - reef, by depth band: damselfish and wrasses on the shallow flats, grunts milling at coral

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import * as fishPresentation from '../FishPresentation.js';
-import { WebGLFishPropsAdapter } from '../renderers/WebGLFishPropsAdapter.js';
+import { WebGLFishPropsAdapter } from '../../../src/fallback/WebGLFishPropsAdapter.js';
 import { fishPropsRenderRecords } from './fish-props-render-records.js';
 
 const result = document.querySelector( '#result' );

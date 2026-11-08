@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import '../../../test/headless.mjs';
 import { setupLife } from '../../../test/life-harness.mjs';
 import { readTexture } from '../../../src/engine/gpu/Readback.js';
-import { FishProps } from '../fish/FishProps.js';
+import { FishProps } from '../../../src/world/fish/FishProps.js';
 import * as fishPresentation from '../FishPresentation.js';
 import { fishPropsRenderRecords } from './fish-props-render-records.js';
 

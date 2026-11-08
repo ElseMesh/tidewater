@@ -598,7 +598,7 @@ export class Village {
 		}
 
 		// fish, lobsters, ice and banana leaves (market stall, drying racks, cleaning tables): one
-		// instanced mesh with the fish material (fish/FishProps.js)
+		// instanced mesh with ElseMesh's shared fish material and geometry
 		if ( B.fishProps ) this.group.add( B.fishProps.build() );
 
 		// the texture bake is recorded by whichever village mesh is drawn first in a frame

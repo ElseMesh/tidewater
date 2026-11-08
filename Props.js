@@ -1,7 +1,7 @@
 import { Color, Matrix4, Vector3 } from '../../src/engine/index.js';
 import { Builder, gridPart, sagPoints } from './village/GeoBuilder.js';
 import { mat4, slabPart } from '../../src/engine/geometry/ProceduralGeometry.js';
-import { FishProps } from './fish/FishProps.js';
+import { FishProps } from '../../src/world/fish/FishProps.js';
 import { mulberry32 } from '../../src/util/Noise.js';
 
 // Procedural harbour / village props. Every emitter writes into a GeoBuilder `B`
@@ -291,7 +291,7 @@ export function bucket( B, x, y, z, tint = C.blue, seed = 0.5 ) {
 }
 
 // ---------------------------------------------------------------------------
-// Fish, lobsters and their displays: modelled and drawn by fish/FishProps.js (one instanced mesh
+// Fish, lobsters and their displays: modelled and drawn by ElseMesh's FishProps presenter (one instanced mesh
 // with the fish material, collected on the builder as B.fishProps).
 
 const _fm = new Matrix4();

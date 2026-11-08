@@ -1,5 +1,5 @@
 import * as THREE from '../../../src/engine/index.js';
-import { PART } from './FishGeometry.js';
+import { PART } from '../../../src/world/fish/FishGeometry.js';
 
 // Rays and the green sea turtle, in the fish frame (nose +z, back +y, total length 1 from the
 // snout at z = +0.5) so they share the fish batch, material and swimming data:

@@ -1,7 +1,7 @@
 import { registerWorldPackageMaterialAdapter } from '../../src/network/WorldPackageMaterialAdapterRegistry.js';
 import { decodeWorldComponentAsset } from '../../src/network/WorldComponentAssetCodecRegistry.js';
 import { createVillageMaterialContext, disposeVillageMaterialContext } from './renderers/webgpu-village/VillageMaterialContext.js';
-import { createStaticPropMaterial } from './fish/FishMaterial.js';
+import { createStaticPropMaterial } from '../../src/world/fish/FishMaterial.js';
 import * as fishPresentation from './FishPresentation.js';
 import { FISH_PROP_MATERIAL_COMPONENT, FISH_PROP_MATERIAL_DESCRIPTOR, FISH_PROP_MATERIAL_PROFILE } from './FishPropMaterialProfile.js';
 import { VILLAGE_MATERIAL_ROLES } from './VillageMaterialProfile.js';
