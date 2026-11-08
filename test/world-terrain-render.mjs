@@ -6,7 +6,7 @@ import { TerrainData } from '../terrain/TerrainData.js';
 import { TerrainGPU } from '../../../src/world/TerrainGPU.js';
 import { Terrain } from '../../../src/world/Terrain.js';
 import { computeShoreField } from '../../../src/world/ShoreField.js';
-import { Rocks } from '../../../src/world/Rocks.js';
+import { Rocks } from '../Rocks.js';
 import { Colliders } from '../../../src/world/Colliders.js';
 import { TIDEWATER_LAYOUT } from '../layout.js';
 

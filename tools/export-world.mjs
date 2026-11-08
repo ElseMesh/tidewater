@@ -13,7 +13,7 @@ import { parseGLB } from '../../../src/engine/loaders/GLTF.js';
 import { Euler, Quaternion } from '../../../src/engine/index.js';
 import { Village } from '../Village.js';
 import { BoatModel } from '../../../src/world/BoatModel.js';
-import { Rocks } from '../../../src/world/Rocks.js';
+import { Rocks } from '../Rocks.js';
 import { Colliders } from '../../../src/world/Colliders.js';
 import { Builder, Batch } from '../village/GeoBuilder.js';
 import { VILLAGE_MATERIAL_PROFILE, VILLAGE_MATERIAL_ROLES } from '../VillageMaterialProfile.js';
