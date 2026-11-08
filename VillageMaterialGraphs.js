@@ -1136,3 +1136,99 @@ export const TIDEWATER_HARD_MATERIAL_GRAPH = Object.freeze( {
 	nodes: Object.freeze( hardNodes.map( node => Object.freeze( node ) ) ),
 	outputs: Object.freeze( { baseColor: 'tideSurfaceColor', metalness: 'metalness', roughness: 'roughness', occlusion: 'occlusion', surfaceNormal: 'surfaceNormal' } ),
 } );
+
+// Window and lantern glass are a separate material batch so the engine can
+// compile this renderer-neutral appearance for both WebGPU and WebGL.
+const glassNodes = [];
+let glassSerial = 0;
+const glassNode = ( op, fields = {} ) => {
+	const id = `glass${glassSerial ++}`;
+	glassNodes.push( { id, op, ...fields } );
+	return id;
+};
+const glassInput = name => glassNode( 'input', { name } );
+const glassConstants = new Map();
+const glassValue = value => {
+	const key = JSON.stringify( value );
+	if ( glassConstants.has( key ) ) return glassConstants.get( key );
+	const id = glassNode( 'constant', { value } );
+	glassConstants.set( key, id );
+	return id;
+};
+const glassOp = ( op, ...args ) => glassNode( op, { args } );
+const glassTexture = ( slot, uv ) => glassNode( 'textureSample', { slot, uv } );
+const gv = glassValue;
+const go = glassOp;
+const gadd = ( a, b ) => go( 'add', a, b );
+const gsub = ( a, b ) => go( 'subtract', a, b );
+const gmul = ( a, b ) => go( 'multiply', a, b );
+const gdiv = ( a, b ) => go( 'divide', a, b );
+const gmin = ( a, b ) => go( 'min', a, b );
+const gmax = ( a, b ) => go( 'max', a, b );
+const gabs = a => go( 'abs', a );
+const gsin = a => go( 'sin', a );
+const gfract = a => go( 'fract', a );
+const gsmooth = ( a, b, x ) => go( 'smoothstep', a, b, x );
+const gmix = ( a, b, t ) => go( 'mix', a, b, t );
+const gvec2 = ( x, y ) => go( 'vec2', x, y );
+const gvec3 = ( x, y, z ) => go( 'vec3', x, y, z );
+const gh = ( x, y ) => gfract( gmul( gsin( gadd( gmul( x, gv( 12.9898 ) ), gmul( y, gv( 78.233 ) ) ) ), gv( 43758.5453 ) ) );
+const goneMinus = x => gsub( gv( 1 ), x );
+
+const glassUV = glassInput( 'uv' );
+const glassData = glassInput( 'vdata' );
+const glassTint = glassInput( 'colorRGB' );
+const glassTime = glassInput( 'time' );
+const glassNight = glassInput( 'night' );
+const glassU = go( 'x', glassUV );
+const glassV = go( 'y', glassUV );
+const glassSeed = go( 'x', glassData );
+const glassKind = go( 'y', glassData );
+const glassLit = go( 'w', glassData );
+const grimeUV = gadd( gmul( glassUV, gv( [ 0.45, 0.45 ] ) ), gvec2( gmul( glassSeed, gv( 3.7 ) ), gmul( glassSeed, gv( 1.3 ) ) ) );
+const grime = glassTexture( 'emissive', grimeUV );
+const grimeR = go( 'x', grime );
+const grimeG = go( 'y', grime );
+const grimeB = go( 'z', grime );
+const grimeA = go( 'w', grime );
+const edgeU = gmin( glassU, gsub( gv( 1 ), glassU ) );
+const edgeV = gmin( glassV, gsub( gv( 1 ), glassV ) );
+const edge = gmin( edgeU, edgeV );
+const frameDirt = goneMinus( gsmooth( gv( 0 ), gv( 0.07 ), edge ) );
+const curtainLeft = goneMinus( gsmooth( gv( 0.18 ), gv( 0.3 ), glassU ) );
+const curtainRight = gsmooth( gv( 0.7 ), gv( 0.82 ), glassU );
+const curtain = gmul( gadd( curtainLeft, curtainRight ), go( 'step', gv( 0.35 ), glassSeed ) );
+const folds = gadd( gmul( gsin( gadd( gmul( glassU, gv( 70 ) ), gmul( glassSeed, gv( 20 ) ) ) ), gv( 0.5 ) ), gv( 0.5 ) );
+const interior = gmul( gv( [ 0.012, 0.014, 0.017 ] ), gadd( gmul( grimeA, gv( 0.8 ) ), gv( 0.6 ) ) );
+const curtainLight = gmul( gmul( glassTint, gv( 0.16 ) ), gadd( gmul( folds, gv( 0.4 ) ), gv( 0.6 ) ) );
+let windowColor = gmix( interior, curtainLight, curtain );
+windowColor = gadd( windowColor, gmul( gv( [ 0.05, 0.05, 0.045 ] ), grimeG ) );
+windowColor = gadd( windowColor, gmul( gv( [ 0.03, 0.026, 0.02 ] ), gadd( grimeB, frameDirt ) ) );
+const lanternColor = gmul( gmul( glassTint, gv( 0.55 ) ), goneMinus( gmul( grimeB, gv( 0.25 ) ) ) );
+const isLantern = go( 'step', gv( 0.5 ), glassKind );
+const surfaceColor = gmix( windowColor, lanternColor, isLantern );
+const windowRough = gadd( gadd( gadd( gv( 0.035 ), gmul( grimeR, gv( 0.22 ) ) ), gmul( grimeG, gv( 0.18 ) ) ), gadd( gmul( grimeB, gv( 0.1 ) ), gmul( frameDirt, gv( 0.25 ) ) ) );
+const lanternRough = gadd( gv( 0.32 ), gmul( grimeR, gv( 0.15 ) ) );
+const surfaceRough = gmix( windowRough, lanternRough, isLantern );
+const nightOn = gsmooth( gv( 0.15 ), gv( 0.75 ), glassNight );
+const warm = gv( [ 1, 0.56, 0.24 ] );
+const centerDistance = gadd( gmul( gabs( gsub( glassU, gv( 0.5 ) ) ), gv( 1.4 ) ), gabs( gsub( glassV, gv( 0.62 ) ) ) );
+const center = goneMinus( gsmooth( gv( 0.1 ), gv( 0.75 ), centerDistance ) );
+const windowCenterGlow = gmul( warm, gadd( gmul( center, gv( 0.6 ) ), gv( 0.5 ) ) );
+const windowCurtainTint = gmul( gadd( gmul( glassTint, gv( 0.5 ) ), gmul( warm, gv( 0.5 ) ) ), gadd( gmul( folds, gv( 0.3 ) ), gv( 0.45 ) ) );
+const windowGlow = gmix( windowCenterGlow, windowCurtainTint, curtain );
+const windowGlowNoise = gadd( gmul( gh( glassSeed, gv( 3.1 ) ), gv( 0.5 ) ), gv( 0.75 ) );
+const windowGlowScale = gmul( windowGlowNoise, gmul( gv( 3.2 ), goneMinus( gmul( grimeR, gv( 0.25 ) ) ) ) );
+const finalWindowGlow = gmul( windowGlow, windowGlowScale );
+const flickerA = gsin( gadd( gmul( glassTime, gv( 9 ) ), gmul( glassSeed, gv( 40 ) ) ) );
+const flickerB = gsin( gadd( gmul( glassTime, gv( 5.3 ) ), gmul( glassSeed, gv( 13 ) ) ) );
+const flicker = gadd( gmul( gmul( flickerA, flickerB ), gv( 0.12 ) ), gv( 0.9 ) );
+const lanternGlow = gmul( gv( [ 1, 0.64, 0.3 ] ), gmul( gv( 6 ), flicker ) );
+const isLit = gmax( glassLit, isLantern );
+const surfaceEmissive = gmul( gmul( gmix( finalWindowGlow, lanternGlow, isLantern ), nightOn ), isLit );
+
+export const TIDEWATER_GLASS_MATERIAL_GRAPH = Object.freeze( {
+	format: 'elsemesh.material-graph/1',
+	nodes: Object.freeze( glassNodes.map( node => Object.freeze( node ) ) ),
+	outputs: Object.freeze( { baseColor: surfaceColor, roughness: surfaceRough, emissive: surfaceEmissive } ),
+} );

@@ -3,7 +3,7 @@ import { commonModule } from '../../../../src/engine/render/wgsl/common.js';
 import { standard } from '../../../../src/materials/Materials.js';
 import { createWebGPUMaterialGraph } from '../../../../src/materials/WorldMaterialGraph.js';
 import { VillageTextures } from './TextureBaker.js';
-import { TIDEWATER_NET_MATERIAL_GRAPH, TIDEWATER_THATCH_MATERIAL_GRAPH, TIDEWATER_FABRIC_MATERIAL_GRAPH, TIDEWATER_STONE_MATERIAL_GRAPH, TIDEWATER_ROOF_METAL_MATERIAL_GRAPH, TIDEWATER_HARD_MATERIAL_GRAPH } from '../../VillageMaterialGraphs.js';
+import { TIDEWATER_NET_MATERIAL_GRAPH, TIDEWATER_THATCH_MATERIAL_GRAPH, TIDEWATER_FABRIC_MATERIAL_GRAPH, TIDEWATER_STONE_MATERIAL_GRAPH, TIDEWATER_ROOF_METAL_MATERIAL_GRAPH, TIDEWATER_HARD_MATERIAL_GRAPH, TIDEWATER_GLASS_MATERIAL_GRAPH } from '../../VillageMaterialGraphs.js';
 
 // Shared PBR materials for the village, pier and props.
 //
@@ -16,7 +16,7 @@ import { TIDEWATER_NET_MATERIAL_GRAPH, TIDEWATER_THATCH_MATERIAL_GRAPH, TIDEWATE
 // Normal layers are blended in slope (derivative) space; a second, higher frequency detail
 // normal fades in near the camera and a low frequency macro layer hides tiling.
 // Each material samples at most 4 textures.
-// Materials: wood (+ glass, pattern 9), roofMetal, thatch, hard (+ rope), stone, fabric.
+// Materials: wood, glass, roofMetal, thatch, hard (+ rope), stone, fabric.
 //
 // WGSL port notes: the TSL colorNode / roughnessNode / normalNode / ... are `surface` snippets
 // writing the Surface (s.normal in WORLD space: the three normalMap() of a packed slope normal is
@@ -129,7 +129,6 @@ export function createWoodMaterial( T ) {
 	let aData = in.vs.vData;
 	let seed = aData.x;
 	let paint = aData.y;
-	let pattern = aData.z;
 	let weather = aData.w;
 	let uv0 = in.uv;
 	let isCap = step( 1500.0, uv0.x );
@@ -324,17 +323,13 @@ export function createWoodMaterial( T ) {
 	let rough = mix( roughRaw, roughPaint, painted ) + Gm.r * 0.06 + Gm.g * 0.08 - nail * 0.3 - walkK * 0.1 + streak * 0.05 - dropCore * 0.2;
 	let res = vlmTidal( in.P, col, rough );
 
-	// ---- glass mode (windows and lanterns share this material to save a draw call)
-	let isGlass = step( 8.5, pattern );
-	let glass = vlmGlass( in.uv, aTint, seed, paint, weather );
-	s.albedo = mix( res.col, glass.color, isGlass );
-	s.roughness = clamp( mix( res.rough, glass.rough, isGlass ), 0.03, 1.0 );
-	s.ao = mix( ao, 1.0, isGlass );
-	s.emissive = glass.emissive * isGlass;
-	s.normal = vlmNormalFromSlope( in.P, in.N, in.uv, ( sM + sPat ) * ( 1.0 - isGlass ) );
+	s.albedo = res.col;
+	s.roughness = clamp( res.rough, 0.03, 1.0 );
+	s.ao = ao;
+	s.normal = vlmNormalFromSlope( in.P, in.N, in.uv, sM + sPat );
 ` } );
 	m.name = 'VillageWood';
-	m.modules.push( tidalModule, glassModule );
+	m.modules.push( tidalModule );
 	return m;
 
 }
@@ -391,43 +386,18 @@ export function createHardMaterial( T ) {
 
 }
 
-// ---------------------------------------------------------------------------
-// GLASS (evaluated inside the wood material): window panes and lantern glass, emissive at night.
-// uv: normalized 0..1 across a pane. kind 0 window / 1 lantern, lit 0/1, tint: curtain / glass color
-
-const glassModule = new ShaderModule( {
-	name: 'villageGlass',
-	deps: [ villageMaterialModule ],
-	code: /* wgsl */`
-struct VlmGlass { color: vec3f, rough: f32, emissive: vec3f };
-
-fn vlmGlass( uvm: vec2f, aTint: vec3f, seed: f32, kind: f32, lit: f32 ) -> VlmGlass {
-	// grime map channels: R streaks, G salt, B spots, A macro
-	let Gl = textureSample( vlgGrime, smpAnisoRepeat, uvm * 0.45 + vec2f( seed * 3.7, seed * 1.3 ) );
-	let edgeD = min( min( uvm.x, 1.0 - uvm.x ), min( uvm.y, 1.0 - uvm.y ) );
-	let frameDirt = 1.0 - smoothstep( 0.0, 0.07, edgeD );
-	let curtain = ( 1.0 - smoothstep( 0.18, 0.3, uvm.x ) + smoothstep( 0.7, 0.82, uvm.x ) ) * step( 0.35, seed );
-	let folds = vlmN01( sin( uvm.x * 70.0 + seed * 20.0 ) );
-	let interior = vec3f( 0.012, 0.014, 0.017 ) * ( Gl.a * 0.8 + 0.6 );
-	var winCol = mix( interior, aTint * 0.16 * ( folds * 0.4 + 0.6 ), curtain );
-	winCol = winCol + vec3f( 0.05, 0.05, 0.045 ) * Gl.g + vec3f( 0.03, 0.026, 0.02 ) * ( Gl.b + frameDirt );
-	let lanternCol = aTint * 0.55 * ( 1.0 - Gl.b * 0.25 );
-	let isLantern = step( 0.5, kind );
-	let color = mix( winCol, lanternCol, isLantern );
-	let rough = mix( 0.035 + Gl.r * 0.22 + Gl.g * 0.18 + Gl.b * 0.1 + frameDirt * 0.25, 0.32 + Gl.r * 0.15, isLantern );
-
-	let nightOn = smoothstep( 0.15, 0.75, frame.night );
-	let warm = vec3f( 1.0, 0.56, 0.24 );
-	let center = 1.0 - smoothstep( 0.1, 0.75, abs( uvm.x - 0.5 ) * 1.4 + abs( uvm.y - 0.62 ) );
-	let winGlow = mix( warm * ( center * 0.6 + 0.5 ), ( aTint * 0.5 + warm * 0.5 ) * ( folds * 0.3 + 0.45 ), curtain )
-		* ( vlmHash21( seed, 3.1 ) * 0.5 + 0.75 ) * 3.2 * ( 1.0 - Gl.r * 0.25 );
-	let flicker = sin( frame.time * 9.0 + seed * 40.0 ) * sin( frame.time * 5.3 + seed * 13.0 ) * 0.12 + 0.9;
-	let lanternGlow = vec3f( 1.0, 0.64, 0.3 ) * 6.0 * flicker;
-	let emissive = mix( winGlow, lanternGlow, isLantern ) * nightOn * max( lit, isLantern );
-	return VlmGlass( color, rough, emissive );
+// Window and lantern light uses the same signed graph in WebGPU and WebGL.
+export function createGlassMaterial( T ) {
+	const material = createWebGPUMaterialGraph( {
+		name: 'VillageGlass',
+		pbrMetallicRoughness: { roughnessFactor: 0.2, metallicFactor: 0 },
+		emissiveFactor: [ 0, 0, 0 ],
+	}, TIDEWATER_GLASS_MATERIAL_GRAPH, {
+		graphTextures: { emissive: T.grime },
+	} );
+	material.name = 'VillageGlass';
+	return material;
 }
-`,
-} );
 
 // ---------------------------------------------------------------------------
 // Rubble, plaster, end grain, and ground dust share the signed renderer-neutral graph.
@@ -478,6 +448,7 @@ export function createVillageMaterials( textures = new VillageTextures() ) {
 	const T = textures.textures;
 	return {
 		wood: createWoodMaterial( T ),
+		glass: createGlassMaterial( T ),
 		roofMetal: createRoofMetalMaterial( T ),
 		thatch: createThatchMaterial( T ),
 		hard: createHardMaterial( T ),

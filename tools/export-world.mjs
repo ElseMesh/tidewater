@@ -17,7 +17,7 @@ import { Rocks } from '../Rocks.js';
 import { Colliders } from '../../../src/world/Colliders.js';
 import { Builder, Batch } from '../village/GeoBuilder.js';
 import { VILLAGE_MATERIAL_PROFILE, VILLAGE_MATERIAL_ROLES } from '../VillageMaterialProfile.js';
-import { TIDEWATER_NET_MATERIAL_GRAPH, TIDEWATER_THATCH_MATERIAL_GRAPH, TIDEWATER_FABRIC_MATERIAL_GRAPH, TIDEWATER_STONE_MATERIAL_GRAPH, TIDEWATER_ROOF_METAL_MATERIAL_GRAPH, TIDEWATER_HARD_MATERIAL_GRAPH } from '../VillageMaterialGraphs.js';
+import { TIDEWATER_NET_MATERIAL_GRAPH, TIDEWATER_THATCH_MATERIAL_GRAPH, TIDEWATER_FABRIC_MATERIAL_GRAPH, TIDEWATER_STONE_MATERIAL_GRAPH, TIDEWATER_ROOF_METAL_MATERIAL_GRAPH, TIDEWATER_HARD_MATERIAL_GRAPH, TIDEWATER_GLASS_MATERIAL_GRAPH } from '../VillageMaterialGraphs.js';
 import { InstancedProps } from '../Props.js';
 import { DebrisPlacer } from '../DebrisPlacement.js';
 import { SCANNED_DEBRIS_ASSETS } from '../debris/ScannedAssets.js';
@@ -498,13 +498,13 @@ function buildIslandProceduralContent( terrainData ) {
 	const lanternBatches = new Builder();
 	for ( const { B } of village.pierInfo.hung || [] ) {
 		const glass = B.batches.glass;
-		if ( glass?.vcount > 0 ) lanternBatches.batch( 'wood' ).append( glass, ( d ) => [ d[ 0 ], d[ 1 ], 9, d[ 2 ] ] );
+		if ( glass?.vcount > 0 ) lanternBatches.batch( 'glass' ).append( glass, ( d ) => [ d[ 0 ], d[ 1 ], 0, d[ 2 ] ] );
 		for ( const name of [ 'wood', 'hard' ] ) {
 			const batch = B.batches[ name ];
 			if ( batch?.vcount > 0 ) lanternBatches.batch( name ).append( batch );
 		}
 	}
-	for ( const name of [ 'wood', 'hard' ] ) {
+	for ( const name of [ 'wood', 'glass', 'hard' ] ) {
 		const batch = lanternBatches.batches[ name ];
 		if ( batch?.vcount > 0 ) batches.push( { name: `lantern-${name}`, batch } );
 	}
@@ -702,7 +702,11 @@ function foldVillageMaterialBatches( builder ) {
 	const take = ( key ) => { const batch = builder.batches[ key ]; delete builder.batches[ key ]; return batch; };
 	const wood = builder.batch( 'wood' ), hard = builder.batch( 'hard' ), fabric = builder.batch( 'fabric' );
 	const glass = take( 'glass' ), rope = take( 'rope' ), cloth = take( 'cloth' ), net = take( 'net' ), flag = take( 'flag' );
-	if ( glass ) wood.append( glass, ( d ) => [ d[ 0 ], d[ 1 ], 9, d[ 2 ] ] );
+	if ( glass ) {
+		const panes = new Batch();
+		panes.append( glass, ( d ) => [ d[ 0 ], d[ 1 ], 0, d[ 2 ] ] );
+		builder.batches.glass = panes;
+	}
 	if ( rope ) hard.append( rope, ( d ) => [ d[ 0 ], 0, 0, 2 + d[ 1 ] ] );
 	if ( cloth ) fabric.append( cloth, ( d ) => [ d[ 0 ], d[ 1 ], 0, 0 ] );
 	const nets = new Batch();
@@ -785,6 +789,7 @@ function applyVillageMaterialGraphs( sourceBytes, netPNG, thatchPNGs, stonePNGs,
 	if ( source.readUInt32LE( binaryHeader + 4 ) !== 0x004e4942 ) throw new Error( 'Tidewater village GLB has no BIN chunk' );
 	const binaryLength = source.readUInt32LE( binaryHeader );
 	let binary = Buffer.from( source.subarray( binaryHeader + 8, binaryHeader + 8 + binaryLength ) );
+	binary = splitVillageGlassPrimitives( gltf, binary );
 	const netMaterials = gltf.materials.filter( material => material.extras?.elsemeshMaterial?.profile === VILLAGE_MATERIAL_PROFILE && material.extras.elsemeshMaterial.role === 'net' );
 	if ( netMaterials.length === 0 ) throw new Error( 'Tidewater village LOD has no authored net material to migrate' );
 	const samplerIndex = gltf.samplers?.length || 0;
@@ -904,6 +909,19 @@ function applyVillageMaterialGraphs( sourceBytes, netPNG, thatchPNGs, stonePNGs,
 			elsemeshMaterial: { profile: 'elsemesh.material-graph/1', role: 'graph', graph: TIDEWATER_HARD_MATERIAL_GRAPH },
 		};
 	}
+	const glassMaterials = gltf.materials.filter( material => material.extras?.elsemeshMaterial?.profile === VILLAGE_MATERIAL_PROFILE && material.extras.elsemeshMaterial.role === 'glass' );
+	if ( glassMaterials.length === 0 ) throw new Error( 'Tidewater village asset has no authored glass material to migrate' );
+	for ( const material of glassMaterials ) {
+		const pbr = material.pbrMetallicRoughness ||= {};
+		pbr.metallicFactor = 0; pbr.roughnessFactor = 0.2;
+		material.emissiveTexture = { index: hardGrime };
+		material.emissiveFactor = [ 0, 0, 0 ];
+		material.extras = {
+			...material.extras,
+			elsemeshWorld: { ...material.extras.elsemeshWorld, materialRole: 'glass' },
+			elsemeshMaterial: { profile: 'elsemesh.material-graph/1', role: 'graph', graph: TIDEWATER_GLASS_MATERIAL_GRAPH },
+		};
+	}
 	gltf.buffers[ 0 ].byteLength = binary.length;
 	const json = Buffer.from( JSON.stringify( gltf ) );
 	const jsonPadded = Buffer.concat( [ json, Buffer.alloc( ( 4 - json.length % 4 ) % 4, 0x20 ) ] );
@@ -913,6 +931,88 @@ function applyVillageMaterialGraphs( sourceBytes, netPNG, thatchPNGs, stonePNGs,
 	const jsonHeader = Buffer.alloc( 8 ); jsonHeader.writeUInt32LE( jsonPadded.length, 0 ); jsonHeader.writeUInt32LE( 0x4e4f534a, 4 );
 	const binHeader = Buffer.alloc( 8 ); binHeader.writeUInt32LE( binPadded.length, 0 ); binHeader.writeUInt32LE( 0x004e4942, 4 );
 	return Buffer.concat( [ header, jsonHeader, jsonPadded, binHeader, binPadded ] );
+}
+
+function splitVillageGlassPrimitives( gltf, sourceBinary ) {
+	const roleOf = material => material?.extras?.elsemeshWorld?.materialRole || material?.extras?.elsemeshMaterial?.role;
+	let glassMaterialIndex = gltf.materials.findIndex( material => roleOf( material ) === 'glass' );
+	const view = new DataView( sourceBinary.buffer, sourceBinary.byteOffset, sourceBinary.byteLength );
+	const componentBytes = { 5121: 1, 5123: 2, 5125: 4 };
+	const getAccessor = index => {
+		const accessor = gltf.accessors[ index ];
+		if ( ! accessor || accessor.bufferView === undefined ) throw new Error( 'Village glass split requires packed GLB accessors' );
+		const bufferView = gltf.bufferViews[ accessor.bufferView ];
+		if ( bufferView.buffer !== 0 ) throw new Error( 'Village glass split only supports the primary GLB buffer' );
+		return { accessor, bufferView, offset: ( bufferView.byteOffset || 0 ) + ( accessor.byteOffset || 0 ) };
+	};
+	const readIndex = ( accessorIndex, index ) => {
+		const { accessor, bufferView, offset } = getAccessor( accessorIndex );
+		const size = componentBytes[ accessor.componentType ];
+		if ( ! size || accessor.type !== 'SCALAR' ) throw new Error( 'Village glass split encountered an unsupported index accessor' );
+		const at = offset + index * ( bufferView.byteStride || size );
+		return size === 1 ? view.getUint8( at ) : size === 2 ? view.getUint16( at, true ) : view.getUint32( at, true );
+	};
+	const readPattern = ( accessorIndex, vertex ) => {
+		const { accessor, bufferView, offset } = getAccessor( accessorIndex );
+		if ( accessor.componentType !== 5126 || accessor.type !== 'VEC4' ) throw new Error( 'Village glass split requires float VEC4 material data' );
+		const at = offset + vertex * ( bufferView.byteStride || 16 ) + 8;
+		return view.getFloat32( at, true );
+	};
+	const appendIndices = ( indices, componentType ) => {
+		const size = componentBytes[ componentType ];
+		if ( ! size ) throw new Error( 'Village glass split encountered an unsupported index component type' );
+		const padding = ( 4 - sourceBinary.length % 4 ) % 4;
+		const byteOffset = sourceBinary.length + padding;
+		const bytes = Buffer.alloc( indices.length * size );
+		for ( let i = 0; i < indices.length; i ++ ) {
+			if ( size === 1 ) bytes.writeUInt8( indices[ i ], i );
+			else if ( size === 2 ) bytes.writeUInt16LE( indices[ i ], i * 2 );
+			else bytes.writeUInt32LE( indices[ i ], i * 4 );
+		}
+		sourceBinary = Buffer.concat( [ sourceBinary, Buffer.alloc( padding ), bytes ] );
+		const bufferView = gltf.bufferViews.length;
+		gltf.bufferViews.push( { buffer: 0, byteOffset, byteLength: bytes.length, target: 34963 } );
+		const accessor = gltf.accessors.length;
+		let minimum = Infinity, maximum = - Infinity;
+		for ( const index of indices ) { minimum = Math.min( minimum, index ); maximum = Math.max( maximum, index ); }
+		gltf.accessors.push( { bufferView, componentType, count: indices.length, type: 'SCALAR', min: [ minimum ], max: [ maximum ] } );
+		return accessor;
+	};
+	let splitCount = 0;
+	for ( const mesh of gltf.meshes || [] ) {
+		const next = [];
+		for ( const primitive of mesh.primitives || [] ) {
+			const material = gltf.materials?.[ primitive.material ];
+			const dataIndex = primitive.attributes?._ELSEMESH_VDATA;
+			if ( roleOf( material ) !== 'wood' || dataIndex === undefined ) { next.push( primitive ); continue; }
+			if ( primitive.mode !== undefined && primitive.mode !== 4 ) throw new Error( 'Village wood glass split requires triangle primitives' );
+			if ( primitive.indices === undefined ) throw new Error( 'Village wood glass split requires indexed primitives' );
+			const indexAccessor = gltf.accessors[ primitive.indices ];
+			const woodIndices = [], glassIndices = [];
+			for ( let i = 0; i < indexAccessor.count; i += 3 ) {
+				if ( i + 2 >= indexAccessor.count ) throw new Error( 'Village wood index count is not a triangle list' );
+				const triangle = [ readIndex( primitive.indices, i ), readIndex( primitive.indices, i + 1 ), readIndex( primitive.indices, i + 2 ) ];
+				const flags = triangle.map( vertex => readPattern( dataIndex, vertex ) >= 8.5 );
+				if ( flags.some( flag => flag !== flags[ 0 ] ) ) throw new Error( 'Village glass split found a triangle with mixed wood and glass material data' );
+				( flags[ 0 ] ? glassIndices : woodIndices ).push( ...triangle );
+			}
+			if ( ! glassIndices.length ) { next.push( primitive ); continue; }
+			if ( glassMaterialIndex < 0 ) {
+				glassMaterialIndex = gltf.materials.length;
+				gltf.materials.push( {
+					name: 'Tidewater glass',
+					pbrMetallicRoughness: { baseColorFactor: [ 1, 1, 1, 1 ], metallicFactor: 0, roughnessFactor: 0.2 },
+					emissiveFactor: [ 0, 0, 0 ],
+					extras: { elsemeshMaterial: { profile: VILLAGE_MATERIAL_PROFILE, role: 'glass' } },
+				} );
+			}
+			if ( woodIndices.length ) next.push( { ...primitive, indices: appendIndices( woodIndices, indexAccessor.componentType ) } );
+			next.push( { ...primitive, indices: appendIndices( glassIndices, indexAccessor.componentType ), material: glassMaterialIndex } );
+			splitCount ++;
+		}
+		mesh.primitives = next;
+	}
+	return sourceBinary;
 }
 
 function exportBatchGLB( batches, sceneName, villageMaterials = false ) {

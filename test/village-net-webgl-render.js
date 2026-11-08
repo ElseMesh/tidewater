@@ -15,8 +15,8 @@ try {
 		return response.arrayBuffer();
 	} );
 	const parsedGLB = parseGLB( glbBytes );
-	const graphMaterialIndexes = new Map( parsedGLB.materials.flatMap( ( material, index ) => material.name === 'Procedural village net' || [ 'hard', 'thatch', 'fabric', 'stone', 'roofMetal' ].includes( material.extras?.elsemeshWorld?.materialRole ) ? [ [ material.name, index ] ] : [] ) );
-	if ( graphMaterialIndexes.size !== 8 ) throw new Error( `signed village GLB must contain eight graph material batches, found ${graphMaterialIndexes.size}` );
+	const graphMaterialIndexes = new Map( parsedGLB.materials.flatMap( ( material, index ) => material.name === 'Procedural village net' || [ 'glass', 'hard', 'thatch', 'fabric', 'stone', 'roofMetal' ].includes( material.extras?.elsemeshWorld?.materialRole ) ? [ [ material.name, index ] ] : [] ) );
+	if ( graphMaterialIndexes.size !== 10 ) throw new Error( `signed village GLB must contain ten graph material batches, found ${graphMaterialIndexes.size}` );
 	const graphAttributes = new Map( [ ...graphMaterialIndexes ].map( ( [ name, index ] ) => {
 		const primitive = parsedGLB.meshes.flat().find( candidate => candidate.material === index );
 		if ( ! primitive?.attributes._ELSEMESH_VDATA ) throw new Error( `signed ${name} GLB mesh is missing its VEC4 _ELSEMESH_VDATA` );
@@ -77,6 +77,7 @@ try {
 	scene.add( sun, gltf.scene );
 	const camera = new THREE.PerspectiveCamera( 45, 640 / 480, 0.05, 10000 );
 	G.time.value = 0.75;
+	G.night.value = 1;
 	G.windDir.value.set( 0.8, 0.6 );
 	G.windSpeed.value = 4.5;
 	renderer = new THREE.WebGLRenderer( { antialias: false, alpha: false, preserveDrawingBuffer: true } );
@@ -88,8 +89,10 @@ try {
 	const gl = renderer.getContext();
 	const pixels = new Uint8Array( 640 * 480 * 4 );
 	const metrics = {};
-	for ( const [ label, mesh ] of [ [ 'net', netMesh ], [ 'thatch', thatchMesh ], [ 'fabric', fabricMesh ], [ 'stone', stoneMesh ], [ 'roofMetal', roofMetalMesh ], [ 'hard', hardMesh ] ] ) {
-		for ( const target of graphMeshes.values() ) target[ 0 ].visible = target[ 0 ] === mesh;
+	const glassMesh = graphMeshes.get( 'Procedural village glass' )[ 0 ];
+	const lanternGlassMesh = graphMeshes.get( 'Procedural village lantern-glass' )[ 0 ];
+	for ( const [ label, mesh ] of [ [ 'net', netMesh ], [ 'thatch', thatchMesh ], [ 'fabric', fabricMesh ], [ 'stone', stoneMesh ], [ 'roofMetal', roofMetalMesh ], [ 'hard', hardMesh ], [ 'glass', glassMesh ], [ 'lanternGlass', lanternGlassMesh ] ] ) {
+		for ( const targets of graphMeshes.values() ) for ( const target of targets ) target.visible = target === mesh;
 		const bounds = new THREE.Box3().setFromObject( mesh );
 		const center = bounds.getCenter( new THREE.Vector3() );
 		const size = bounds.getSize( new THREE.Vector3() );

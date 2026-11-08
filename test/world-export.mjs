@@ -355,11 +355,19 @@ try {
 			assert.deepEqual( [ ...image.bytes.subarray( 0, 8 ) ], [ 137, 80, 78, 71, 13, 10, 26, 10 ] );
 		}
 	}
+	const glassMaterials = villageGLB.materials.filter( material => material.extras?.elsemeshWorld?.materialRole === 'glass' );
+	assert.equal( glassMaterials.length, 2, 'window panes and lantern glass use the same renderer-neutral graph' );
+	for ( const glassMaterial of glassMaterials ) {
+		assert.equal( glassMaterial.extras.elsemeshMaterial.profile, 'elsemesh.material-graph/1' );
+		assert.ok( glassMaterial.extras.elsemeshMaterial.graph.outputs.emissive );
+		assert.equal( glassMaterial.emissiveFactor.join( ',' ), '0,0,0' );
+		assert.ok( glassMaterial.emissiveTexture, 'signed grime data feeds the graph through a standard glTF texture slot' );
+	}
 	assert.equal( fabricMaterials[ 0 ].doubleSided, true );
 	const lanternMaterialIndexes = new Set( villageGLB.materials.flatMap( ( material, index ) => material.name.includes( 'lantern-' ) ? [ index ] : [] ) );
-	assert.deepEqual( [ ...lanternMaterialIndexes ].map( index => villageGLB.materials[ index ].extras?.elsemeshWorld?.materialRole || villageGLB.materials[ index ].extras?.elsemeshMaterial?.role ).sort(), [ 'hard', 'wood' ], 'export includes static hanging lanterns with the trusted hard and wood materials' );
+	assert.deepEqual( [ ...lanternMaterialIndexes ].map( index => villageGLB.materials[ index ].extras?.elsemeshWorld?.materialRole || villageGLB.materials[ index ].extras?.elsemeshMaterial?.role ).sort(), [ 'glass', 'hard' ], 'export includes static hanging lanterns with the trusted glass and hard materials' );
 	const lanternPrimitives = villageGLB.meshes[ 0 ].filter( primitive => lanternMaterialIndexes.has( primitive.material ) );
-	assert.equal( lanternPrimitives.length, 2, 'export includes separate lantern wood and hard geometry batches' );
+	assert.equal( lanternPrimitives.length, 2, 'export includes separate lantern glass and hard geometry batches' );
 	assert.ok( lanternPrimitives.every( primitive => primitive.indices?.length > 0 && primitive.attributes._ELSEMESH_VDATA?.itemSize === 4 ), 'exported lantern geometry retains indexed meshes and renderer material data' );
 	assert.equal( villageObject.collision.shape, 'compound', 'village source includes the runtime builder collision layout' );
 	assert.equal( villageObject.collision.boxes.length, 394, 'village collision layout matches its deterministic walkable and solid boxes' );
@@ -468,6 +476,9 @@ try {
 		} else if ( object.material.name === 'Procedural village roofMetal' ) {
 			assert.match( object.material.surface, /s\.metalness = emg_metalness/, 'the package roof graph uses the engine metalness output' );
 			villageRoles.add( 'roofMetal' );
+		} else if ( object.material.name === 'Procedural village glass' || object.material.name === 'Procedural village lantern-glass' || object.material.name === 'Tidewater glass' ) {
+			assert.match( object.material.surface, /s\.emissive \+=/, 'window and lantern appearance is compiled from the same renderer-neutral graph' );
+			villageRoles.add( 'glass' );
 		} else if ( object.material.name.endsWith( 'hard' ) ) {
 			assert.match( object.material.surface, /s\.ao \*= emg_occlusion/, 'the package hard-surface graph uses the engine occlusion output' );
 			villageRoles.add( 'hard' );

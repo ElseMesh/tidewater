@@ -15,8 +15,8 @@ import {
 // a boathouse, a boardwalk up to a small market plaza and a dozen painted cottages on
 // the slope, dressed with nets, traps, barrels, crates, boats and lanterns.
 //
-// All static geometry (including repeated props) is merged per material: 6 draw calls
-// (wood + glass, hard + rope, roof metal, thatch, stone, fabric). The opaque materials
+// All static geometry (including repeated props) is merged per material: 7 draw calls
+// (wood, glass, hard + rope, roof metal, thatch, stone, fabric). The opaque materials
 // share one vertex / index buffer; the wood mesh is the only shadow caster and covers all
 // opaque geometry in the shadow passes (see _assemble). Surface detail comes from GPU-baked
 // PBR texture sets supplied by the active world package and sampled with metre-scale uvs.
@@ -511,11 +511,16 @@ export class Village {
 
 		};
 
-		// fold small emitter keys into bigger materials (fewer draw calls):
-		//   glass -> wood (pattern 9), rope -> hard (vdata.w = 2 + radius), cloth / net / flag -> fabric
+		// Fold only materials whose appearance is explicitly represented by the target role:
+		//   rope -> hard (vdata.w = 2 + radius), cloth / net / flag -> fabric.
+		// Glass remains its own graph material so both renderers compile the same behavior.
 		const wood = B.batch( 'wood' ), hard = B.batch( 'hard' ), fabric = B.batch( 'fabric' );
 		const glass = take( 'glass' ), rope = take( 'rope' ), cloth = take( 'cloth' ), net = take( 'net' ), flag = take( 'flag' );
-		if ( glass ) wood.append( glass, ( d ) => [ d[ 0 ], d[ 1 ], 9, d[ 2 ] ] );
+		if ( glass ) {
+			const panes = new Batch();
+			panes.append( glass, ( d ) => [ d[ 0 ], d[ 1 ], 0, d[ 2 ] ] );
+			B.batches.glass = panes;
+		}
 		if ( rope ) hard.append( rope, ( d ) => [ d[ 0 ], 0, 0, 2 + d[ 1 ] ] );
 		if ( cloth ) fabric.append( cloth, ( d ) => [ d[ 0 ], d[ 1 ], 0, 0 ] );
 		// nets get their own blended material (see createNetMaterial)
@@ -528,7 +533,7 @@ export class Village {
 		// range to cover everything during the shadow passes (1 shadow draw per cascade).
 		const opaque = new Batch();
 		const ranges = {};
-		for ( const key of [ 'wood', 'hard', 'roofMetal', 'thatch', 'stone' ] ) {
+		for ( const key of [ 'wood', 'glass', 'hard', 'roofMetal', 'thatch', 'stone' ] ) {
 
 			const b = B.batches[ key ];
 			if ( ! b || b.vcount === 0 ) continue;
@@ -562,7 +567,7 @@ export class Village {
 				const range = geo.drawRange;
 				mesh.onBeforeRender = ( renderer, scene, camera ) => {
 
-					this.textures.bake();
+				if ( key === 'wood' || key === 'glass' ) this.textures.bake();
 					const shadow = !! camera && ( camera.isShadowCamera === true || camera.reversedDepth === false );
 					range.start = shadow ? 0 : r.start;
 					range.count = shadow ? total : r.count;
@@ -668,12 +673,14 @@ export class Village {
 			const g = new Group();
 			g.name = 'village_lantern';
 			g.position.copy( h.pivot );
-			const glass = S.batches.glass;
-			delete S.batches.glass;
-			if ( glass ) S.batch( 'wood' ).append( glass, ( d ) => [ d[ 0 ], d[ 1 ], 9, d[ 2 ] ] );
-			for ( const key of [ 'wood', 'hard' ] ) {
+			for ( const key of [ 'wood', 'glass', 'hard' ] ) {
 
-				const b = S.batches[ key ];
+				let b = S.batches[ key ];
+				if ( key === 'glass' && b ) {
+					const panes = new Batch();
+					panes.append( b, ( d ) => [ d[ 0 ], d[ 1 ], 0, d[ 2 ] ] );
+					b = panes;
+				}
 				if ( ! b || b.vcount === 0 ) continue;
 				const geo = b.build();
 				geo.translate( - h.pivot.x, - h.pivot.y, - h.pivot.z );
@@ -682,6 +689,7 @@ export class Village {
 				mesh.name = 'village_lantern_' + key;
 				mesh.castShadow = false;
 				mesh.receiveShadow = true;
+				if ( key === 'wood' || key === 'glass' ) mesh.onBeforeRender = () => this.textures.bake();
 				g.add( mesh );
 
 			}
