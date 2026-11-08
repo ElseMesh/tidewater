@@ -1,6 +1,6 @@
 import { Vector3, Matrix4 } from '../../../src/engine/index.js';
 import { hash1, vnoise3 } from '../../../src/engine/render/GroundDetailGeometry.js';
-import { Part, mat4, fixWinding, slabPart, CAP_U } from '../../../src/world/village/GeoBuilder.js';
+import { Part, mat4, fixWinding, slabPart } from '../../../src/engine/geometry/ProceduralGeometry.js';
 import { WOOD, HARD, C, lin, mulc } from './MaterialData.js';
 
 export { hash1, vnoise3 };
@@ -20,6 +20,8 @@ export const KIND = { STONE: 0, COCONUT: 1, WEED: 2, SHELL: 3, CORAL: 4, FROND: 
 export const nat = ( seed, kind, p0 = 0, size = 0.1 ) => [ seed, kind, p0, size ];
 
 const TAU = Math.PI * 2;
+// Tidewater's village-material cap UV marker.
+const CAP_U = 2000;
 const _v = new Vector3();
 const _n = new Vector3();
 const IDENT = new Matrix4();
