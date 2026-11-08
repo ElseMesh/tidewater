@@ -4,6 +4,8 @@ import path from 'node:path';
 import * as THREE from 'three';
 import { Whale } from '../marine/Whale.js';
 import { WhaleBrain, createHumpbackBrain } from '../marine/HumpbackBrain.js';
+import { worldComponentBackendAdapter } from '../../../src/network/WorldComponentBackendRegistry.js';
+import { worldComponentRuntimeRecord } from '../../../src/network/WorldSource.js';
 
 const root = path.resolve( 'worlds/tidewater' );
 const world = JSON.parse( await readFile( path.join( root, 'world-source.json' ), 'utf8' ) );
@@ -18,6 +20,24 @@ assert.deepEqual( queryNames, [ 'whale:first', 'whale:second' ], 'multiple whale
 assert.notEqual( firstBrain.slot, secondBrain.slot, 'multiple whales do not overwrite each other water query results' );
 const asset = async id => new Uint8Array( await readFile( path.join( root, 'assets', id.slice( 'sha256:'.length ) ) ) );
 const [ manifest, geometry, albedo, height ] = await Promise.all( [ data.modelAssetId, data.geometryAssetId, data.albedoAssetId, data.heightAssetId ].map( asset ) );
+
+await import( '../register-components.js' );
+const installWorldWhale = worldComponentBackendAdapter( 'webgl', component.type );
+assert.equal( typeof installWorldWhale, 'function', 'Tidewater registers its WebGL whale presentation through the generic backend registry' );
+const componentScene = new THREE.Scene();
+const componentRuntime = await installWorldWhale( {
+	fallback: { THREE, scene: componentScene, hostedTerrainData: null, waterQuery: query, spray: null },
+	manifest: { rules: world.rules }, assets: new Map( [
+		[ data.modelAssetId, manifest ], [ data.geometryAssetId, geometry ],
+		[ data.albedoAssetId, albedo ], [ data.heightAssetId, height ],
+	] ),
+	rules: world.rules,
+}, worldComponentRuntimeRecord( component ) );
+assert.equal( componentRuntime.installed, true, 'registered WebGL adapter installs the packaged whale' );
+assert.equal( componentScene.children.length, 1, 'registered WebGL adapter attaches the whale to the supplied scene' );
+componentRuntime.runtime.update( 1 / 60, new THREE.PerspectiveCamera() );
+componentRuntime.runtime.dispose();
+assert.equal( componentScene.children.length, 0, 'registered WebGL adapter disposes the whale runtime' );
 
 const scene = new THREE.Scene();
 const whale = new Whale( {
