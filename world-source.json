@@ -6672,15 +6672,21 @@
       "id": "elsemesh-object:island-ground-coconuts",
       "kind": "asset-instance",
       "label": "Coconuts, husks, and fallen palm fronds",
-      "assetId": "sha256:8a4b0dc78db6ce88edce0bacd98ede38f32667575038aa293de32b2ccc979118",
+      "assetId": "sha256:a7f2272eab7b1e6f833192c560286f57dc39fe49c13a1fbd7f231471d8c1671b",
+      "lods": [
+        {
+          "assetId": "sha256:ecc029e759ad7836711a8965c21319f21a87fdeb45fe19736258427fe68ce617",
+          "maxScreenFraction": 0.45
+        }
+      ],
       "priority": "visible",
       "streamingBounds": {
         "center": [
-          11.617027282714844,
-          4.58610463142395,
-          -108.88858032226562
+          11.571174621582031,
+          4.57760763168335,
+          -108.66751861572266
         ],
-        "radius": 181.53362330537524
+        "radius": 181.41772691607383
       },
       "transform": {
         "position": [

@@ -174,6 +174,13 @@ const naturalDebrisGLB = exportBatchGLB( naturalDebrisBatches, 'Tidewater natura
 const naturalDebrisAssetId = `sha256:${createHash( 'sha256' ).update( naturalDebrisGLB ).digest( 'hex' )}`;
 const naturalDebrisBounds = boundsForGLB( naturalDebrisGLB );
 staticAssets.set( naturalDebrisAssetId, naturalDebrisGLB );
+const naturalDebrisLODBatches = buildPortableCoconutBatches( generated.naturalDebris, terrain, 0.4 );
+const naturalDebrisLODGLB = exportBatchGLB( naturalDebrisLODBatches, 'Tidewater natural debris' );
+const naturalDebrisLODAssetId = `sha256:${createHash( 'sha256' ).update( naturalDebrisLODGLB ).digest( 'hex' )}`;
+const naturalDebrisLODData = parseGLB( naturalDebrisLODGLB );
+if ( triangleCount( naturalDebrisLODData ) >= triangleCount( parseGLB( naturalDebrisGLB ) ) * 0.7 ) throw new Error( 'Natural-debris distance LOD must remove at least 30% of whole pieces' );
+if ( JSON.stringify( naturalDebrisLODData.materials.map( material => material.name ) ) !== JSON.stringify( naturalDebrisBatches.map( ( { name } ) => `Tidewater natural debris ${name}` ) ) ) throw new Error( 'Natural-debris distance LOD must preserve coconut, husk, and frond material groups' );
+staticAssets.set( naturalDebrisLODAssetId, naturalDebrisLODGLB );
 const debris = generated.debris;
 const vegetationDocument = Buffer.from( encodeVegetationPlacements( generated.vegetation, 7 ) );
 const vegetationAssetId = `sha256:${createHash( 'sha256' ).update( vegetationDocument ).digest( 'hex' )}`;
@@ -343,6 +350,7 @@ const source = {
 		kind: 'asset-instance',
 		label: 'Coconuts, husks, and fallen palm fronds',
 		assetId: naturalDebrisAssetId,
+		lods: [ { assetId: naturalDebrisLODAssetId, maxScreenFraction: 0.45 } ],
 		priority: 'visible',
 		streamingBounds: naturalDebrisBounds,
 		transform: { position: [ 0, 0, 0 ], yaw: 0 },
@@ -525,7 +533,7 @@ function buildIslandProceduralContent( terrainData ) {
 	};
 }
 
-function buildPortableCoconutBatches( source, terrain ) {
+function buildPortableCoconutBatches( source, terrain, keepSeedBelow = 1 ) {
 	if ( ! source || source.vcount === 0 ) throw new Error( 'Tidewater natural debris produced no geometry' );
 	const kinds = new Map( [ 'coconut', 'husk', 'fallen-frond' ].map( name => [ name, { pos: [], nrm: [], uv: [], tint: [], idx: [], vcount: 0, vertices: new Map() } ] ) );
 	const { pos, nrm, uv, tint, data, idx } = source;
@@ -554,6 +562,7 @@ function buildPortableCoconutBatches( source, terrain ) {
 		const vertices = [ idx[ triangle ], idx[ triangle + 1 ], idx[ triangle + 2 ] ];
 		const name = category( vertices[ 0 ] );
 		if ( ! name || vertices.some( vertex => category( vertex ) !== name ) ) continue;
+		if ( data[ vertices[ 0 ] * 4 ] >= keepSeedBelow ) continue;
 		const target = kinds.get( name );
 		for ( const vertex of vertices ) {
 			let outputIndex = target.vertices.get( vertex );

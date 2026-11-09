@@ -41,6 +41,6 @@ for ( const [ baseID, lodID ] of assetPairs.values() ) {
   assert.ok( lodTriangles > 0 && lodTriangles < baseTriangles, `${lodID} reduces geometry from ${baseTriangles} triangles` );
 }
 
-assert.equal( objectCount, 143, 'every non-terrain Tidewater object has a distance level' );
-assert.equal( assetPairs.size, 6, 'distance levels cover the village, boat, and four scanned asset models' );
+assert.equal( objectCount, 144, 'every non-terrain Tidewater object has a distance level' );
+assert.equal( assetPairs.size, 7, 'distance levels cover the village, boat, natural debris, and four scanned asset models' );
 console.log( `ok Tidewater package LOD coverage (${objectCount} objects, ${assetPairs.size} asset pairs)` );

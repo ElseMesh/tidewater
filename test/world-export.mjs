@@ -185,11 +185,17 @@ try {
 	assert.ok( firstAssets.has( boatObject.lods[ 0 ].assetId ), 'moored boat LOD is part of the portable package' );
 	const naturalDebrisObject = source.objects.find( object => object.id === 'elsemesh-object:island-ground-coconuts' );
 	assert.ok( naturalDebrisObject, 'hosted island preserves the ground coconuts, husks, and fallen palm fronds' );
+	assert.equal( naturalDebrisObject.lods?.length, 1, 'ground coconuts and fallen palm debris have a distant geometry variant' );
+	assert.ok( firstAssets.has( naturalDebrisObject.lods[ 0 ].assetId ), 'natural-debris LOD is part of the portable package' );
 	assert.equal( naturalDebrisObject.collision.enabled, false, 'portable natural debris stays visual-only' );
 	const naturalDebrisGLB = parseGLB( firstAssets.get( naturalDebrisObject.assetId ) );
+	const naturalDebrisLODGLB = parseGLB( firstAssets.get( naturalDebrisObject.lods[ 0 ].assetId ) );
 	assert.deepEqual( naturalDebrisGLB.materials.map( material => material.name ), [ 'Tidewater natural debris coconut', 'Tidewater natural debris husk', 'Tidewater natural debris fallen-frond' ], 'portable coconut, husk, and frond geometry uses separate generic GLB materials' );
 	assert.ok( naturalDebrisGLB.meshes[ 0 ].every( primitive => primitive.indices?.length > 0 && primitive.attributes.COLOR_0 ), 'portable natural debris retains indexed geometry and vertex coloration' );
 	assert.deepEqual( naturalDebrisGLB.meshes[ 0 ].map( primitive => primitive.indices.length / 3 ), [ 12768, 6192, 10978 ], 'the hosted asset preserves the complete generated coconut, husk, and fallen-frond geometry' );
+	assert.deepEqual( naturalDebrisLODGLB.materials.map( material => material.name ), naturalDebrisGLB.materials.map( material => material.name ), 'natural-debris LOD keeps separate coconut, husk, and frond materials' );
+	assert.ok( naturalDebrisLODGLB.meshes[ 0 ].every( primitive => primitive.indices?.length > 0 && primitive.attributes.COLOR_0 ), 'natural-debris LOD preserves indexed, vertex-colored debris pieces' );
+	assert.ok( naturalDebrisLODGLB.meshes[ 0 ].reduce( ( total, primitive ) => total + primitive.indices.length / 3, 0 ) < naturalDebrisGLB.meshes[ 0 ].reduce( ( total, primitive ) => total + primitive.indices.length / 3, 0 ) * 0.7, 'natural-debris LOD reduces geometry by keeping whole authored pieces' );
 	assert.deepEqual( source.rules.requiredFeatures, [ 'elsemesh.static-glb/1', 'elsemesh.static-glb-quaternion/1', 'elsemesh.terrain-surface/1', 'elsemesh.ground-detail-field/1', 'elsemesh.static-vegetation/1', 'elsemesh.static-grass/1', 'elsemesh.static-reef/1', 'elsemesh.static-fish-props/1', 'elsemesh.example-island-wildlife/1', 'elsemesh.humpback-whale/1', 'elsemesh.island-ocean/1', 'elsemesh.downeast-boat/1', 'elsemesh.ambient-audio/1', 'elsemesh.portal-handoff/1', 'elsemesh.portal-preview-static/1' ], 'portable content declares the renderer capabilities it requires' );
 	assert.deepEqual( source.portals, [], 'the island package contains no undeclared external world links' );
 	assert.equal( source.components.some( component => component.type.startsWith( 'elsemesh.village-materials/' ) ), false, 'village materials travel with the signed GLB instead of a Tidewater renderer component' );
