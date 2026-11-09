@@ -17,6 +17,14 @@ sources remain with the Tidewater package.
 `life-player.mjs` adds a GPU-free smoke of island walking, swimming, boarding,
 boat handling, and flying to the engine test sequence.
 
+`live-fishing-extension-browser.mjs` signs and serves Tidewater's owner-signed
+fishing module through `worldd` and compares WebGPU and WebGL game paths. Its
+Joe-buyer step now uses the engine `Player` from Tidewater's authored start and
+generated `TerrainData`, rather than positioning the test player inside the
+vendor radius. Cast and fight still use the synthetic water-query fixture, and
+the browser uses a test HUD, so this does not establish rendered scene or panel
+parity.
+
 `webgl-fish-props-adapter-build.mjs` checks WebGL fish-prop mesh construction
 without a graphics context. `webgpu-fish-props-adapter-build.mjs` creates the
 registered component with a headless WebGPU device and checks GPU buffer

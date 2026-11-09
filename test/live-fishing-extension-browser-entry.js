@@ -2,13 +2,16 @@ import { PerspectiveCamera } from '../../../src/engine/index.js';
 import { App } from '../../../src/App.js';
 import { WorldConnector } from '../../../src/network/WorldConnector.js';
 import { createWorldBehaviorExtensions, createWorldBehaviorRuntime, dispatchWorldBehaviorHooks } from '../../../src/network/WorldBehaviorRegistry.js';
+import { Player } from '../../../src/player/Player.js';
 import { GameState } from '../GameState.js';
+import { TIDEWATER_LAYOUT } from '../layout.js';
 import { FishingRod } from '../game/FishingRod.js';
 import { FISH_STAND_VENDOR } from '../game/FishStandContent.js';
 import { Game } from '../game/Game.js';
 import { FishingInputController } from '../FishingInputController.js';
 import { WebGLGameAdapter } from '../webgl/WebGLGameAdapter.js';
 import { SyntheticWaterQuery } from './synthetic-water-query.mjs';
+import { TerrainData } from '../terrain/TerrainData.js';
 import '../register-behavior.js';
 
 const result = document.querySelector( '#result' );
@@ -21,7 +24,7 @@ function invariant( condition, message, detail = '' ) {
 	if ( ! condition ) throw new Error( `${message}${detail ? `: ${detail}` : ''}` );
 }
 
-async function createScenario( backend, { experience, assets, worldId, fishCatalog } ) {
+async function createScenario( backend, { experience, assets, worldId, fishCatalog, authoredTerrain } ) {
 	let extensions = backend === 'webgl' ? createWorldBehaviorExtensions( experience, assets ) : null;
 	if ( extensions ) extensionSets.push( extensions );
 	const storage = { getItem: () => null, setItem() {} };
@@ -34,14 +37,14 @@ async function createScenario( backend, { experience, assets, worldId, fishCatal
 	const stand = fishBehavior.fishStand;
 	const terrain = { heightAt: () => - 8 };
 	const [ standX, standZ ] = stand.position;
-	const groundY = terrain.heightAt( standX, standZ );
+	const authoredGroundY = authoredTerrain.heightAt( standX, standZ );
 	const [ localX, localY, localZ ] = FISH_STAND_VENDOR.localPosition;
 	const c = Math.cos( stand.yaw ), s = Math.sin( stand.yaw );
 	const vendor = {
 		name: FISH_STAND_VENDOR.name, kind: FISH_STAND_VENDOR.kind,
 		position: {
 			x: standX + localX * c + localZ * s,
-			y: groundY + localY,
+			y: authoredGroundY + localY,
 			z: standZ - localX * s + localZ * c,
 		},
 		radius: stand.interactionRadius ?? FISH_STAND_VENDOR.radius,
@@ -56,7 +59,7 @@ async function createScenario( backend, { experience, assets, worldId, fishCatal
 		name: 'Marta · Chandlery', kind: 'shop',
 		position: {
 			x: shopX + shopLocal.x * shopC + shopLocal.z * shopS,
-			y: groundY,
+			y: authoredTerrain.heightAt( shopX, shopZ ),
 			z: shopZ - shopLocal.x * shopS + shopLocal.z * shopC,
 		},
 		radius: chandlery.interactionRadius,
@@ -68,9 +71,15 @@ async function createScenario( backend, { experience, assets, worldId, fishCatal
 	camera.position.set( 0, 2, 0 );
 	camera.updateMatrixWorld();
 	const rod = new FishingRod( { camera, query: waterQuery, terrain, render: false } );
-	const player = { position: camera.position.clone(), mode: 'walk', surface: 'wood', busy: false, prompt: null };
+	let player = { position: camera.position.clone(), mode: 'walk', surface: 'wood', busy: false, prompt: null };
 	const pressed = new Set();
 	const input = { enabled: true, mouseDown: false, rightDown: false, hit: code => pressed.delete( code ) };
+	const walkKeys = new Set();
+	const walkInput = {
+		moveAxes: () => ( { x: Number( walkKeys.has( 'KeyD' ) ) - Number( walkKeys.has( 'KeyA' ) ), y: Number( walkKeys.has( 'KeyW' ) ) - Number( walkKeys.has( 'KeyS' ) ), sprint: 0 } ),
+		down: code => walkKeys.has( code ), hit: () => false, consumeLook: () => ( { x: 0, y: 0 } ),
+	};
+	const walkColliders = { groundHeightAt: () => - Infinity, resolveCapsule() {} };
 	const fishingInput = new FishingInputController();
 	const audio = {
 		events: [],
@@ -203,8 +212,32 @@ async function createScenario( backend, { experience, assets, worldId, fishCatal
 			await this.flush();
 		},
 		async sellAtVendor() {
-			player.position.set( vendor.position.x, vendor.position.y + 1.7, vendor.position.z );
-			invariant( vendor.inRange( player.position ), `${backend} test player is outside the buyer's interaction range` );
+			const start = TIDEWATER_LAYOUT.start.position;
+			const walker = new Player( { camera, input: walkInput, terrain: authoredTerrain, colliders: walkColliders, worldLayout: TIDEWATER_LAYOUT } );
+			walker.setHostedWorldPose( { x: start.x, y: authoredTerrain.heightAt( start.x, start.z ) + 1.62, z: start.z }, TIDEWATER_LAYOUT.start.yaw, 0 );
+			player = walker;
+			if ( backend === 'webgpu' ) app.player = walker;
+			else fallback.player = walker;
+			const fromStart = Math.hypot( vendor.position.x - walker.position.x, vendor.position.z - walker.position.z );
+			invariant( fromStart > vendor.radius, 'authored start is outside Joe buyer range before walking' );
+			walker.yaw = Math.atan2( -( vendor.position.x - walker.position.x ), -( vendor.position.z - walker.position.z ) );
+			walkKeys.add( 'KeyW' );
+			let walkFrames = 0;
+			for ( ; walkFrames < 180; walkFrames ++ ) {
+				walker.updateHostedWorld( 1 / 60 );
+				this.frame();
+				await this.flush();
+				if ( vendor.inRange( walker.position ) ) break;
+			}
+			walkKeys.delete( 'KeyW' );
+			for ( let frame = 0; frame < 8; frame ++ ) {
+				walker.updateHostedWorld( 1 / 60 );
+				this.frame();
+				await this.flush();
+			}
+			invariant( walkFrames < 180 && vendor.inRange( walker.position ), `${backend} authored-start walk did not reach Joe's buyer radius` );
+			const walk = { frames: walkFrames + 1, distance: Math.hypot( walker.position.x - start.x, walker.position.z - start.z ) };
+			invariant( walk.distance > fromStart - vendor.radius, `${backend} buyer interaction did not require the Player to walk into range` );
 			this.frame();
 			await this.flush();
 			if ( game.hud.catchOpen ) {
@@ -220,7 +253,7 @@ async function createScenario( backend, { experience, assets, worldId, fishCatal
 			invariant( sale.count === 1 && state.inventory.length === 0 && state.money === 1000 + sale.total, `${backend} vendor sale did not credit the catch` );
 			await this.pressKey( 'KeyE' );
 			invariant( ! game.hud.standOpen, `${backend} E input did not close the fish-buyer panel` );
-			return sale;
+			return { ...sale, walk };
 		},
 		async buyUpgradeAtShop() {
 			player.position.set( shopVendor.position.x, shopVendor.position.y + 1.7, shopVendor.position.z );
@@ -316,7 +349,8 @@ try {
 	const experience = manifest.experience;
 	const behaviorData = experience.behaviors[ behaviorId ];
 	if ( ! behaviorData ) throw new Error( 'Signed Tidewater manifest has no fishing behavior data' );
-	const context = { experience, assets: new Map( [ [ reference.assetId, moduleBytes ] ] ), worldId, fishCatalog: behaviorData.fishCatalog };
+	const authoredTerrain = new TerrainData( { worldLayout: TIDEWATER_LAYOUT } );
+	const context = { experience, assets: new Map( [ [ reference.assetId, moduleBytes ] ] ), worldId, fishCatalog: behaviorData.fishCatalog, authoredTerrain };
 	const previousRandom = Math.random;
 	let webgpu, webgl;
 	try {
@@ -327,7 +361,7 @@ try {
 		Math.random = previousRandom;
 	}
 	invariant( JSON.stringify( webgl ) === JSON.stringify( webgpu ), 'Live signed Worker gameplay differs between WebGPU and WebGL game paths' );
-	result.textContent = `PASS signed Tidewater module through gateway and dedicated Workers; WebGPU/WebGL E input opened and closed the fish-buyer and upgrade-shop panels, sold a catch, and purchased an upgrade; WebGPU App activation, gameplay frames, departure, and re-entry: ${JSON.stringify( { worldId, assetId: reference.assetId, biteFrames: webgpu.trace.bite.length, fightFrames: webgpu.trace.fight.length - 1, sale: webgpu.sale, shop: webgpu.shop } )}`;
+	result.textContent = `PASS signed Tidewater module through gateway and dedicated Workers; WebGPU/WebGL walked from Tidewater's authored start to Joe's buyer over generated terrain, opened and closed the fish-buyer and upgrade-shop panels, sold a catch, and purchased an upgrade; WebGPU App activation, gameplay frames, departure, and re-entry: ${JSON.stringify( { worldId, assetId: reference.assetId, biteFrames: webgpu.trace.bite.length, fightFrames: webgpu.trace.fight.length - 1, sale: webgpu.sale, shop: webgpu.shop } )}`;
 	result.dataset.status = 'passed';
 } catch ( error ) {
 	result.textContent = `FAIL ${error.stack || error}`;

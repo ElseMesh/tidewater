@@ -96,14 +96,14 @@ async function inspectPage( page, url ) {
 		await command( 'Page.enable' );
 		await command( 'Runtime.enable' );
 		await command( 'Page.navigate', { url } );
-		const deadline = Date.now() + 30000;
+		const deadline = Date.now() + 90000;
 		while ( Date.now() < deadline ) {
 			const state = await command( 'Runtime.evaluate', { expression: "({status: document.querySelector('#result')?.dataset.status, text: document.querySelector('#result')?.textContent})", returnByValue: true } );
 			const value = state.result?.value;
 			if ( value?.status === 'passed' || value?.status === 'failed' ) return value;
 			await new Promise( resolve => setTimeout( resolve, 50 ) );
 		}
-		throw new Error( 'Live Tidewater Worker integration did not complete within 30 seconds' );
+		throw new Error( 'Live Tidewater Worker integration did not complete within 90 seconds' );
 	} finally {
 		socket.close();
 	}
@@ -170,8 +170,10 @@ try {
 	browserProcess = browser.child;
 	const result = await inspectPage( browser.page, url.href );
 	assert.equal( result.status, 'passed', `live Tidewater fishing extension passed: ${result.text}` );
-	assert.match( result.text, /signed Tidewater module through gateway and dedicated Workers; WebGPU\/WebGL E input opened and closed the fish-buyer and upgrade-shop panels, sold a catch, and purchased an upgrade; WebGPU App activation, gameplay frames, departure, and re-entry/ );
-	console.log( 'Tidewater fishing parity: signed manifest, E-key fish-buyer and upgrade-shop interactions, WebGPU App activation/gameplay/departure/re-entry, WebGL hooks, and dedicated Workers passed' );
+	assert.match( result.text, /signed Tidewater module through gateway and dedicated Workers; WebGPU\/WebGL walked from Tidewater's authored start to Joe's buyer over generated terrain, opened and closed the fish-buyer and upgrade-shop panels, sold a catch, and purchased an upgrade; WebGPU App activation, gameplay frames, departure, and re-entry/ );
+	const report = JSON.parse( result.text.slice( result.text.indexOf( ': ' ) + 2 ) );
+	assert( report.sale.walk?.frames > 0 && report.sale.walk?.distance > 0, 'the live signed-worker sale must include actual movement from the authored start' );
+	console.log( `Tidewater fishing parity: signed Workers and WebGPU/WebGL vendor interactions passed; authored-start walk ${JSON.stringify( report.sale.walk )}` );
 } finally {
 	if ( browserProcess ) await stopGroup( browserProcess );
 	for ( const child of processes.reverse() ) await stopDaemon( child );
