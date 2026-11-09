@@ -2,6 +2,7 @@ import * as THREE from '../../../../src/engine/index.js';
 import { Texture } from '../../../../src/engine/gpu/Texture.js';
 import { ShaderModule } from '../../../../src/engine/gpu/Shader.js';
 import { Material } from '../../../../src/engine/render/Material.js';
+import { bestCandidateBlueNoise } from '../../../../src/util/BlueNoise.js';
 import { mulberry32 } from '../../../../src/util/Noise.js';
 import { GroundCoverCellPlanner } from '../../../../src/engine/render/GroundCoverCellPlanner.js';
 import { vegModule, uCamPos, C, f } from './VegNodes.js';
@@ -43,43 +44,6 @@ const OATS = 12; // sea oat slots per cell
 const VINES = 28; // creeper slots per cell
 
 const KIND = { GRASS: 0, OAT_STALK: 1, OAT_HEAD: 2, CREEPER: 3, FLOWER: 4 };
-
-// Mitchell's best-candidate blue noise on a torus; any prefix is also well distributed.
-function blueNoise( rand, n, size, k = 10 ) {
-
-	const pts = [];
-	for ( let i = 0; i < n; i ++ ) {
-
-		let best = null, bestD = - 1;
-		for ( let c = 0; c < ( i === 0 ? 1 : k ); c ++ ) {
-
-			const x = rand() * size, z = rand() * size;
-			let dmin = Infinity;
-			for ( const p of pts ) {
-
-				let dx = Math.abs( p[ 0 ] - x ), dz = Math.abs( p[ 1 ] - z );
-				dx = Math.min( dx, size - dx );
-				dz = Math.min( dz, size - dz );
-				dmin = Math.min( dmin, dx * dx + dz * dz );
-
-			}
-
-			if ( dmin > bestD ) {
-
-				bestD = dmin;
-				best = [ x, z ];
-
-			}
-
-		}
-
-		pts.push( best );
-
-	}
-
-	return pts;
-
-}
 
 class PatchBuilder {
 
@@ -236,7 +200,7 @@ class PatchBuilder {
 function clumpParams( seed ) {
 
 	const rand = mulberry32( seed );
-	const slots = blueNoise( mulberry32( seed + 1 ), CLUMPS, CELL );
+	const slots = bestCandidateBlueNoise( mulberry32( seed + 1 ), CLUMPS, CELL );
 	return slots.map( ( [ x, z ] ) => {
 
 		const slotRand = rand();
@@ -289,7 +253,7 @@ function buildPatch( level, clumps, seed = 7 ) {
 
 	// sea oats (tier 1: fade out before the far level) and, near only, beach creeper. Every slot
 	// has its own random stream, so the near and mid versions of a plant are identical.
-	const oatSlots = blueNoise( mulberry32( seed + 2 ), OATS, CELL );
+	const oatSlots = bestCandidateBlueNoise( mulberry32( seed + 2 ), OATS, CELL );
 	const near = level === 0;
 	oatSlots.forEach( ( [ x, z ], si ) => {
 
@@ -355,7 +319,7 @@ function buildPatch( level, clumps, seed = 7 ) {
 
 	};
 	const petals = ( a ) => 0.82 + 0.18 * Math.cos( a * 5 );
-	const vineSlots = blueNoise( mulberry32( seed + 3 ), VINES, CELL );
+	const vineSlots = bestCandidateBlueNoise( mulberry32( seed + 3 ), VINES, CELL );
 	vineSlots.forEach( ( [ x, z ], si ) => {
 
 		const rand = mulberry32( seed * 3571 + si * 197 + 5 );
