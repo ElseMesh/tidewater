@@ -30,7 +30,7 @@ import { encodeFishPropPlacements, MAX_FISH_PROP_PLACEMENT_BYTES } from '../Fish
 import { BANK } from '../../../src/audio/soundBank.js';
 import { MIX } from '../../../src/audio/SoundScape.js';
 import { bakeTerrainMaps } from '../../../src/world/terrain/TerrainBake.js';
-import { getDetailImage } from '../../../src/world/terrain/DetailTextures.js';
+import { getDetailImage } from '../../../src/world/terrain/DetailTextureData.js';
 import { encodeTerrainSurfaceAsset } from '../../../src/network/TerrainSurfaceAsset.js';
 import '../../../test/headless.mjs';
 import { GPU } from '../../../src/engine/gpu/GPU.js';

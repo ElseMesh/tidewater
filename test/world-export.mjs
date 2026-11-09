@@ -10,7 +10,7 @@ import '../../../test/headless.mjs';
 import '../../../test/smaa-shim.mjs';
 import { GPU } from '../../../src/engine/gpu/GPU.js';
 import { parseGLB } from '../../../src/engine/loaders/GLTF.js';
-import { getDetailImage } from '../../../src/world/terrain/DetailTextures.js';
+import { getDetailImage } from '../../../src/world/terrain/DetailTextureData.js';
 import { appendWorldPackageAssets, disposeWorldPackage, loadWorldPackage, registerWorldPackageCollisions, unregisterWorldPackageCollisions } from '../../../src/network/WorldPackage.js';
 import { VILLAGE_MATERIAL_PROFILE, VILLAGE_MATERIAL_ROLES } from '../VillageMaterialProfile.js';
 import { validateWorldSource } from '../../../src/network/WorldSource.js';
@@ -34,10 +34,11 @@ const componentAssetRefs = component => ( component.assets || [] ).map( asset =>
 const whaleAssetRefs = component => ( component.assets || [] ).filter( asset => asset.kind.startsWith( 'whale-' ) ).map( asset => asset.assetId );
 
 try {
-	await GPU.init( { headless: true } );
 	const detailImage = getDetailImage();
-	assert.equal( detailImage.width, 512, 'procedural placement can access the shared detail image without initializing WebGPU' );
+	assert.equal( detailImage.width, 512, 'world authoring can access the shared detail image before WebGPU initialization' );
 	assert.equal( detailImage.data.length, 512 * 512 * 4, 'CPU detail image retains the exact shared RGBA data layout' );
+	assert.doesNotMatch( await readFile( new URL( '../../../src/world/terrain/DetailTextureData.js', import.meta.url ), 'utf8' ), /engine\/(?:gpu|scene|render)\//, 'detail data generation has no graphics API dependency' );
+	await GPU.init( { headless: true } );
 	const checkedInDir = path.dirname( path.dirname( fileURLToPath( import.meta.url ) ) );
 	const checkedInSourceBytes = await readFile( path.join( checkedInDir, 'world-source.json' ) );
 	const checkedInTerrainReportBytes = await readFile( path.join( checkedInDir, 'terrain-validation.json' ) );

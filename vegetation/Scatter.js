@@ -1,5 +1,5 @@
 import { Noise2D, mulberry32, smoothstep, clamp } from '../../../src/util/Noise.js';
-import { getDetailImage } from '../../../src/world/terrain/DetailTextures.js';
+import { getDetailImage } from '../../../src/world/terrain/DetailTextureData.js';
 
 // CPU-side vegetation placement: land cover, exclusion zones and per-type scattering.
 //
