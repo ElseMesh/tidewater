@@ -1,6 +1,7 @@
 import { decodeWorldComponentAsset } from '../../../src/network/WorldComponentAssetCodecRegistry.js';
 import { decodeGrassDensityAsset } from '../../../src/network/GrassDensityAsset.js';
 import { registerWorldComponentBackendBatchAdapter } from '../../../src/network/WorldComponentBackendRegistry.js';
+import { GroundCoverCellPlanner } from '../../../src/engine/render/GroundCoverCellPlanner.js';
 import { createWebGLVegetationGroup } from './WebGLVegetationPresentation.js';
 
 function bytesOf( value ) {
@@ -35,14 +36,16 @@ registerWorldComponentBackendBatchAdapter( 'webgl', 'elsemesh.static-vegetation/
 	for ( const component of components ) {
 		const placementBytes = assets.get( component.placementAssetId );
 		const placementKind = component.assets?.find( asset => asset.assetId === component.placementAssetId )?.kind;
-		const grassMaskAssetId = fallback.hostedTerrainData ? component.grassMaskAssetId : null;
+		const grassMaskAssetId = component.grassMaskAssetId;
 		const grassMaskBytes = grassMaskAssetId && assets.get( grassMaskAssetId );
 		if ( ! placementBytes || grassMaskAssetId && ! grassMaskBytes ) continue;
 		if ( typeof placementKind !== 'string' ) throw new Error( `Static vegetation component ${component.id} does not declare its placement asset kind` );
 		if ( grassMaskAssetId ) {
 			fallback.hostedGrassMask = decodeGrassDensityAsset( bytesOf( grassMaskBytes ) );
-			if ( ! fallback.hostedTerrainData ) throw new Error( `Static grass component ${component.id} requires its terrain surface` );
-			if ( fallback.hostedGrassMask.size !== fallback.hostedTerrainData.size || fallback.hostedGrassMask.origin !== fallback.hostedTerrainData.origin ) throw new Error( `Static grass component ${component.id} does not match its terrain surface` );
+			const terrain = fallback.hostedTerrainData || fallback.terrain;
+			if ( ! terrain ) throw new Error( `Static grass component ${component.id} requires its terrain surface` );
+			if ( fallback.hostedGrassMask.size !== terrain.size || fallback.hostedGrassMask.origin !== terrain.origin ) throw new Error( `Static grass component ${component.id} does not match its terrain surface` );
+			fallback.grassCellPlanner = new GroundCoverCellPlanner( { terrain, density: fallback.hostedGrassMask } );
 		}
 		const records = decodeWorldComponentAsset( placementKind, bytesOf( placementBytes ), component.seed );
 		fallback.vegetationRecords ||= {};

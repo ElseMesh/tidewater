@@ -3,6 +3,7 @@ import { Texture } from '../../../../src/engine/gpu/Texture.js';
 import { ShaderModule } from '../../../../src/engine/gpu/Shader.js';
 import { Material } from '../../../../src/engine/render/Material.js';
 import { mulberry32 } from '../../../../src/util/Noise.js';
+import { GroundCoverCellPlanner } from '../../../../src/engine/render/GroundCoverCellPlanner.js';
 import { vegModule, uCamPos, C, f } from './VegNodes.js';
 
 // Camera-following ground flora: tall meadow grass (knee to waist high), dune grass, sea oats and
@@ -415,52 +416,12 @@ export class GrassField {
 		} } );
 		this.maskTex = new Texture( { label: 'grassMask', width: mres, height: mres, format: 'rgba8unorm', data: maskData, sampler: 'linearClamp' } );
 
-		// per-cell occupancy + height range (for skipping empty cells and frustum tests)
-		const cellsPerSide = Math.ceil( terrain.size / CELL );
-		this.cellsPerSide = cellsPerSide;
-		this.cellFlags = new Uint8Array( cellsPerSide * cellsPerSide );
-		this.cellMinY = new Float32Array( cellsPerSide * cellsPerSide );
-		this.cellMaxY = new Float32Array( cellsPerSide * cellsPerSide );
-		const mpc = CELL / ( terrain.size / mres ); // mask texels per cell
-		const hpc = CELL / terrain.texel; // height texels per cell
-		for ( let cj = 0; cj < cellsPerSide; cj ++ ) {
-
-			for ( let ci = 0; ci < cellsPerSide; ci ++ ) {
-
-				let any = 0, mn = Infinity, mx = - Infinity;
-				const i0 = Math.max( 0, Math.floor( ci * mpc ) - 1 ), i1 = Math.min( mres - 1, Math.ceil( ( ci + 1 ) * mpc ) + 1 );
-				const j0 = Math.max( 0, Math.floor( cj * mpc ) - 1 ), j1 = Math.min( mres - 1, Math.ceil( ( cj + 1 ) * mpc ) + 1 );
-				for ( let j = j0; j <= j1 && ! any; j ++ ) for ( let i = i0; i <= i1; i ++ ) {
-
-					const o = ( j * mres + i ) * 4;
-					if ( maskData[ o ] > 8 || maskData[ o + 1 ] > 8 || maskData[ o + 2 ] > 8 || maskData[ o + 3 ] > 8 ) {
-
-						any = 1;
-						break;
-
-					}
-
-				}
-
-				const c = cj * cellsPerSide + ci;
-				this.cellFlags[ c ] = any;
-				if ( ! any ) continue;
-				const hi0 = Math.max( 0, Math.floor( ci * hpc ) - 1 ), hi1 = Math.min( res - 1, Math.ceil( ( ci + 1 ) * hpc ) + 1 );
-				const hj0 = Math.max( 0, Math.floor( cj * hpc ) - 1 ), hj1 = Math.min( res - 1, Math.ceil( ( cj + 1 ) * hpc ) + 1 );
-				for ( let j = hj0; j <= hj1; j ++ ) for ( let i = hi0; i <= hi1; i ++ ) {
-
-					const h = terrain.heights[ j * res + i ];
-					if ( h < mn ) mn = h;
-					if ( h > mx ) mx = h;
-
-				}
-
-				this.cellMinY[ c ] = mn;
-				this.cellMaxY[ c ] = mx;
-
-			}
-
-		}
+		this.cellPlanner = new GroundCoverCellPlanner( {
+			terrain,
+			density: { ...mask, size: terrain.size, origin: terrain.origin },
+			cellSize: CELL,
+			levels: [ { maxDistance: R_NEAR, capacity: MAX_NEAR }, { maxDistance: R_MID, capacity: MAX_MID }, { maxDistance: R_FAR, capacity: MAX_FAR } ],
+		} );
 
 		this.material = this._createMaterial();
 
@@ -546,56 +507,27 @@ export class GrassField {
 		this._mat.multiplyMatrices( camera.projectionMatrix, camera.matrixWorldInverse );
 		this._frustum.setFromProjectionMatrix( this._mat, camera.coordinateSystem, camera.reversedDepth );
 
-		const cx = e[ 12 ], cy = e[ 13 ], cz = e[ 14 ];
-		const t = this.terrain;
-		const n = this.cellsPerSide;
-		const i0 = Math.max( 0, Math.floor( ( cx - R_FAR - t.origin ) / CELL ) ), i1 = Math.min( n - 1, Math.floor( ( cx + R_FAR - t.origin ) / CELL ) );
-		const j0 = Math.max( 0, Math.floor( ( cz - R_FAR - t.origin ) / CELL ) ), j1 = Math.min( n - 1, Math.floor( ( cz + R_FAR - t.origin ) / CELL ) );
-		const [ near, mid, far ] = this.levels;
-		let nc = 0, mc = 0, fc = 0;
+		const cx = e[ 12 ], cz = e[ 14 ];
+		const plannedLevels = this.cellPlanner.update( { x: cx, z: cz }, ( index, x0, z0, minY, maxY ) => {
+			this._box.min.set( x0, minY - 0.5, z0 );
+			this._box.max.set( x0 + CELL, maxY + 1.8, z0 + CELL );
+			return this._frustum.intersectsBox( this._box );
+		} );
 
-		for ( let j = j0; j <= j1; j ++ ) {
+		for ( let levelIndex = 0; levelIndex < this.levels.length; levelIndex ++ ) {
 
-			for ( let i = i0; i <= i1; i ++ ) {
+			const lvl = this.levels[ levelIndex ];
+			const selected = plannedLevels[ levelIndex ];
+			const count = lvl.count = selected.count;
+			const origin = [ 0, 0 ];
+			for ( let i = 0; i < count; i ++ ) {
 
-				const c = j * n + i;
-				if ( ! this.cellFlags[ c ] ) continue;
-				const x0 = t.origin + i * CELL, z0 = t.origin + j * CELL;
-				// nearest point of the cell (horizontal, like the shader's LOD distance)
-				const dx = Math.max( x0 - cx, 0, cx - x0 - CELL );
-				const dz = Math.max( z0 - cz, 0, cz - z0 - CELL );
-				const d = Math.hypot( dx, dz );
-				if ( d > R_FAR ) continue;
-				this._box.min.set( x0, this.cellMinY[ c ] - 0.5, z0 );
-				this._box.max.set( x0 + CELL, this.cellMaxY[ c ] + 1.8, z0 + CELL );
-				if ( ! this._frustum.intersectsBox( this._box ) ) continue;
-				if ( d < R_NEAR && nc < near.max ) {
-
-					near.arr[ nc * 4 ] = x0;
-					near.arr[ nc * 4 + 1 ] = z0;
-					nc ++;
-
-				} else if ( d < R_MID && mc < mid.max ) {
-
-					mid.arr[ mc * 4 ] = x0;
-					mid.arr[ mc * 4 + 1 ] = z0;
-					mc ++;
-
-				} else if ( d >= R_MID && fc < far.max ) {
-
-					far.arr[ fc * 4 ] = x0;
-					far.arr[ fc * 4 + 1 ] = z0;
-					fc ++;
-
-				}
+				this.cellPlanner.cellOrigin( selected.cells[ i ], origin );
+				lvl.arr[ i * 4 ] = origin[ 0 ];
+				lvl.arr[ i * 4 + 1 ] = origin[ 1 ];
 
 			}
 
-		}
-
-		for ( const [ lvl, count ] of [ [ near, nc ], [ mid, mc ], [ far, fc ] ] ) {
-
-			lvl.count = count;
 			lvl.geometry.instanceCount = count;
 			lvl.attr.clearUpdateRanges();
 			lvl.attr.addUpdateRange( 0, Math.max( 1, count ) * 4 );
