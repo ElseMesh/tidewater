@@ -882,12 +882,15 @@ export class TerrainData {
 
 	}
 
-	normalAt( x, z, out ) {
+	normalAt( x, z, out = {} ) {
 
 		const e = this.texel;
 		const hx = this.heightAt( x + e, z ) - this.heightAt( x - e, z );
 		const hz = this.heightAt( x, z + e ) - this.heightAt( x, z - e );
-		out.set( - hx, 2 * e, - hz ).normalize();
+		const length = Math.hypot( hx, 2 * e, hz );
+		const nx = - hx / length, ny = 2 * e / length, nz = - hz / length;
+		if ( typeof out.set === 'function' ) out.set( nx, ny, nz );
+		else { out.x = nx; out.y = ny; out.z = nz; }
 		return out;
 
 	}

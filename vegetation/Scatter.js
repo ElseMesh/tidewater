@@ -1,4 +1,3 @@
-import * as THREE from '../../../src/engine/index.js';
 import { Noise2D, mulberry32, smoothstep, clamp } from '../../../src/util/Noise.js';
 import { getDetailImage } from '../../../src/world/terrain/DetailTextures.js';
 
@@ -49,7 +48,7 @@ export class VegSite {
 		this.worldLayout = worldLayout;
 		this.noise = new Noise2D( seed );
 		this.noise2 = new Noise2D( seed * 7 + 3 );
-		this.n = new THREE.Vector3();
+		this.n = { x: 0, y: 1, z: 0 };
 		this.village = worldLayout.village.center;
 		this.spawn = worldLayout.spawn.position;
 		this.detail = detailSampler();

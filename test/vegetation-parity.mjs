@@ -23,6 +23,9 @@ assert.deepEqual( component.assets, [ { assetId: data.placementAssetId, kind: 'v
 const assetID = data.grassMaskAssetId.slice( 'sha256:'.length );
 const packaged = decodeGrassDensityAsset( await readFile( path.join( worldRoot, 'assets', assetID ) ) );
 const terrain = new TerrainData( { seed: 7, worldLayout: TIDEWATER_LAYOUT } );
+const normal = terrain.normalAt( 0, 0 );
+assert.ok( Number.isFinite( normal.x ) && Number.isFinite( normal.y ) && Number.isFinite( normal.z ), 'terrain normals are available as renderer-neutral coordinate data' );
+assert.ok( Math.abs( Math.hypot( normal.x, normal.y, normal.z ) - 1 ) < 1e-12, 'renderer-neutral terrain normals remain normalized' );
 const colliders = new Colliders();
 const scene = { add() {}, remove() {} };
 class PackageVillage extends Village {
