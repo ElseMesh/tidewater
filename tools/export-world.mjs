@@ -21,7 +21,7 @@ import { TIDEWATER_NET_MATERIAL_GRAPH, TIDEWATER_WOOD_MATERIAL_GRAPH, TIDEWATER_
 import { InstancedProps } from '../Props.js';
 import { DebrisPlacer } from '../DebrisPlacement.js';
 import { SCANNED_DEBRIS_ASSETS } from '../debris/ScannedAssets.js';
-import { createVegetationPlacement, buildGrassMask } from '../renderers/webgpu-vegetation/Scatter.js';
+import { createVegetationPlacement, buildGrassMask } from '../vegetation/Scatter.js';
 import { encodeVegetationPlacements } from '../VegetationPlacements.js';
 import { encodeGrassDensityAsset } from '../../../src/network/GrassDensityAsset.js';
 import { Reef } from '../Reef.js';

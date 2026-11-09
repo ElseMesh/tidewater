@@ -1,7 +1,7 @@
 // GrassField headless render: meadow and dune views at 2560x1267, GPU time with / without grass.
 // Usage: node worlds/tidewater/test/vegetation-life-grass.mjs [outDir]
 import { setupLife } from '../../../test/life-harness.mjs';
-import { VegSite, buildGrassMask } from '../renderers/webgpu-vegetation/Scatter.js';
+import { VegSite, buildGrassMask } from '../vegetation/Scatter.js';
 import { GrassField } from '../renderers/webgpu-vegetation/GrassField.js';
 import { uCamPos, uGustOffset } from '../renderers/webgpu-vegetation/VegNodes.js';
 import { G } from '../../../src/engine/render/Frame.js';

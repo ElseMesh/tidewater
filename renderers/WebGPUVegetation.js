@@ -1,6 +1,6 @@
 import * as THREE from '../../../src/engine/index.js';
 import { G } from '../../../src/core/Globals.js';
-import { createVegetationPlacement, createVegetationSite, buildGrassMask, RULES } from './webgpu-vegetation/Scatter.js';
+import { createVegetationPlacement, createVegetationSite, buildGrassMask, RULES } from '../vegetation/Scatter.js';
 import { VegType, LodLevel } from './webgpu-vegetation/InstanceLOD.js';
 import { GrassField } from './webgpu-vegetation/GrassField.js';
 import { uCamPos, uGustOffset, UNDER_FERN_FADE } from './webgpu-vegetation/VegNodes.js';

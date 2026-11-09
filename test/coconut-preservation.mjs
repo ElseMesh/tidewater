@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import '../register-behavior.js';
 import { TerrainData } from '../terrain/TerrainData.js';
 import { TIDEWATER_LAYOUT } from '../layout.js';
-import { createVegetationPlacement } from '../renderers/webgpu-vegetation/Scatter.js';
+import { createVegetationPlacement } from '../vegetation/Scatter.js';
 import { buildPalmNear, PART } from '../renderers/webgpu-vegetation/PlantGeometry.js';
 import { Village } from '../Village.js';
 import { Colliders } from '../../../src/world/Colliders.js';

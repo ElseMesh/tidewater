@@ -9,7 +9,7 @@ import { TerrainData } from '../terrain/TerrainData.js';
 import { TIDEWATER_LAYOUT } from '../layout.js';
 import { Village } from '../Village.js';
 import { Colliders } from '../../../src/world/Colliders.js';
-import { createVegetationPlacement, buildGrassMask } from '../renderers/webgpu-vegetation/Scatter.js';
+import { createVegetationPlacement, buildGrassMask } from '../vegetation/Scatter.js';
 import { encodeGrassDensityAsset } from '../../../src/network/GrassDensityAsset.js';
 import { writeWorldAssetIndex } from '../../../tools/world-asset-index.mjs';
 
