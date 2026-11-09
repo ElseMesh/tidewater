@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { GPU } from '../../../src/engine/gpu/GPU.js';
 import { Group } from '../../../src/engine/scene/Group.js';
 import { worldComponentBackendAdapter } from '../../../src/network/WorldComponentBackendRegistry.js';
+import '../../../src/network/WebGPUFishPropsComponentAdapter.js';
 import { encodeFishPropPlacements } from '../FishPropPlacements.js';
 import * as fishPresentation from '../FishPresentation.js';
 import '../register-behavior.js';
