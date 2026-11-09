@@ -6,7 +6,7 @@ Each filename is the SHA-256 of the exact packaged bytes. Keep these names immut
 | Description / use | Format | Size | SHA-256 asset |
 | --- | --- | ---: | --- |
 | Behavior elsemesh.fishing-game/1 — javascript/1 | Binary (javascript/1) | 14.6 KiB | [`0a21b6defb6c6c72caee5cea60dd782bbd2e44e0dcb83673cc94e7f6c9b9aa48`](assets/0a21b6defb6c6c72caee5cea60dd782bbd2e44e0dcb83673cc94e7f6c9b9aa48) |
-| Coconuts, husks, and fallen palm fronds — glb | glTF binary (GLB) | 1.14 MiB | [`a7f2272eab7b1e6f833192c560286f57dc39fe49c13a1fbd7f231471d8c1671b`](assets/a7f2272eab7b1e6f833192c560286f57dc39fe49c13a1fbd7f231471d8c1671b) |
+| Coconuts, husks, and fallen palm fronds — glb | glTF binary (GLB) | 1.36 MiB | [`8a4b0dc78db6ce88edce0bacd98ede38f32667575038aa293de32b2ccc979118`](assets/8a4b0dc78db6ce88edce0bacd98ede38f32667575038aa293de32b2ccc979118) |
 | Coconuts, husks, and fallen palm fronds distance mesh — glb | glTF binary (GLB) | 421.8 KiB | [`ecc029e759ad7836711a8965c21319f21a87fdeb45fe19736258427fe68ce617`](assets/ecc029e759ad7836711a8965c21319f21a87fdeb45fe19736258427fe68ce617) |
 | Component elsemesh-component:ground-detail-field — ground-detail-density/1 | Binary (ground-detail-density/1) | 228.9 KiB | [`d6bad383b1169d8789a548749807f2a9e27a2f54a789b7efa2cbb2b19cb100c8`](assets/d6bad383b1169d8789a548749807f2a9e27a2f54a789b7efa2cbb2b19cb100c8) |
 | Component elsemesh-component:island-ambience — audio/ogg<br>Editable source: source/audio/crickets.ogg | Ogg audio | 333.5 KiB | [`01b41d7e8fc719373f77f41f3936e8ccfdfee4aadea1a1dd1120206b2115d76c`](assets/01b41d7e8fc719373f77f41f3936e8ccfdfee4aadea1a1dd1120206b2115d76c) |

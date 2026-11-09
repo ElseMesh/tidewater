@@ -562,7 +562,7 @@ function buildPortableCoconutBatches( source, terrain, keepSeedBelow = 1 ) {
 		const vertices = [ idx[ triangle ], idx[ triangle + 1 ], idx[ triangle + 2 ] ];
 		const name = category( vertices[ 0 ] );
 		if ( ! name || vertices.some( vertex => category( vertex ) !== name ) ) continue;
-		if ( data[ vertices[ 0 ] * 4 ] >= keepSeedBelow ) continue;
+		if ( keepSeedBelow < 1 && data[ vertices[ 0 ] * 4 ] >= keepSeedBelow ) continue;
 		const target = kinds.get( name );
 		for ( const vertex of vertices ) {
 			let outputIndex = target.vertices.get( vertex );
