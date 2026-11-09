@@ -70,7 +70,7 @@ try {
 		const assets = [
 			...( component.placementAssetId ? [ { assetId: component.placementAssetId, kind: type === 'elsemesh.static-reef/1' ? 'reef-placement/1' : type === 'elsemesh.static-fish-props/1' ? 'fish-props-placement/1' : 'vegetation-placement/1' } ] : [] ),
 			...( component.grassMaskAssetId ? [ { assetId: component.grassMaskAssetId, kind: 'grass-density/1' } ] : [] ),
-			...( component.dataAssetId ? [ { assetId: component.dataAssetId, kind: type === 'elsemesh.village-materials/2' ? 'village-materials/1' : 'terrain-surface/1' } ] : [] ),
+			...( component.dataAssetId ? [ { assetId: component.dataAssetId, kind: 'terrain-surface/1' } ] : [] ),
 			...( type === 'elsemesh.humpback-whale/1' ? [ [ component.modelAssetId, 'whale-model/1' ], [ component.geometryAssetId, 'whale-geometry/1' ], [ component.albedoAssetId, 'whale-albedo/1' ], [ component.heightAssetId, 'whale-height/1' ] ].map( ( [ assetId, kind ] ) => ( { assetId, kind } ) ) : [] ),
 			...( component.beds || [] ).map( bed => ( { assetId: bed.assetId, kind: 'audio/ogg' } ) ),
 		];

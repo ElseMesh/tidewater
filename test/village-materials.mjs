@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import '../../../test/headless.mjs';
 import '../../../test/smaa-shim.mjs';
 import { setupLife } from '../../../test/life-harness.mjs';
@@ -9,10 +11,9 @@ import '../register-behavior.js';
 import { GPU } from '../../../src/engine/gpu/GPU.js';
 import { readTexture } from '../../../src/engine/gpu/Readback.js';
 import { loadWorldPackage, disposeWorldPackage } from '../../../src/network/WorldPackage.js';
-import { decodeVillageMaterialAsset } from '../VillageMaterialAsset.js';
-import { VILLAGE_MATERIAL_PROFILE, VILLAGE_MATERIAL_ROLES } from '../VillageMaterialProfile.js';
-import { TIDEWATER_NET_MATERIAL_GRAPH, TIDEWATER_THATCH_MATERIAL_GRAPH, TIDEWATER_FABRIC_MATERIAL_GRAPH, TIDEWATER_STONE_MATERIAL_GRAPH, TIDEWATER_ROOF_METAL_MATERIAL_GRAPH, TIDEWATER_HARD_MATERIAL_GRAPH, TIDEWATER_GLASS_MATERIAL_GRAPH } from '../VillageMaterialGraphs.js';
-import { createGlassMaterial, createHardMaterial, createRoofMetalMaterial } from '../renderers/webgpu-village/VillageMaterials.js';
+import { VILLAGE_MATERIAL_ROLES } from '../VillageMaterialProfile.js';
+import { TIDEWATER_NET_MATERIAL_GRAPH, TIDEWATER_WOOD_MATERIAL_GRAPH, TIDEWATER_THATCH_MATERIAL_GRAPH, TIDEWATER_FABRIC_MATERIAL_GRAPH, TIDEWATER_STONE_MATERIAL_GRAPH, TIDEWATER_ROOF_METAL_MATERIAL_GRAPH, TIDEWATER_HARD_MATERIAL_GRAPH, TIDEWATER_GLASS_MATERIAL_GRAPH } from '../VillageMaterialGraphs.js';
+import { createGlassMaterial, createHardMaterial, createRoofMetalMaterial, createWoodMaterial } from '../renderers/webgpu-village/VillageMaterials.js';
 import { createWebGLMaterialGraph } from '../../../src/materials/WorldMaterialGraph.js';
 import { compileWorldMaterialGraph } from '../../../src/materials/WorldMaterialGraphCompiler.js';
 
@@ -40,6 +41,18 @@ assert.match( netGraphShader.fragmentShader, /vEmg_colorRGB \* emg_albedo/ );
 webglNet.material.dispose();
 netSourceMaterial.dispose();
 netGraphTexture.dispose();
+
+const woodGraphWebGPU = compileWorldMaterialGraph( TIDEWATER_WOOD_MATERIAL_GRAPH, 'webgpu' );
+const woodGraphWebGL = compileWorldMaterialGraph( TIDEWATER_WOOD_MATERIAL_GRAPH, 'webgl' );
+assert.ok( TIDEWATER_WOOD_MATERIAL_GRAPH.nodes.length > 512 && TIDEWATER_WOOD_MATERIAL_GRAPH.nodes.length <= 1024 );
+assert.deepEqual( new Set( woodGraphWebGPU.textureSlots ), new Set( [ 'baseColor', 'metallicRoughness', 'normal', 'emissive' ] ) );
+assert.match( woodGraphWebGPU.surface, /emg_woodWet/ );
+assert.match( woodGraphWebGPU.surface, /emg_woodBirdK/ );
+assert.match( woodGraphWebGPU.surface, /emg_woodWalkK/ );
+assert.match( woodGraphWebGL.glsl.fragment, /emgTexture_emissive/ );
+assert.match( woodGraphWebGL.glsl.fragment, /emg_woodWet/ );
+const builtInWoodGraphMaterial = createWoodMaterial( { woodA: {}, woodN: {}, paintN: {}, grime: {} } );
+assert.match( builtInWoodGraphMaterial.surface, /emg_woodWet/, 'built-in WebGPU wood uses the same renderer-neutral graph as the hosted material' );
 
 const thatchGraphWebGPU = compileWorldMaterialGraph( TIDEWATER_THATCH_MATERIAL_GRAPH, 'webgpu' );
 const thatchGraphWebGL = compileWorldMaterialGraph( TIDEWATER_THATCH_MATERIAL_GRAPH, 'webgl' );
@@ -91,99 +104,78 @@ assert.match( glassGraphWebGL.glsl.fragment, /totalEmissiveRadiance \+=/ );
 const builtInGlassMaterial = createGlassMaterial( { grime: {} } );
 assert.match( builtInGlassMaterial.surface, /s\.emissive \+=/, 'built-in WebGPU glass uses the shared renderer-neutral graph' );
 
-const source = JSON.parse( await readFile( new URL( '../world-source.json', import.meta.url ) ) );
+const packageDirectory = path.resolve( process.argv[ 2 ] || fileURLToPath( new URL( '..', import.meta.url ) ) );
+const source = JSON.parse( await readFile( path.join( packageDirectory, 'world-source.json' ) ) );
 const village = source.objects.find( object => object.id === 'elsemesh-object:island-village' );
 const previewObject = source.objects.find( object => object.priority === 'portal-preview' && object.id !== village.id );
-const bytes = new Uint8Array( await readFile( new URL( `../assets/${village.assetId.slice( 'sha256:'.length )}`, import.meta.url ) ) );
+const bytes = new Uint8Array( await readFile( path.join( packageDirectory, 'assets', village.assetId.slice( 'sha256:'.length ) ) ) );
 assert.equal( `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`, village.assetId );
-const materialComponent = source.components.find( component => component.type === 'elsemesh.village-materials/2' );
-assert.ok( materialComponent, 'the island package must include its portable village maps' );
-const materialComponentData = materialComponent.data;
-const materialAssetID = materialComponentData.dataAssetId;
-const materialBytes = new Uint8Array( await readFile( new URL( `../assets/${materialAssetID.slice( 'sha256:'.length )}`, import.meta.url ) ) );
-assert.equal( `sha256:${createHash( 'sha256' ).update( materialBytes ).digest( 'hex' )}`, materialAssetID );
-const previewBytes = new Uint8Array( await readFile( new URL( `../assets/${previewObject.assetId.slice( 'sha256:'.length )}`, import.meta.url ) ) );
-const materialData = await decodeVillageMaterialAsset( materialBytes );
-assert.equal( materialData.metadata.protocol, 'elsemesh.village-material-data/1' );
-assert.equal( materialData.metadata.rendererProfile, 'original-elsemesh-village-v1' );
+assert.equal( source.components.some( component => component.type.startsWith( 'elsemesh.village-materials/' ) ), false, 'the signed GLB carries wood maps without a Tidewater material component' );
+assert.equal( source.rules.requiredFeatures.some( feature => feature.startsWith( 'elsemesh.village-materials/' ) ), false, 'village appearance does not require a Tidewater renderer feature' );
+const previewBytes = new Uint8Array( await readFile( path.join( packageDirectory, 'assets', previewObject.assetId.slice( 'sha256:'.length ) ) ) );
 const life = await setupLife( { W: 640, H: 480 } );
 life.shadowsOn = false;
-const materials = Object.fromEntries( VILLAGE_MATERIAL_ROLES.map( role => [ role, { name: role, userData: {}, dispose() { this.disposed = true; } } ] ) );
-const materialContext = { materials, textures: { bake() {} } };
 const assetIndex = [
 	{ id: village.assetId, kind: 'glb', bytes: bytes.byteLength, priority: village.priority },
 	{ id: previewObject.assetId, kind: 'glb', bytes: previewBytes.byteLength, priority: previewObject.priority },
-	{ id: materialAssetID, kind: 'village-materials/1', bytes: materialBytes.byteLength, priority: materialComponent.priority },
 ];
 const hydratedComponents = source.components.map( component => ( { ...component, ...component.data } ) );
-const makeConnector = requiredFeatures => ( {
-	worldId: source.worldId, manifest: { ...source, components: hydratedComponents, rules: { ...source.rules, requiredFeatures }, portals: [], assets: assetIndex },
-	assets: new Map( [ [ village.assetId, bytes ], [ previewObject.assetId, previewBytes ], [ materialAssetID, materialBytes ] ] ),
-	getAsset: async id => id === village.assetId ? bytes : id === previewObject.assetId ? previewBytes : id === materialAssetID ? materialBytes : null,
+const makeConnector = () => ( {
+	worldId: source.worldId, manifest: { ...source, components: hydratedComponents, portals: [], assets: assetIndex },
+	assets: new Map( [ [ village.assetId, bytes ], [ previewObject.assetId, previewBytes ] ] ),
+	getAsset: async id => id === village.assetId ? bytes : id === previewObject.assetId ? previewBytes : null,
 } );
-
-let previewMapReads = 0;
-const previewConnector = makeConnector( source.rules.requiredFeatures );
+let villageAssetReads = 0;
+const previewConnector = makeConnector();
 const previewGetAsset = previewConnector.getAsset;
 previewConnector.getAsset = async id => {
-	if ( id === materialAssetID ) previewMapReads ++;
+	if ( id === village.assetId ) villageAssetReads ++;
 	return previewGetAsset( id );
 };
-const previewRoot = await loadWorldPackage( previewConnector, { objectIDs: [ previewObject.id ], assets: new Map( [ [ previewObject.assetId, previewBytes ] ] ), materialContext } );
-assert.equal( previewMapReads, 0, 'a portal preview must not fetch the village texture bundle' );
+const previewRoot = await loadWorldPackage( previewConnector, { objectIDs: [ previewObject.id ], assets: new Map( [ [ previewObject.assetId, previewBytes ] ] ) } );
+assert.equal( villageAssetReads, 0, 'a portal preview does not fetch the village material GLB' );
 disposeWorldPackage( previewRoot );
-
-await assert.rejects( loadWorldPackage( makeConnector( source.rules.requiredFeatures.filter( feature => feature !== 'elsemesh.village-materials/1' ) ), { objectIDs: [ village.id ], assets: new Map( [ [ village.assetId, bytes ] ] ), materialContext } ), /missing elsemesh.village-materials\/1/ );
-const root = await loadWorldPackage( makeConnector( source.rules.requiredFeatures ), { objectIDs: [ village.id ], assets: new Map( [ [ village.assetId, bytes ] ] ), materialContext } );
+const root = await loadWorldPackage( makeConnector(), { objectIDs: [ village.id ], assets: new Map( [ [ village.assetId, bytes ] ] ) } );
 const meshes = [];
 root.traverse( object => { if ( object.isMesh ) meshes.push( object ); } );
 assert.ok( meshes.length >= VILLAGE_MATERIAL_ROLES.length );
 const roles = new Set();
 for ( const mesh of meshes ) {
-	if ( mesh.material.name === 'Procedural village net' || mesh.material.name.endsWith( 'hard' ) || mesh.material.name === 'Procedural village roofMetal' || mesh.material.name.toLowerCase().includes( 'glass' ) || mesh.material.surface?.includes( 'emg_streakAlbedo' ) || mesh.material.surface?.includes( 'emg_fabricAlbedo' ) || mesh.material.surface?.includes( 'emg_surfaceColor' ) ) {
+	const surface = mesh.material.surface || '';
+	if ( surface.includes( 'emg_woodAlbedoBarn' ) ) {
+		assert.equal( mesh.geometry.getAttribute( 'vdata' )?.itemSize, 4 );
+		assert.equal( mesh.geometry.getAttribute( 'color' )?.itemSize, 3 );
+		assert.match( surface, /emg_woodRoughClamped/ );
+		roles.add( 'wood' );
+	} else if ( mesh.material.name === 'Procedural village net' || mesh.material.name.endsWith( 'hard' ) || mesh.material.name === 'Procedural village roofMetal' || mesh.material.name.toLowerCase().includes( 'glass' ) || surface.includes( 'emg_streakAlbedo' ) || surface.includes( 'emg_fabricAlbedo' ) || surface.includes( 'emg_surfaceColor' ) ) {
 		assert.equal( mesh.geometry.getAttribute( 'vdata' )?.itemSize, 4 );
 		assert.equal( mesh.geometry.getAttribute( 'color' )?.itemSize, 3 );
 		if ( mesh.material.name === 'Procedural village net' ) {
-			assert.match( mesh.material.surface, /emg_tintedAlbedo/, 'the package net is compiled by the generic engine material-graph path' );
+			assert.match( surface, /emg_tintedAlbedo/, 'the package net is compiled by the generic engine material-graph path' );
 			roles.add( 'net' );
-		} else if ( mesh.material.surface.includes( 'emg_streakAlbedo' ) ) {
-			assert.match( mesh.material.surface, /s\.ao \*= emg_occlusion/, 'the packaged thatch graph uses the shared occlusion output' );
+		} else if ( surface.includes( 'emg_streakAlbedo' ) ) {
+			assert.match( surface, /s\.ao \*= emg_occlusion/, 'the packaged thatch graph uses the shared occlusion output' );
 			roles.add( 'thatch' );
-		} else if ( mesh.material.surface.includes( 'emg_fabricAlbedo' ) ) {
+		} else if ( surface.includes( 'emg_fabricAlbedo' ) ) {
 			assert.match( mesh.material.vertex, /emg_moved/, 'the packaged fabric graph carries its shared wind and flag movement' );
-			assert.match( mesh.material.surface, /s\.alpha \*= emg_fabricCoverage/ );
+			assert.match( surface, /s\.alpha \*= emg_fabricCoverage/ );
 			roles.add( 'fabric' );
 		} else if ( mesh.material.name === 'Procedural village roofMetal' ) {
-			assert.match( mesh.material.surface, /s\.metalness = emg_metalness/, 'the roof graph carries authored metalness into both engine backends' );
+			assert.match( surface, /s\.metalness = emg_metalness/, 'the roof graph carries authored metalness into both engine backends' );
 			roles.add( 'roofMetal' );
 		} else if ( mesh.material.name.endsWith( 'hard' ) ) {
-			assert.match( mesh.material.surface, /s\.ao \*= emg_occlusion/, 'the hardware and rope graph carries its authored AO data' );
+			assert.match( surface, /s\.ao \*= emg_occlusion/, 'the hardware and rope graph carries its authored AO data' );
 			roles.add( 'hard' );
 		} else if ( mesh.material.name.toLowerCase().includes( 'glass' ) ) {
-			assert.match( mesh.material.surface, /s\.emissive \+=/, 'window and lantern glass compile the same graph through the engine' );
+			assert.match( surface, /s\.emissive \+=/, 'window and lantern glass compile the same graph through the engine' );
 			roles.add( 'glass' );
 		} else {
-			assert.match( mesh.material.surface, /s\.ao \*= emg_surfaceAO/ );
+			assert.match( surface, /s\.ao \*= emg_surfaceAO/ );
 			roles.add( 'stone' );
 		}
-		continue;
 	}
-	if ( ! mesh.material.userData?.borrowedWorldMaterial ) continue;
-	assert.ok( mesh.geometry.getAttribute( 'vdata' )?.itemSize === 4 );
-	assert.ok( mesh.geometry.getAttribute( 'color' )?.itemSize === 3 );
-	assert.equal( mesh.geometry.getAttribute( 'tint' ), mesh.geometry.getAttribute( 'color' ), 'the original village shader consumes COLOR_0 as tint' );
-	assert.ok( mesh.geometry.getAttribute( 'tint' ).array.some( value => value > 0 ), 'tint values must be uploaded instead of the shader default' );
-	assert.ok( mesh.onBeforeRender );
-	mesh.onBeforeRender();
-	const roleName = mesh.material.name.replace( /^Village/, '' );
-	roles.add( roleName[ 0 ].toLowerCase() + roleName.slice( 1 ) );
 }
-assert.ok( meshes.some( mesh => mesh.material.name === 'Procedural village net' && ! mesh.material.userData?.borrowedWorldMaterial ), 'net uses the ElseMesh-compiled graph path instead of a world-registered renderer material' );
 assert.deepEqual( roles, new Set( VILLAGE_MATERIAL_ROLES ) );
-const ownedContext = root.userData.worldPackage.materialAdapterContexts.get( 'elsemesh.village-materials/2' )?.context;
-assert.ok( ownedContext?.textures?.baked, 'the renderer must use packaged maps instead of re-baking hidden project state' );
-const map = await readTexture( ownedContext.textures.textures.woodA );
-assert.deepEqual( new Uint8Array( map.data ), materialData.maps.woodA, 'the GPU texture must match the packaged level-zero bytes' );
 const netMeshes = meshes.filter( mesh => mesh.material.name === 'Procedural village net' );
 assert.equal( netMeshes.length, 1, 'signed village package contains one net graph batch' );
 life.scene.add( root );
@@ -197,7 +189,9 @@ const roofMetalMeshes = meshes.filter( mesh => mesh.material.name === 'Procedura
 assert.equal( roofMetalMeshes.length, 1, 'signed village package contains one engine-compiled roof-metal graph batch' );
 const hardMeshes = meshes.filter( mesh => mesh.material.name.endsWith( 'hard' ) );
 const glassMeshes = meshes.filter( mesh => mesh.material.name.toLowerCase().includes( 'glass' ) );
+const woodMeshes = meshes.filter( mesh => mesh.material.surface?.includes( 'emg_woodAlbedoBarn' ) );
 assert.ok( hardMeshes.length >= 1, 'signed village package contains engine-compiled hardware and rope graph batches' );
+assert.equal( woodMeshes.length, 2, 'signed village package contains engine-compiled building and sign wood graph batches' );
 const focusGeometryCluster = ( mesh, { flagOnly = false } = {} ) => {
 	const geometry = mesh.geometry, index = geometry.index?.array, positions = geometry.getAttribute( 'position' )?.array, data = geometry.getAttribute( 'vdata' )?.array;
 	if ( ! index || ! positions || ! data ) throw new Error( 'material render fixture requires indexed geometry, positions, and material data' );
@@ -222,6 +216,7 @@ const focusGeometryCluster = ( mesh, { flagOnly = false } = {} ) => {
 	geometry.computeBoundingSphere();
 };
 focusGeometryCluster( fabricMeshes[ 0 ], { flagOnly: true } );
+focusGeometryCluster( woodMeshes[ 0 ] );
 const renderMaterial = async mesh => {
 	for ( const candidate of meshes ) candidate.visible = candidate === mesh;
 	const bounds = new THREE.Box3().setFromObject( mesh );
@@ -249,7 +244,7 @@ const renderMaterial = async mesh => {
 	for ( let i = 0; i < pixels.length; i += 4 ) {
 		if ( Math.abs( pixels[ i ] - background[ 0 ] ) + Math.abs( pixels[ i + 1 ] - background[ 1 ] ) + Math.abs( pixels[ i + 2 ] - background[ 2 ] ) > 24 ) changedPixels ++;
 	}
-	const role = mesh === netMeshes[ 0 ] ? 'net' : mesh === thatchMeshes[ 0 ] ? 'thatch' : mesh === stoneMeshes[ 0 ] ? 'stone' : mesh === roofMetalMeshes[ 0 ] ? 'roofMetal' : mesh === hardMeshes[ 0 ] ? 'hard' : mesh === glassMeshes[ 0 ] ? 'glass' : 'fabric';
+	const role = mesh === netMeshes[ 0 ] ? 'net' : mesh === thatchMeshes[ 0 ] ? 'thatch' : mesh === stoneMeshes[ 0 ] ? 'stone' : mesh === roofMetalMeshes[ 0 ] ? 'roofMetal' : mesh === hardMeshes[ 0 ] ? 'hard' : mesh === glassMeshes[ 0 ] ? 'glass' : mesh === woodMeshes[ 0 ] ? 'wood' : 'fabric';
 	assert.ok( changedPixels >= ( role === 'fabric' ? 1 : 30 ), `signed Tidewater ${role} graph renders visible WebGPU pixels (${changedPixels})` );
 	return changedPixels;
 };
@@ -260,8 +255,9 @@ const stoneChangedPixels = await renderMaterial( stoneMeshes[ 0 ] );
 const roofMetalChangedPixels = await renderMaterial( roofMetalMeshes[ 0 ] );
 const hardChangedPixels = await renderMaterial( hardMeshes[ 0 ] );
 const glassChangedPixels = await renderMaterial( glassMeshes[ 0 ] );
+const woodChangedPixels = await renderMaterial( woodMeshes[ 0 ] );
 assert.ok( glassChangedPixels >= 30, `signed Tidewater glass graph renders visible WebGPU pixels (${glassChangedPixels})` );
+assert.ok( woodChangedPixels >= 30, `signed Tidewater wood graph renders visible WebGPU pixels (${woodChangedPixels})` );
 disposeWorldPackage( root );
-assert.ok( Object.values( materials ).every( material => ! material.disposed ), 'package cleanup must preserve App-owned procedural materials' );
 GPU.device.destroy();
-console.log( `Hosted island package passes; Tidewater net/thatch/fabric/stone/roof-metal/hard/glass graphs render ${netChangedPixels}/${thatchChangedPixels}/${fabricChangedPixels}/${stoneChangedPixels}/${roofMetalChangedPixels}/${hardChangedPixels}/${glassChangedPixels} visible WebGPU pixels` );
+console.log( `Hosted island package passes; Tidewater net/thatch/fabric/stone/roof-metal/hard/glass/wood graphs render ${netChangedPixels}/${thatchChangedPixels}/${fabricChangedPixels}/${stoneChangedPixels}/${roofMetalChangedPixels}/${hardChangedPixels}/${glassChangedPixels}/${woodChangedPixels} visible WebGPU pixels` );

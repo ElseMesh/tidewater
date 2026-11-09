@@ -3,11 +3,14 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { parseGLB } from '../../../src/engine/loaders/GLTF.js';
 import { applyWebGLWorldMaterialGraphs } from '../../../src/fallback/WebGLWorldMaterialGraphs.js';
 import { G } from '../../../src/engine/render/Frame.js';
-import source from '../world-source.json' with { type: 'json' };
 
 const result = document.querySelector( '#result' );
 let renderer;
 try {
+	const source = await fetch( '/__tidewater/world-source.json' ).then( response => {
+		if ( ! response.ok ) throw new Error( `world source fetch failed: ${response.status}` );
+		return response.json();
+	} );
 	const village = source.objects.find( object => object.id === 'elsemesh-object:island-village' );
 	if ( ! village ) throw new Error( 'signed Tidewater package has no village object' );
 	const glbBytes = await fetch( '/__tidewater/village.glb' ).then( response => {
@@ -15,8 +18,10 @@ try {
 		return response.arrayBuffer();
 	} );
 	const parsedGLB = parseGLB( glbBytes );
-	const graphMaterialIndexes = new Map( parsedGLB.materials.flatMap( ( material, index ) => material.name === 'Procedural village net' || [ 'glass', 'hard', 'thatch', 'fabric', 'stone', 'roofMetal' ].includes( material.extras?.elsemeshWorld?.materialRole ) ? [ [ material.name, index ] ] : [] ) );
-	if ( graphMaterialIndexes.size !== 10 ) throw new Error( `signed village GLB must contain ten graph material batches, found ${graphMaterialIndexes.size}` );
+		const graphMaterialIndexes = new Map( parsedGLB.materials.flatMap( ( material, index ) => material.name === 'Procedural village net' || [ 'wood', 'glass', 'hard', 'thatch', 'fabric', 'stone', 'roofMetal' ].includes( material.extras?.elsemeshWorld?.materialRole ) ? [ [ material.name, index ] ] : [] ) );
+		if ( graphMaterialIndexes.size !== 12 ) throw new Error( `signed village GLB must contain twelve graph material batches, found ${graphMaterialIndexes.size}` );
+		const woodMaterial = parsedGLB.materials.find( material => material.extras?.elsemeshWorld?.materialRole === 'wood' );
+		if ( ! woodMaterial?.extras?.elsemeshMaterial?.graph || woodMaterial.extras.elsemeshMaterial.graph.nodes.length > 1024 ) throw new Error( 'wood graph is missing or exceeds the bounded engine material contract' );
 	const graphAttributes = new Map( [ ...graphMaterialIndexes ].map( ( [ name, index ] ) => {
 		const primitive = parsedGLB.meshes.flat().find( candidate => candidate.material === index );
 		if ( ! primitive?.attributes._ELSEMESH_VDATA ) throw new Error( `signed ${name} GLB mesh is missing its VEC4 _ELSEMESH_VDATA` );
@@ -42,7 +47,8 @@ try {
 	const stoneMesh = graphMeshes.get( 'Procedural village stone' )[ 0 ];
 	const roofMetalMesh = graphMeshes.get( 'Procedural village roofMetal' )[ 0 ];
 	const hardMesh = graphMeshes.get( 'Procedural village hard' )[ 0 ];
-	for ( const mesh of [ netMesh, thatchMesh, fabricMesh, stoneMesh, roofMetalMesh, hardMesh ] ) if ( ! mesh.material.userData?.elsemeshWorldMaterialGraph ) throw new Error( `${mesh.material.name} did not pass through the engine graph compiler` );
+		const woodMesh = graphMeshes.get( woodMaterial.name )?.[ 0 ];
+		for ( const mesh of [ netMesh, thatchMesh, fabricMesh, stoneMesh, roofMetalMesh, hardMesh, woodMesh ] ) if ( ! mesh?.material.userData?.elsemeshWorldMaterialGraph ) throw new Error( `${mesh?.material?.name || 'wood'} did not pass through the engine graph compiler` );
 	if ( netMesh.material.side !== THREE.DoubleSide || ! netMesh.material.transparent || netMesh.material.depthWrite ) throw new Error( 'net material lost its signed glTF blend or double-sided state' );
 	const focusGeometryCluster = mesh => {
 		const geometry = mesh.geometry, index = geometry.index?.array, positions = geometry.getAttribute( 'position' )?.array, data = geometry.getAttribute( 'vdata' )?.array;
@@ -91,7 +97,7 @@ try {
 	const metrics = {};
 	const glassMesh = graphMeshes.get( 'Procedural village glass' )[ 0 ];
 	const lanternGlassMesh = graphMeshes.get( 'Procedural village lantern-glass' )[ 0 ];
-	for ( const [ label, mesh ] of [ [ 'net', netMesh ], [ 'thatch', thatchMesh ], [ 'fabric', fabricMesh ], [ 'stone', stoneMesh ], [ 'roofMetal', roofMetalMesh ], [ 'hard', hardMesh ], [ 'glass', glassMesh ], [ 'lanternGlass', lanternGlassMesh ] ] ) {
+	for ( const [ label, mesh ] of [ [ 'net', netMesh ], [ 'thatch', thatchMesh ], [ 'fabric', fabricMesh ], [ 'stone', stoneMesh ], [ 'roofMetal', roofMetalMesh ], [ 'hard', hardMesh ], [ 'glass', glassMesh ], [ 'lanternGlass', lanternGlassMesh ], [ 'wood', woodMesh ] ] ) {
 		for ( const targets of graphMeshes.values() ) for ( const target of targets ) target.visible = target === mesh;
 		const bounds = new THREE.Box3().setFromObject( mesh );
 		const center = bounds.getCenter( new THREE.Vector3() );
@@ -116,7 +122,7 @@ try {
 	}
 	const glError = gl.getError();
 	if ( glError !== gl.NO_ERROR ) throw new Error( `WebGL reported error ${glError}` );
-	result.textContent = JSON.stringify( { ...metrics, programs: renderer.info.programs?.length || 0, glError, textureSlots: [ 'metallicRoughness', 'normal', 'occlusion' ] } );
+	result.textContent = JSON.stringify( { ...metrics, programs: renderer.info.programs?.length || 0, glError, textureSlots: [ 'baseColor', 'metallicRoughness', 'normal', 'emissive' ] } );
 	result.dataset.status = 'complete';
 } catch ( error ) {
 	result.textContent = error?.stack || String( error );

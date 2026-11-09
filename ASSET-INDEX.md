@@ -1,6 +1,6 @@
 # Example Island asset index
 
-Generated from [world-source.json](world-source.json) (63 verified content-addressed assets).
+Generated from [world-source.json](world-source.json) (62 verified content-addressed assets).
 Each filename is the SHA-256 of the exact packaged bytes. Keep these names immutable; use the descriptions and use sites below to identify the assets.
 
 | Description / use | Format | Size | SHA-256 asset |
@@ -24,7 +24,6 @@ Each filename is the SHA-256 of the exact packaged bytes. Keep these names immut
 | Component elsemesh-component:island-terrain — terrain-surface/1 | Binary (terrain-surface/1) | 29.71 MiB | [`b26986a190a36734acfe3004d0ddd3663e3c467d2764b30b60a8afee655d76e8`](assets/b26986a190a36734acfe3004d0ddd3663e3c467d2764b30b60a8afee655d76e8) |
 | Component elsemesh-component:island-vegetation — grass-density/1 | Binary (grass-density/1) | 4.00 MiB | [`36507b8de08a52423c0eb3d5bf7cba6c373dbbec931aa1e1969e09abac9df8c2`](assets/36507b8de08a52423c0eb3d5bf7cba6c373dbbec931aa1e1969e09abac9df8c2) |
 | Component elsemesh-component:island-vegetation — vegetation-placement/1 | Binary (vegetation-placement/1) | 2.56 MiB | [`e9ead2780768e0dabea07317da0c020497137472e6adc1cb3f166611fb0fbae6`](assets/e9ead2780768e0dabea07317da0c020497137472e6adc1cb3f166611fb0fbae6) |
-| Component elsemesh-component:island-village-materials — village-materials/1 | Binary (village-materials/1) | 18.30 MiB | [`58c5317f614c767686efe99b996ed908dee8e21024acccf3e746f2fbbb88534d`](assets/58c5317f614c767686efe99b996ed908dee8e21024acccf3e746f2fbbb88534d) |
 | Component elsemesh-component:reef-tile--1--1 — reef-placement/1 | Binary (reef-placement/1) | 40.4 KiB | [`92cdd6f611d76139891a1440cd2deeb4ae88159a899989593127eb0630b28ae4`](assets/92cdd6f611d76139891a1440cd2deeb4ae88159a899989593127eb0630b28ae4) |
 | Component elsemesh-component:reef-tile--1-0 — reef-placement/1 | Binary (reef-placement/1) | 700.6 KiB | [`a57e9503967a8bb1e21ea64964cf0d4945c4656948ae76bc0ff19af83cfb5cdf`](assets/a57e9503967a8bb1e21ea64964cf0d4945c4656948ae76bc0ff19af83cfb5cdf) |
 | Component elsemesh-component:reef-tile--1-1 — reef-placement/1 | Binary (reef-placement/1) | 1011.5 KiB | [`e1ecc47d9a7140c15398464ffa06201d24b0aa6f585803d7abdffb4ca987553d`](assets/e1ecc47d9a7140c15398464ffa06201d24b0aa6f585803d7abdffb4ca987553d) |
@@ -66,7 +65,7 @@ Each filename is the SHA-256 of the exact packaged bytes. Keep these names immut
 | Moored lobster boat (static preview) distance mesh — glb | glTF binary (GLB) | 1.20 MiB | [`eed66ccd07cb5e3a6583e12fbba397b17650c224c15d8b60cc53ce83366aac74`](assets/eed66ccd07cb5e3a6583e12fbba397b17650c224c15d8b60cc53ce83366aac74) |
 | Portal preview terrain — glb | glTF binary (GLB) | 823.9 KiB | [`3ee6e7b8591964e1c494c91e1b04ef65e1380332650d38db5a89e2c1a3c68fc5`](assets/3ee6e7b8591964e1c494c91e1b04ef65e1380332650d38db5a89e2c1a3c68fc5) |
 | Procedural island terrain — glb | glTF binary (GLB) | 12.78 MiB | [`d3cec3194167eaf7018f401cabcecb337ab989cd6141b45fc8c43f5aa4d8a3cf`](assets/d3cec3194167eaf7018f401cabcecb337ab989cd6141b45fc8c43f5aa4d8a3cf) |
-| Procedural village, pier and harbor — glb | glTF binary (GLB) | 29.24 MiB | [`79be6e7a4d620d8968c557275be8697fb34fdd4ceace9ce9edf7764b6a79d899`](assets/79be6e7a4d620d8968c557275be8697fb34fdd4ceace9ce9edf7764b6a79d899) |
-| Procedural village, pier and harbor distance mesh — glb | glTF binary (GLB) | 22.89 MiB | [`ab5decc976e9f46a608fcd435aa57367b65c59101c338c107d0012656c0e4af8`](assets/ab5decc976e9f46a608fcd435aa57367b65c59101c338c107d0012656c0e4af8) |
+| Procedural village, pier and harbor — glb | glTF binary (GLB) | 33.61 MiB | [`3c328b57d582e8bd5402161b40e36317df36e7570f744ad79de39bc31de6add4`](assets/3c328b57d582e8bd5402161b40e36317df36e7570f744ad79de39bc31de6add4) |
+| Procedural village, pier and harbor distance mesh — glb | glTF binary (GLB) | 27.27 MiB | [`5d164b58c4930888dfa25c91afa950bcca8025e35b9addff4778a794b3a0cb1a`](assets/5d164b58c4930888dfa25c91afa950bcca8025e35b9addff4778a794b3a0cb1a) |
 
 Regenerate this index with the owning world repository exporter. Every referenced package file is checked against its SHA-256.

@@ -17,7 +17,7 @@ import { Rocks } from '../Rocks.js';
 import { Colliders } from '../../../src/world/Colliders.js';
 import { Builder, Batch } from '../village/GeoBuilder.js';
 import { VILLAGE_MATERIAL_PROFILE, VILLAGE_MATERIAL_ROLES } from '../VillageMaterialProfile.js';
-import { TIDEWATER_NET_MATERIAL_GRAPH, TIDEWATER_THATCH_MATERIAL_GRAPH, TIDEWATER_FABRIC_MATERIAL_GRAPH, TIDEWATER_STONE_MATERIAL_GRAPH, TIDEWATER_ROOF_METAL_MATERIAL_GRAPH, TIDEWATER_HARD_MATERIAL_GRAPH, TIDEWATER_GLASS_MATERIAL_GRAPH } from '../VillageMaterialGraphs.js';
+import { TIDEWATER_NET_MATERIAL_GRAPH, TIDEWATER_WOOD_MATERIAL_GRAPH, TIDEWATER_THATCH_MATERIAL_GRAPH, TIDEWATER_FABRIC_MATERIAL_GRAPH, TIDEWATER_STONE_MATERIAL_GRAPH, TIDEWATER_ROOF_METAL_MATERIAL_GRAPH, TIDEWATER_HARD_MATERIAL_GRAPH, TIDEWATER_GLASS_MATERIAL_GRAPH } from '../VillageMaterialGraphs.js';
 import { InstancedProps } from '../Props.js';
 import { DebrisPlacer } from '../DebrisPlacement.js';
 import { SCANNED_DEBRIS_ASSETS } from '../debris/ScannedAssets.js';
@@ -36,7 +36,6 @@ import '../../../test/headless.mjs';
 import { GPU } from '../../../src/engine/gpu/GPU.js';
 import { readTexture } from '../../../src/engine/gpu/Readback.js';
 import { VillageTextures } from '../renderers/webgpu-village/TextureBaker.js';
-import { encodeVillageMaterialAsset, wrapCompressedVillageMaterialAsset } from '../VillageMaterialAsset.js';
 import { TIDEWATER_WHALE_PROFILE } from '../WhaleProfile.js';
 import { writeWorldAssetIndex } from '../../../tools/world-asset-index.mjs';
 import { generateTidewaterReefURLs } from './generate-reef-asset-urls.mjs';
@@ -111,16 +110,18 @@ villageTextures.bake();
 GPU.submit();
 const villageMaps = {};
 for ( const [ name, texture ] of Object.entries( villageTextures.textures ) ) villageMaps[ name ] = new Uint8Array( ( await readTexture( texture ) ).data );
-const villageMaterialsRaw = encodeVillageMaterialAsset( villageMaps );
-const villageMaterials = wrapCompressedVillageMaterialAsset( villageMaterialsRaw, bytes => deflateSync( bytes, { level: 9 } ) );
-const villageMaterialsAssetId = `sha256:${createHash( 'sha256' ).update( villageMaterials ).digest( 'hex' )}`;
-staticAssets.set( villageMaterialsAssetId, villageMaterials );
 villageTextures.dispose();
 GPU.device.destroy();
 const whaleFiles = await Promise.all( [ 'humpback.json', 'humpback.bin', 'humpback_albedo.png', 'humpback_height.png' ].map( name => readFile( path.join( WORLD_ROOT, 'source', 'models', 'whale', name ) ) ) );
 const whaleAssetIDs = whaleFiles.map( bytes => `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}` );
 for ( let i = 0; i < whaleFiles.length; i ++ ) staticAssets.set( whaleAssetIDs[ i ], whaleFiles[ i ] );
 const villageNetPNG = encodePNG( 256, 256, villageMaps.net );
+const villageWoodPNGs = {
+	albedo: encodePNG( 1024, 1024, linearRGBAtoSRGB( villageMaps.woodA ) ),
+	normal: encodePNG( 1024, 1024, villageMaps.woodN ),
+	paint: encodePNG( 512, 512, villageMaps.paintN ),
+	grime: encodePNG( 512, 512, linearRGBAtoSRGB( villageMaps.grime ) ),
+};
 const villageThatchPNGs = {
 	albedo: encodePNG( 1024, 1024, villageMaps.thatchA ),
 	normal: encodePNG( 1024, 1024, villageMaps.thatchN ),
@@ -142,11 +143,11 @@ const villageHardPNGs = {
 	rope: encodePNG( 256, 256, villageMaps.rope ),
 	grime: encodePNG( 512, 512, linearRGBAtoSRGB( villageMaps.grime ) ),
 };
-const villageGLB = applyVillageMaterialGraphs( exportBatchGLB( generated.villageBatches, 'Procedural village', true ), villageNetPNG, villageThatchPNGs, villageStonePNGs, villageRoofPNGs, villageHardPNGs );
+const villageGLB = applyVillageMaterialGraphs( exportBatchGLB( generated.villageBatches, 'Procedural village', true ), villageNetPNG, villageWoodPNGs, villageThatchPNGs, villageStonePNGs, villageRoofPNGs, villageHardPNGs );
 const villageAssetId = `sha256:${createHash( 'sha256' ).update( villageGLB ).digest( 'hex' )}`;
 const villageBounds = boundsForGLB( villageGLB );
 staticAssets.set( villageAssetId, villageGLB );
-const villageLODGLB = applyVillageMaterialGraphs( await readFile( path.join( WORLD_ROOT, 'lod-source', 'village-low.glb' ) ), villageNetPNG, villageThatchPNGs, villageStonePNGs, villageRoofPNGs, villageHardPNGs );
+const villageLODGLB = applyVillageMaterialGraphs( await readFile( path.join( WORLD_ROOT, 'lod-source', 'village-low.glb' ) ), villageNetPNG, villageWoodPNGs, villageThatchPNGs, villageStonePNGs, villageRoofPNGs, villageHardPNGs );
 const villageLODAssetId = `sha256:${createHash( 'sha256' ).update( villageLODGLB ).digest( 'hex' )}`;
 const villageBaseData = parseGLB( villageGLB );
 const villageLODData = parseGLB( villageLODGLB );
@@ -290,7 +291,7 @@ const source = {
 		avatarComplexity: 20000,
 		physicsProfile: 'elsemesh-default',
 		vehiclePolicy: { enabled: true, maxSpeed: 8, maxCombinedComplexity: 100000 },
-		requiredFeatures: [ 'elsemesh.static-glb/1', 'elsemesh.static-glb-quaternion/1', 'elsemesh.village-materials/1', 'elsemesh.village-materials/2', 'elsemesh.terrain-surface/1', 'elsemesh.ground-detail-field/1', 'elsemesh.static-vegetation/1', 'elsemesh.static-grass/1', 'elsemesh.static-reef/1', 'elsemesh.static-fish-props/1', 'elsemesh.example-island-wildlife/1', 'elsemesh.humpback-whale/1', 'elsemesh.island-ocean/1', 'elsemesh.downeast-boat/1', 'elsemesh.ambient-audio/1', 'elsemesh.portal-handoff/1', 'elsemesh.portal-preview-static/1' ],
+		requiredFeatures: [ 'elsemesh.static-glb/1', 'elsemesh.static-glb-quaternion/1', 'elsemesh.terrain-surface/1', 'elsemesh.ground-detail-field/1', 'elsemesh.static-vegetation/1', 'elsemesh.static-grass/1', 'elsemesh.static-reef/1', 'elsemesh.static-fish-props/1', 'elsemesh.example-island-wildlife/1', 'elsemesh.humpback-whale/1', 'elsemesh.island-ocean/1', 'elsemesh.downeast-boat/1', 'elsemesh.ambient-audio/1', 'elsemesh.portal-handoff/1', 'elsemesh.portal-preview-static/1' ],
 		maxPackageBytes: canonicalSource.rules.maxPackageBytes ?? 128 * 1024 * 1024,
 	},
 	hosts: [],
@@ -364,7 +365,6 @@ const source = {
 		};
 	} ) ],
 	components: [
-		{ id: 'elsemesh-component:island-village-materials', type: 'elsemesh.village-materials/2', priority: 'visible', streamingBounds: villageBounds, assets: [ { assetId: villageMaterialsAssetId, kind: 'village-materials/1' } ], data: { profile: 'original-elsemesh-village-v1', dataAssetId: villageMaterialsAssetId, objectId: 'elsemesh-object:island-village' } },
 		{ id: 'elsemesh-component:island-vegetation', type: 'elsemesh.static-vegetation/1', priority: 'portal-preview', assets: [ { assetId: vegetationAssetId, kind: 'vegetation-placement/1' }, { assetId: grassDensityAssetId, kind: 'grass-density/1' } ], data: { placementAssetId: vegetationAssetId, grassMaskAssetId: grassDensityAssetId, seed: 7 } },
 		...( generated.fishProps.length ? [ { id: 'elsemesh-component:island-fish-props', type: 'elsemesh.static-fish-props/1', priority: 'visible', streamingBounds: fishPropsBounds, assets: [ { assetId: fishPropsAssetId, kind: 'fish-props-placement/1' } ], data: { placementAssetId: fishPropsAssetId } } ] : [] ),
 		{ id: 'elsemesh-component:island-terrain', type: 'elsemesh.terrain-surface/1', priority: 'visible', assets: [ { assetId: terrainSurfaceAssetId, kind: 'terrain-surface/1' } ], data: { ...terrainSurfaceSource.data, profile: 'example-island-v1', objectId: 'elsemesh-object:island-terrain', dataAssetId: terrainSurfaceAssetId } },
@@ -779,7 +779,7 @@ function linearRGBAtoSRGB( rgba ) {
 	return encoded;
 }
 
-function applyVillageMaterialGraphs( sourceBytes, netPNG, thatchPNGs, stonePNGs, roofPNGs, hardPNGs ) {
+function applyVillageMaterialGraphs( sourceBytes, netPNG, woodPNGs, thatchPNGs, stonePNGs, roofPNGs, hardPNGs ) {
 	const source = Buffer.from( sourceBytes );
 	if ( source.readUInt32LE( 0 ) !== 0x46546c67 || source.readUInt32LE( 4 ) !== 2 ) throw new Error( 'Tidewater village LOD is not a GLB v2 asset' );
 	const jsonLength = source.readUInt32LE( 12 );
@@ -810,6 +810,10 @@ function applyVillageMaterialGraphs( sourceBytes, netPNG, thatchPNGs, stonePNGs,
 		return textureIndex;
 	};
 	const netTexture = addTexture( 'Tidewater net channels', netPNG );
+	const woodAlbedo = addTexture( 'Tidewater weathered wood albedo and paint chips', woodPNGs.albedo );
+	const woodNormal = addTexture( 'Tidewater wood normal, roughness, and occlusion', woodPNGs.normal );
+	const woodPaint = addTexture( 'Tidewater painted wood normal and occlusion', woodPNGs.paint );
+	const woodGrime = addTexture( 'Tidewater wood weathering data', woodPNGs.grime );
 	const thatchAlbedo = addTexture( 'Tidewater thatch albedo', thatchPNGs.albedo );
 	const thatchNormal = addTexture( 'Tidewater thatch normal and roughness', thatchPNGs.normal );
 	const thatchGrime = addTexture( 'Tidewater thatch grime variation', thatchPNGs.grime );
@@ -832,6 +836,24 @@ function applyVillageMaterialGraphs( sourceBytes, netPNG, thatchPNGs, stonePNGs,
 			...material.extras,
 			elsemeshWorld: { materialRole: 'net' },
 			elsemeshMaterial: { profile: 'elsemesh.material-graph/1', role: 'graph', graph: TIDEWATER_NET_MATERIAL_GRAPH },
+		};
+	}
+	const woodMaterials = gltf.materials.filter( material => material.extras?.elsemeshMaterial?.profile === VILLAGE_MATERIAL_PROFILE && material.extras.elsemeshMaterial.role === 'wood' );
+	if ( woodMaterials.length === 0 ) throw new Error( 'Tidewater village asset has no authored wood material to migrate' );
+	for ( const material of woodMaterials ) {
+		const pbr = material.pbrMetallicRoughness ||= {};
+		pbr.baseColorFactor = [ 1, 1, 1, 1 ];
+		pbr.baseColorTexture = { index: woodAlbedo };
+		pbr.metallicFactor = 0;
+		pbr.roughnessFactor = 0.85;
+		pbr.metallicRoughnessTexture = { index: woodNormal };
+		material.normalTexture = { index: woodPaint, scale: 0 };
+		material.emissiveTexture = { index: woodGrime };
+		material.emissiveFactor = [ 0, 0, 0 ];
+		material.extras = {
+			...material.extras,
+			elsemeshWorld: { ...material.extras.elsemeshWorld, materialRole: 'wood' },
+			elsemeshMaterial: { profile: 'elsemesh.material-graph/1', role: 'graph', graph: TIDEWATER_WOOD_MATERIAL_GRAPH },
 		};
 	}
 	const thatchMaterials = gltf.materials.filter( material => material.extras?.elsemeshMaterial?.profile === VILLAGE_MATERIAL_PROFILE && material.extras.elsemeshMaterial.role === 'thatch' );

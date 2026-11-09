@@ -527,8 +527,6 @@
     "requiredFeatures": [
       "elsemesh.static-glb/1",
       "elsemesh.static-glb-quaternion/1",
-      "elsemesh.village-materials/1",
-      "elsemesh.village-materials/2",
       "elsemesh.terrain-surface/1",
       "elsemesh.ground-detail-field/1",
       "elsemesh.static-vegetation/1",
@@ -620,10 +618,10 @@
       "id": "elsemesh-object:island-village",
       "kind": "asset-instance",
       "label": "Procedural village, pier and harbor",
-      "assetId": "sha256:79be6e7a4d620d8968c557275be8697fb34fdd4ceace9ce9edf7764b6a79d899",
+      "assetId": "sha256:3c328b57d582e8bd5402161b40e36317df36e7570f744ad79de39bc31de6add4",
       "lods": [
         {
-          "assetId": "sha256:ab5decc976e9f46a608fcd435aa57367b65c59101c338c107d0012656c0e4af8",
+          "assetId": "sha256:5d164b58c4930888dfa25c91afa950bcca8025e35b9addff4778a794b3a0cb1a",
           "maxScreenFraction": 0.45
         }
       ],
@@ -12908,30 +12906,6 @@
     }
   ],
   "components": [
-    {
-      "id": "elsemesh-component:island-village-materials",
-      "type": "elsemesh.village-materials/2",
-      "priority": "visible",
-      "streamingBounds": {
-        "center": [
-          49.266165018081665,
-          5.180210828781128,
-          -59.4708137512207
-        ],
-        "radius": 106.39631016446681
-      },
-      "assets": [
-        {
-          "assetId": "sha256:58c5317f614c767686efe99b996ed908dee8e21024acccf3e746f2fbbb88534d",
-          "kind": "village-materials/1"
-        }
-      ],
-      "data": {
-        "profile": "original-elsemesh-village-v1",
-        "dataAssetId": "sha256:58c5317f614c767686efe99b996ed908dee8e21024acccf3e746f2fbbb88534d",
-        "objectId": "elsemesh-object:island-village"
-      }
-    },
     {
       "id": "elsemesh-component:island-vegetation",
       "type": "elsemesh.static-vegetation/1",

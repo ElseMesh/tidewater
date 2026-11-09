@@ -1232,3 +1232,511 @@ export const TIDEWATER_GLASS_MATERIAL_GRAPH = Object.freeze( {
 	nodes: Object.freeze( glassNodes.map( node => Object.freeze( node ) ) ),
 	outputs: Object.freeze( { baseColor: surfaceColor, roughness: surfaceRough, emissive: surfaceEmissive } ),
 } );
+
+// Raw and painted village timber. This graph is the renderer-neutral form of
+// the former createWoodMaterial WGSL path. The four signed glTF texture slots
+// are baseColor (wood albedo/chip mask), normal (wood normal/roughness/AO),
+// metallicRoughness (paint normal/roughness), and occlusion (grime/weather).
+const woodNodes = [];
+const wi = ( id, name ) => woodNodes.push( { id, op: 'input', name } );
+const wc = ( id, value ) => woodNodes.unshift( { id, op: 'constant', value } );
+const wo = ( id, op, ...args ) => woodNodes.push( { id, op, args } );
+const ws = ( id, slot, uv, lod = null ) => woodNodes.push( lod === null ? { id, op: 'textureSample', slot, uv } : { id, op: 'textureSampleLevel', slot, uv, lod } );
+
+wi( 'woodTint', 'colorRGB' ); wi( 'woodData', 'vdata' ); wi( 'woodUV', 'uv' );
+wi( 'woodWorldPosition', 'worldPosition' ); wi( 'woodWorldNormal', 'worldNormal' );
+const woodConstants = {
+	zero: 0, one: 1, c1: 1, two: 2, three: 3, four: 4, half: 0.5, quarter: 0.25, e: 0.0009765625,
+	tau: 6.283185307179586, c001: 0.001, c0012: 0.0012, c0015: 0.0015, c002: 0.002, c003: 0.003, c004: 0.004, c0045: 0.0045, c005: 0.005, c0075: 0.0075, c0155: 0.155, c155: 0.155, c395: 0.395,
+	c007: 0.007, c008: 0.008, c009: 0.009, c012: 0.012, c014: 0.014, c015: 0.015, c08: 0.08, c06: 0.06,
+	c018: 0.018, c02: 0.02, c025: 0.025, c03: 0.03, c035: 0.035, c04: 0.04, c045: 0.045,
+	c05: 0.05, c06: 0.06, c07: 0.07, c09: 0.09, c10: 0.1, c11: 0.11, c12: 0.12, c14: 0.14,
+	c16: 0.16, c18: 0.18, c2: 0.2, c22: 0.22, c25: 0.25, c28: 0.28, c3: 0.3, c32: 0.32,
+	c35: 0.35, c37: 0.37, c4: 0.4, c42: 0.42, c45: 0.45, c5: 0.5, c55: 0.55, c6: 0.6,
+	c61: 0.61, c62: 0.62, c64: 0.64, c65: 0.65, c66: 0.66, c7: 0.7, c71: 0.71, c75: 0.75,
+	c77: 0.77, c78: 0.78, c79: 0.79, c8: 0.8, c82: 0.82, c84: 0.84, c85: 0.85, c86: 0.86,
+	c9: 0.9, c92: 0.92, c93: 0.93, c95: 0.95, c102: 1.02, c103: 1.03, c104: 1.04, c105: 1.05, c105m: 0.105,
+	cminus1: -1, cminus2: -2, c24neg: -2.4, c014neg: -0.14, cminus05: -0.5, cminus9: -9,
+	c12: 1.2, c12m: 0.12, c126: 1.26, c13: 1.3, c135: 1.35, c138: 1.38, c15: 1.5, c15m: 0.15, c2x: 2, c23: 2.3,
+	c26: 2.6, c3x: 3, c31: 3.1, c37x: 3.7, c42x: 4.2, c5mul: 5, c51: 5.1, c53: 5.3, c61x: 6.1,
+	c713: 7.13, c77x: 7.7, c923: 9.23, c12x: 12, c131: 131, c43758: 43758.5453, c129898: 12.9898, c78233: 78.233, c17: 1.7, c33: 3.3, c47: 4.7, c1024: 1024,
+	capSentinel: 1500, endSentinel: 500, capUVOffset: 2000, endUVOffset: 1000,
+	woodWarm: [ 1.26, 1.02, 0.78 ], woodEndWarm: [ 1.3, 1, 0.7 ], woodPaintWarm: [ 0.86, 0.84, 0.77 ], woodWhitePoint: [ 1.2, 1.2, 1.2 ],
+	chalkRGB: [ 0.27, 0.265, 0.25 ], stainRGB: [ 0.04, 0.032, 0.028 ], saltRGB: [ 0.62, 0.61, 0.57 ],
+	splashRGB: [ 0.78, 0.9, 0.62 ], troddenRGB: [ 0.8, 0.76, 0.72 ], rustRGB: [ 1.04, 0.78, 0.6 ],
+	dropLowRGB: [ 0.62, 0.61, 0.56 ], dropHighRGB: [ 0.8, 0.79, 0.74 ],
+	lumaRGB: [ 0.3, 0.59, 0.11 ],
+};
+for ( const [ id, value ] of Object.entries( woodConstants ) ) wc( `wood_${id}`, value );
+
+wo( 'woodSeed', 'x', 'woodData' ); wo( 'woodPaint', 'y', 'woodData' ); wo( 'woodPattern', 'z', 'woodData' ); wo( 'woodWeather', 'w', 'woodData' );
+wo( 'woodU', 'x', 'woodUV' ); wo( 'woodV', 'y', 'woodUV' );
+wo( 'woodEVectorX', 'vec2', 'wood_e', 'wood_zero' ); wo( 'woodEVectorY', 'vec2', 'wood_zero', 'wood_e' );
+wo( 'woodIsCap', 'step', 'wood_capSentinel', 'woodU' ); wo( 'woodEndAt', 'step', 'wood_endSentinel', 'woodU' );
+wo( 'woodNotCap', 'subtract', 'wood_one', 'woodIsCap' ); wo( 'woodIsEnd', 'multiply', 'woodEndAt', 'woodNotCap' );
+wo( 'woodEndAny', 'max', 'woodIsCap', 'woodIsEnd' ); wo( 'woodCapOffset', 'multiply', 'woodIsCap', 'wood_capUVOffset' );
+wo( 'woodEndOffset', 'multiply', 'woodIsEnd', 'wood_endUVOffset' ); wo( 'woodUVOffset', 'add', 'woodCapOffset', 'woodEndOffset' );
+wo( 'woodUSurface', 'subtract', 'woodU', 'woodUVOffset' ); wo( 'woodSurfaceUV', 'vec2', 'woodUSurface', 'woodV' );
+wo( 'woodFootprint', 'fwidth', 'woodSurfaceUV' ); wo( 'woodFootX', 'x', 'woodFootprint' ); wo( 'woodFootY', 'y', 'woodFootprint' );
+wo( 'woodPixelFootprint', 'max', 'woodFootX', 'woodFootY' ); wo( 'woodNearFade', 'smoothstep', 'wood_c0012', 'wood_c005', 'woodPixelFootprint' );
+wo( 'woodNear', 'subtract', 'wood_one', 'woodNearFade' );
+
+// pattern masks are vlmBand01(pattern, integer), with exact half-unit edges.
+for ( const [ name, k ] of [ [ 'Lap', 1 ], [ 'Batten', 2 ], [ 'Tongue', 3 ], [ 'Louver', 4 ], [ 'UPlank', 5 ], [ 'Horizontal', 6 ] ] ) {
+	const mid = `woodBand${name}`; wc( `${mid}Lo`, k - 0.5 ); wc( `${mid}Hi`, k + 0.5 );
+	wo( `${mid}A`, 'step', `${mid}Lo`, 'woodPattern' ); wo( `${mid}B`, 'step', 'woodPattern', `${mid}Hi` ); wo( `woodM${name}`, 'multiply', `${mid}A`, `${mid}B` );
+}
+wc( 'woodNailThreshold', 6.5 ); wo( 'woodMNail', 'step', 'woodNailThreshold', 'woodPattern' );
+wo( 'woodIsVertical', 'add', 'woodMBatten', 'woodMTongue' );
+	wo( 'woodSurfaceV', 'y', 'woodSurfaceUV' ); wo( 'woodUVSwap', 'vec2', 'woodSurfaceV', 'woodUSurface' );
+wo( 'woodG', 'mix', 'woodSurfaceUV', 'woodUVSwap', 'woodIsVertical' );
+wo( 'woodBoardLap', 'divide', 'woodV', 'wood_c2' ); wo( 'woodBoardLapFloor', 'floor', 'woodBoardLap' ); wo( 'woodBoardLapIndex', 'multiply', 'woodBoardLapFloor', 'woodMLap' );
+wo( 'woodBoardHz', 'divide', 'woodV', 'wood_c16' ); wo( 'woodBoardHzFloor', 'floor', 'woodBoardHz' ); wo( 'woodBoardHzIndex', 'multiply', 'woodBoardHzFloor', 'woodMHorizontal' );
+wo( 'woodBoardBB', 'divide', 'woodU', 'wood_c42' ); wo( 'woodBoardBBFloor', 'floor', 'woodBoardBB' ); wo( 'woodBoardBBIndex', 'multiply', 'woodBoardBBFloor', 'woodMBatten' );
+wo( 'woodBoardTG', 'divide', 'woodU', 'wood_c14' ); wo( 'woodBoardTGFloor', 'floor', 'woodBoardTG' ); wo( 'woodBoardTGIndex', 'multiply', 'woodBoardTGFloor', 'woodMTongue' );
+wo( 'woodBoardPk', 'divide', 'woodV', 'wood_c105m' ); wo( 'woodBoardPkFloor', 'floor', 'woodBoardPk' ); wo( 'woodBoardPkIndex', 'multiply', 'woodBoardPkFloor', 'woodMUPlank' );
+wo( 'woodBoardIndexA', 'add', 'woodBoardLapIndex', 'woodBoardHzIndex' ); wo( 'woodBoardIndexB', 'add', 'woodBoardBBIndex', 'woodBoardTGIndex' );
+wo( 'woodBoardIndexC', 'add', 'woodBoardIndexA', 'woodBoardIndexB' ); wo( 'woodBoardIndex', 'add', 'woodBoardIndexC', 'woodBoardPkIndex' );
+wo( 'woodSeedScaled', 'multiply', 'woodSeed', 'wood_c131' ); wo( 'woodBoardScaled', 'multiply', 'woodBoardIndex', 'wood_c713' );
+wo( 'woodPieceSeed', 'add', 'woodSeedScaled', 'woodBoardScaled' );
+wo( 'woodHashX1', 'multiply', 'woodPieceSeed', 'wood_c129898' ); wo( 'woodHashY1', 'multiply', 'wood_c17', 'wood_c78233' );
+wo( 'woodHashSinArg1', 'add', 'woodHashX1', 'woodHashY1' ); wo( 'woodHashSin1', 'sin', 'woodHashSinArg1' );
+wo( 'woodHashWide1', 'multiply', 'woodHashSin1', 'wood_c43758' ); wo( 'woodHash1', 'fract', 'woodHashWide1' );
+wo( 'woodHashX2', 'multiply', 'woodPieceSeed', 'wood_c129898' ); wo( 'woodHashY2', 'multiply', 'wood_c923', 'wood_c78233' );
+wo( 'woodHashSinArg2', 'add', 'woodHashX2', 'woodHashY2' ); wo( 'woodHashSin2', 'sin', 'woodHashSinArg2' );
+wo( 'woodHashWide2', 'multiply', 'woodHashSin2', 'wood_c43758' ); wo( 'woodHash2', 'fract', 'woodHashWide2' );
+wo( 'woodOff', 'vec2', 'woodHash1', 'woodHash2' ); wo( 'woodGrainScale', 'vec2', 'wood_half', 'wood_one' );
+wo( 'woodGrainUV', 'multiply', 'woodG', 'woodGrainScale' ); wo( 'woodTUV', 'add', 'woodGrainUV', 'woodOff' );
+ws( 'woodA', 'baseColor', 'woodTUV' ); ws( 'woodN', 'metallicRoughness', 'woodTUV' );
+wo( 'woodDetailUVScale', 'vec2', 'wood_three', 'wood_four' ); wo( 'woodDetailUV0', 'multiply', 'woodTUV', 'woodDetailUVScale' );
+wc( 'woodDetailOffset', [ 0.37, 0.61 ] ); wo( 'woodDetailUV', 'add', 'woodDetailUV0', 'woodDetailOffset' ); ws( 'woodD', 'metallicRoughness', 'woodDetailUV' );
+wo( 'woodGrimeUV0', 'multiply', 'woodSurfaceUV', 'wood_half' ); wo( 'woodOffYX', 'vec2', 'woodHash2', 'woodHash1' );
+wo( 'woodOffHalf', 'multiply', 'woodOffYX', 'wood_half' ); wo( 'woodGrimeUV', 'add', 'woodGrimeUV0', 'woodOffHalf' ); ws( 'woodGm', 'emissive', 'woodGrimeUV' );
+wo( 'woodMacroUV0', 'multiply', 'woodSurfaceUV', 'wood_c007' ); wo( 'woodMacroSeedX', 'multiply', 'woodSeed', 'wood_c37' ); wo( 'woodMacroSeedY', 'multiply', 'woodSeed', 'wood_c71' );
+wo( 'woodMacroSeed', 'vec2', 'woodMacroSeedX', 'woodMacroSeedY' ); wo( 'woodMacroUV', 'add', 'woodMacroUV0', 'woodMacroSeed' ); ws( 'woodMacro', 'emissive', 'woodMacroUV' ); wo( 'woodMacroV', 'w', 'woodMacro' );
+wo( 'woodStreakUVScale', 'vec2', 'wood_c035', 'wood_c55' ); wo( 'woodStreakUV0', 'multiply', 'woodG', 'woodStreakUVScale' );
+wo( 'woodStreakOff', 'multiply', 'woodOff', 'wood_half' ); wo( 'woodStreakUV', 'add', 'woodStreakUV0', 'woodStreakOff' ); ws( 'woodGs', 'emissive', 'woodStreakUV' ); wo( 'woodGsA', 'w', 'woodGs' );
+wo( 'woodHasPaint', 'step', 'wood_c001', 'woodPaint' ); wo( 'woodRawK', 'subtract', 'wood_one', 'woodHasPaint' );
+// End grain uses the source's polar remap and explicit mip selection.
+const woodHash = ( prefix, x, y ) => {
+	wo( `${prefix}HashX`, 'multiply', x, 'wood_c129898' ); wo( `${prefix}HashY`, 'multiply', y, 'wood_c78233' );
+	wo( `${prefix}HashSum`, 'add', `${prefix}HashX`, `${prefix}HashY` ); wo( `${prefix}HashSin`, 'sin', `${prefix}HashSum` );
+	wo( `${prefix}HashWide`, 'multiply', `${prefix}HashSin`, 'wood_c43758' ); wo( `${prefix}Hash`, 'fract', `${prefix}HashWide` );
+	return `${prefix}Hash`;
+};
+const woodPithHashX = woodHash( 'woodPithHX', 'woodSeed', 'wood_c53' ); const woodPithHashY = woodHash( 'woodPithHY', 'woodSeed', 'wood_c61x' );
+wo( 'woodPithSideX0', 'multiply', woodPithHashX, 'wood_c4' ); wo( 'woodPithSideX', 'subtract', 'woodPithSideX0', 'wood_c6' );
+wo( 'woodPithSideY0', 'multiply', woodPithHashY, 'wood_c3' ); wo( 'woodPithSideY', 'add', 'woodPithSideY0', 'wood_c25' ); wo( 'woodPithSide', 'vec2', 'woodPithSideX', 'woodPithSideY' );
+const woodPithCapHX = woodHash( 'woodPithCHX', 'woodSeed', 'wood_c31' ); const woodPithCapHY = woodHash( 'woodPithCHY', 'woodSeed', 'wood_c47' );
+wo( 'woodPithCapX0', 'subtract', woodPithCapHX, 'wood_half' ); wo( 'woodPithCapX1', 'multiply', 'woodPithCapX0', 'wood_c02' );
+wo( 'woodPithCapY0', 'subtract', woodPithCapHY, 'wood_half' ); wo( 'woodPithCapY1', 'multiply', 'woodPithCapY0', 'wood_c02' ); wo( 'woodPithCap', 'vec2', 'woodPithCapX1', 'woodPithCapY1' );
+wo( 'woodPith', 'mix', 'woodPithSide', 'woodPithCap', 'woodIsCap' );
+wo( 'woodEndVector', 'subtract', 'woodSurfaceUV', 'woodPith' ); wo( 'woodEndRadius', 'length', 'woodEndVector' );
+wo( 'woodEndY', 'y', 'woodEndVector' ); wo( 'woodEndX', 'x', 'woodEndVector' ); wo( 'woodEndAngle', 'atan2', 'woodEndY', 'woodEndX' );
+wo( 'woodEndAngleTurns', 'divide', 'woodEndAngle', 'wood_tau' ); wo( 'woodEndAngleTile', 'multiply', 'woodEndAngleTurns', 'wood_three' );
+wo( 'woodEndU', 'add', 'woodEndAngleTile', 'woodHash1' ); wo( 'woodEndUV', 'vec2', 'woodEndU', 'woodEndRadius' );
+wo( 'woodRadiusWidth', 'fwidth', 'woodEndRadius' ); wo( 'woodRadiusTexels', 'multiply', 'woodRadiusWidth', 'wood_c1024' );
+wo( 'woodRadiusSafe', 'max', 'woodRadiusTexels', 'wood_one' ); wo( 'woodEndLod', 'log2', 'woodRadiusSafe' ); ws( 'woodEndA', 'baseColor', 'woodEndUV', 'woodEndLod' );
+
+// Weathered timber tone, end grain, paint film, chips, and paint normal.
+wo( 'woodWeatherNoise', 'subtract', 'woodMacroV', 'wood_half' ); wo( 'woodWeatherNoiseScale', 'multiply', 'woodWeatherNoise', 'wood_c35' );
+wo( 'woodWeatherRaw', 'add', 'woodWeather', 'woodWeatherNoiseScale' ); wo( 'woodW', 'clamp', 'woodWeatherRaw', 'wood_zero', 'wood_one' );
+wo( 'woodPaintWeatherMix', 'mix', 'wood_one', 'wood_c6', 'woodHasPaint' ); wo( 'woodWx', 'multiply', 'woodW', 'woodPaintWeatherMix' );
+wo( 'woodASideRGB', 'rgb', 'woodA' ); wo( 'woodAEndRGB', 'rgb', 'woodEndA' );
+wo( 'woodASideWarm', 'multiply', 'woodASideRGB', 'wood_woodWarm' ); wo( 'woodASideWarm104', 'multiply', 'woodASideWarm', 'wood_c104' );
+wo( 'woodSideWeatherFade', 'smoothstep', 'wood_c12', 'wood_c6', 'woodWx' ); wo( 'woodSideCol', 'mix', 'woodASideWarm104', 'woodASideRGB', 'woodSideWeatherFade' );
+wo( 'woodEndWarm', 'multiply', 'woodAEndRGB', 'wood_woodEndWarm' ); wo( 'woodEndWeather', 'mix', 'woodEndWarm', 'woodAEndRGB', 'woodW' );
+wo( 'woodEndCol', 'multiply', 'woodEndWeather', 'wood_c66' ); wo( 'woodWoodBase', 'mix', 'woodSideCol', 'woodEndCol', 'woodEndAny' );
+wo( 'woodPaintTone', 'mix', 'woodTint', 'wood_woodWhitePoint', 'woodHasPaint' );
+wo( 'woodBoardHashX', 'multiply', 'woodPieceSeed', 'wood_c129898' ); wo( 'woodBoardHashY', 'multiply', 'wood_c33', 'wood_c78233' );
+wo( 'woodBoardHashSum', 'add', 'woodBoardHashX', 'woodBoardHashY' ); wo( 'woodBoardHashSin', 'sin', 'woodBoardHashSum' );
+wo( 'woodBoardHashWide', 'multiply', 'woodBoardHashSin', 'wood_c43758' ); wo( 'woodBoardHash', 'fract', 'woodBoardHashWide' );
+wo( 'woodBoardToneNoise', 'subtract', 'woodBoardHash', 'wood_half' ); wo( 'woodBoardTone', 'multiply', 'woodBoardToneNoise', 'wood_c16' );
+wo( 'woodGsCentered', 'subtract', 'woodGsA', 'wood_half' ); wo( 'woodGsTone', 'multiply', 'woodGsCentered', 'wood_c14' );
+wo( 'woodToneSeed', 'add', 'woodBoardTone', 'woodGsTone' ); wo( 'woodToneScale', 'multiply', 'woodToneSeed', 'woodRawK' );
+wo( 'woodMacroScale', 'multiply', 'woodMacroV', 'wood_c2' ); wo( 'woodMacroBase', 'add', 'woodMacroScale', 'wood_c9' );
+wo( 'woodRawTone', 'add', 'wood_one', 'woodToneScale' ); wo( 'woodToneFactor', 'multiply', 'woodMacroBase', 'woodRawTone' );
+wo( 'woodWoodToneTint', 'multiply', 'woodWoodBase', 'woodPaintTone' ); wo( 'woodBaseAlbedo', 'multiply', 'woodWoodToneTint', 'woodToneFactor' );
+
+// Chipped paint mask and paint film response.
+wo( 'woodChip', 'w', 'woodA' );
+wo( 'woodLapFraction0', 'divide', 'woodV', 'wood_c2' ); wo( 'woodLapFraction', 'fract', 'woodLapFraction0' );
+wo( 'woodLapEdgeSmooth', 'smoothstep', 'wood_zero', 'wood_c18', 'woodLapFraction' ); wo( 'woodLapEdgeRaw', 'subtract', 'wood_one', 'woodLapEdgeSmooth' );
+wo( 'woodLapEdge', 'multiply', 'woodLapEdgeRaw', 'woodMLap' );
+wo( 'woodLowWallSmooth', 'smoothstep', 'wood_zero', 'wood_c7', 'woodV' ); wo( 'woodLowWall', 'subtract', 'wood_one', 'woodLowWallSmooth' );
+wo( 'woodWallAB', 'add', 'woodMLap', 'woodMBatten' ); wo( 'woodWall', 'add', 'woodWallAB', 'woodMTongue' ); wo( 'woodLowWallFactor', 'multiply', 'woodLowWall', 'woodWall' );
+wo( 'woodPaintOffset', 'subtract', 'woodPaint', 'wood_c4' ); wo( 'woodPaintOffsetScale', 'multiply', 'woodPaintOffset', 'wood_c32' );
+wo( 'woodChipBase', 'subtract', 'wood_c395', 'woodPaintOffsetScale' ); wo( 'woodLapThresholdOffset', 'multiply', 'woodLapEdge', 'wood_c05' );
+wo( 'woodLowThresholdOffset', 'multiply', 'woodLowWallFactor', 'wood_c05' ); wo( 'woodChipThresholdA', 'add', 'woodChipBase', 'woodLapThresholdOffset' );
+wo( 'woodChipThresholdRaw', 'add', 'woodChipThresholdA', 'woodLowThresholdOffset' ); wo( 'woodChipThreshold', 'clamp', 'woodChipThresholdRaw', 'wood_c15m', 'wood_c55' );
+wo( 'woodChipLow', 'subtract', 'woodChipThreshold', 'wood_c012' ); wo( 'woodChipHigh', 'add', 'woodChipThreshold', 'wood_c012' );
+wo( 'woodPaintCoverage', 'smoothstep', 'woodChipLow', 'woodChipHigh', 'woodChip' ); wo( 'woodNoEndGrain', 'subtract', 'wood_one', 'woodEndAny' );
+wo( 'woodPaintCoveragePaint', 'multiply', 'woodPaintCoverage', 'woodHasPaint' ); wo( 'woodPainted', 'multiply', 'woodPaintCoveragePaint', 'woodNoEndGrain' );
+wo( 'woodChipXp', 'add', 'woodTUV', 'woodEVectorX' ); wo( 'woodChipXm', 'subtract', 'woodTUV', 'woodEVectorX' );
+wo( 'woodChipYp', 'add', 'woodTUV', 'woodEVectorY' ); wo( 'woodChipYm', 'subtract', 'woodTUV', 'woodEVectorY' );
+ws( 'woodChipAXp', 'baseColor', 'woodChipXp' ); ws( 'woodChipAXm', 'baseColor', 'woodChipXm' );
+ws( 'woodChipAYp', 'baseColor', 'woodChipYp' ); ws( 'woodChipAYm', 'baseColor', 'woodChipYm' );
+wo( 'woodChipAXpA', 'w', 'woodChipAXp' ); wo( 'woodChipAXmA', 'w', 'woodChipAXm' ); wo( 'woodChipAYpA', 'w', 'woodChipAYp' ); wo( 'woodChipAYmA', 'w', 'woodChipAYm' );
+wo( 'woodChipDX', 'subtract', 'woodChipAXpA', 'woodChipAXmA' ); wo( 'woodChipDY', 'subtract', 'woodChipAYpA', 'woodChipAYmA' );
+wo( 'woodEdgeDistance', 'subtract', 'woodChip', 'woodChipThreshold' ); wo( 'woodEdgeAbs', 'abs', 'woodEdgeDistance' );
+wo( 'woodEdgeFade', 'smoothstep', 'wood_zero', 'wood_c025', 'woodEdgeAbs' ); wo( 'woodEdgeNear', 'subtract', 'wood_one', 'woodEdgeFade' );
+wo( 'woodEdgePaint', 'multiply', 'woodEdgeNear', 'woodHasPaint' ); wo( 'woodEdgePaintNear', 'multiply', 'woodEdgePaint', 'woodNear' );
+wo( 'woodEdgeGradient', 'vec2', 'woodChipDX', 'woodChipDY' ); wo( 'woodEdgeSlopeScaled', 'multiply', 'woodEdgeGradient', 'woodEdgePaintNear' );
+wo( 'woodEdgeSlope', 'multiply', 'woodEdgeSlopeScaled', 'wood_cminus9' );
+wo( 'woodPaintNScale', 'vec2', 'wood_one', 'wood_two' ); wo( 'woodPaintNUV0', 'multiply', 'woodG', 'woodPaintNScale' );
+wo( 'woodPaintNOffset', 'multiply', 'woodOff', 'wood_c37x' ); wo( 'woodPaintNUV', 'add', 'woodPaintNUV0', 'woodPaintNOffset' ); ws( 'woodP', 'normal', 'woodPaintNUV' );
+wo( 'woodPB', 'z', 'woodP' );
+
+// Grime fading, chalky paint, and paint aging.
+wo( 'woodGrimeA', 'w', 'woodGm' ); wo( 'woodGrimeR', 'x', 'woodGm' ); wo( 'woodGrimeG', 'y', 'woodGm' ); wo( 'woodGrimeB', 'z', 'woodGm' );
+wo( 'woodFadeGm', 'multiply', 'woodGrimeA', 'wood_c55' ); wo( 'woodFadeW', 'multiply', 'woodW', 'wood_c25' );
+wo( 'woodFadeMacro', 'multiply', 'woodMacroV', 'wood_c2' ); wo( 'woodFadeSumA', 'add', 'woodFadeGm', 'woodFadeW' );
+wo( 'woodFadeSum', 'add', 'woodFadeSumA', 'woodFadeMacro' ); wo( 'woodFade', 'clamp', 'woodFadeSum', 'wood_zero', 'wood_one' );
+wo( 'woodTintLuma', 'dot', 'woodTint', 'wood_lumaRGB' ); wo( 'woodBrightPaint', 'smoothstep', 'wood_c45', 'wood_c8', 'woodTintLuma' );
+wo( 'woodFadeGMix', 'multiply', 'woodGrimeA', 'wood_c4' ); wo( 'woodFadePaint', 'add', 'wood_c6', 'woodFadeGMix' );
+wo( 'woodAgedAmount', 'multiply', 'woodBrightPaint', 'woodFadePaint' ); wo( 'woodAgedTint', 'multiply', 'woodTint', 'wood_woodPaintWarm' );
+wo( 'woodAged', 'mix', 'woodTint', 'woodAgedTint', 'woodAgedAmount' );
+wo( 'woodChalkBase', 'multiply', 'woodTint', 'wood_c64' ); wo( 'woodChalk', 'add', 'woodChalkBase', 'wood_chalkRGB' );
+wo( 'woodFadeHalf', 'multiply', 'woodFade', 'wood_half' ); wo( 'woodPaintTint', 'mix', 'woodAged', 'woodChalk', 'woodFadeHalf' );
+wo( 'woodPaintBump', 'subtract', 'woodPB', 'wood_half' ); wo( 'woodPaintBumpScale', 'multiply', 'woodPaintBump', 'wood_c16' );
+wo( 'woodPaintBumpFactor', 'add', 'wood_one', 'woodPaintBumpScale' ); wo( 'woodPaintColorRaw', 'multiply', 'woodPaintTint', 'woodPaintBumpFactor' );
+wo( 'woodPaintColor', 'mix', 'woodBaseAlbedo', 'woodPaintColorRaw', 'woodPainted' );
+
+// Pattern mask setup is shared by the exact derivative-faded shade and slope
+// expressions below.
+const woodPatternShade = {};
+for ( const [ name, mask, uv, spacing, edge, low, high ] of [
+	[ 'Lap', 'woodMLap', 'woodV', 0.2, 0.09, 0.45, 1.03 ],
+	[ 'Batten', 'woodMBatten', 'woodU', 0.42, 0.12, 0.7, 1 ],
+	[ 'Tongue', 'woodMTongue', 'woodU', 0.14, 0.06, 0.6, 1 ],
+	[ 'Louver', 'woodMLouver', 'woodV', 0.07, 0.8, 0.42, 1.05 ],
+	[ 'UPlank', 'woodMUPlank', 'woodV', 0.105, 0.07, 0.58, 1 ],
+	[ 'Horizontal', 'woodMHorizontal', 'woodV', 0.16, 0.05, 0.5, 1 ],
+] ) {
+	const id = `woodPat${name}`; wc( `${id}Spacing`, spacing ); wc( `${id}Edge`, edge ); wc( `${id}Low`, low ); wc( `${id}High`, high );
+	wo( `${id}Coord`, 'divide', uv, `${id}Spacing` ); wo( `${id}Fraction`, 'fract', `${id}Coord` );
+	wo( `${id}EdgeRamp`, 'smoothstep', 'wood_zero', `${id}Edge`, `${id}Fraction` ); wo( `${id}Detail`, 'mix', `${id}Low`, `${id}High`, `${id}EdgeRamp` );
+	wo( `${id}Shade`, 'mix', 'wood_one', `${id}Detail`, mask ); woodPatternShade[ name ] = `${id}Shade`;
+}
+
+// Full source analytic wood-pattern shade and slope terms. These derivative-
+// faded ridges are part of the authored siding and decking appearance.
+const woodPatternSlope = {};
+const woodExactFade = ( id, low, high, footprint ) => {
+	wc( `${id}FadeLow`, low ); wc( `${id}FadeHigh`, high );
+	wo( `${id}FadeOut`, 'smoothstep', `${id}FadeLow`, `${id}FadeHigh`, footprint );
+	wo( `${id}Fade`, 'subtract', 'wood_one', `${id}FadeOut` );
+	return `${id}Fade`;
+};
+const woodLapFade = woodExactFade( 'woodLapExact', 0.02, 0.07, 'woodFootY' );
+wc( 'woodLapRange', 0.09 ); wc( 'woodLapLow', 0.45 ); wc( 'woodLapHigh', 1.03 ); wc( 'woodLapSlopeScale', 0.07 );
+wo( 'woodLapRamp', 'smoothstep', 'wood_zero', 'woodLapRange', 'woodPatLapFraction' );
+wo( 'woodLapDetail', 'mix', 'woodLapLow', 'woodLapHigh', 'woodLapRamp' );
+wo( 'woodLapSlopeBase', 'multiply', 'woodPatLapFraction', 'woodLapSlopeScale' );
+wo( 'woodLapDetailShade', 'subtract', 'woodLapDetail', 'woodLapSlopeBase' );
+wo( 'woodLapExactShade', 'mix', 'wood_c92', 'woodLapDetailShade', woodLapFade ); woodPatternShade.Lap = 'woodLapExactShade';
+wc( 'woodLapFractionEdge', 0.07 ); wc( 'woodLapSyLow', -2.4 ); wc( 'woodLapSyHigh', -0.14 );
+wo( 'woodLapSlopeCondition', 'lessThan', 'woodPatLapFraction', 'woodLapFractionEdge' );
+wo( 'woodLapSlopeRaw', 'select', 'woodLapSlopeCondition', 'woodLapSyLow', 'woodLapSyHigh' );
+wo( 'woodLapSlopeY', 'multiply', 'woodLapSlopeRaw', woodLapFade ); woodPatternSlope.LapY = 'woodLapSlopeY';
+
+const woodBattenFade = woodExactFade( 'woodBattenExact', 0.03, 0.09, 'woodFootX' );
+wc( 'woodBattenThreshold', 0.12 ); wc( 'woodBattenEnd', 0.2 ); wc( 'woodBattenNarrow', 0.06 );
+wo( 'woodBattenIn', 'step', 'woodPatBattenFraction', 'woodBattenThreshold' );
+wo( 'woodBattenOuterRamp', 'smoothstep', 'woodBattenThreshold', 'woodBattenEnd', 'woodPatBattenFraction' );
+wo( 'woodBattenOuter', 'subtract', 'wood_one', 'woodBattenOuterRamp' );
+wo( 'woodBattenOuterShade', 'mix', 'wood_one', 'wood_c7', 'woodBattenOuter' );
+wo( 'woodBattenNarrowMix', 'multiply', 'woodBattenIn', 'woodBattenNarrow' ); wo( 'woodBattenInner', 'add', 'wood_one', 'woodBattenNarrowMix' );
+wo( 'woodBattenDetailShade', 'multiply', 'woodBattenOuterShade', 'woodBattenInner' );
+wo( 'woodBattenExactShade', 'mix', 'wood_c95', 'woodBattenDetailShade', woodBattenFade ); woodPatternShade.Batten = 'woodBattenExactShade';
+wc( 'woodBattenCenter', 0.112 ); wc( 'woodBattenTolerance', 0.012 ); wc( 'woodBattenLeft', 0.015 );
+wo( 'woodBattenCenterDelta', 'subtract', 'woodPatBattenFraction', 'woodBattenCenter' ); wo( 'woodBattenCenterAbs', 'abs', 'woodBattenCenterDelta' );
+wo( 'woodBattenAtCenter', 'lessThan', 'woodBattenCenterAbs', 'woodBattenTolerance' ); wo( 'woodBattenBefore', 'lessThan', 'woodPatBattenFraction', 'woodBattenLeft' );
+wo( 'woodBattenSlopeCenter', 'select', 'woodBattenAtCenter', 'wood_two', 'wood_zero' );
+wo( 'woodBattenSlopeRaw', 'select', 'woodBattenBefore', 'wood_cminus2', 'woodBattenSlopeCenter' );
+wo( 'woodBattenSlopeX', 'multiply', 'woodBattenSlopeRaw', woodBattenFade ); woodPatternSlope.BattenX = 'woodBattenSlopeX';
+
+const woodTongueFade = woodExactFade( 'woodTongueExact', 0.015, 0.05, 'woodFootX' );
+wc( 'woodTongueRange', 0.06 ); wc( 'woodTongueLow', 0.6 );
+wo( 'woodTongueRamp', 'smoothstep', 'wood_zero', 'woodTongueRange', 'woodPatTongueFraction' );
+wo( 'woodTongueDetail', 'mix', 'woodTongueLow', 'wood_one', 'woodTongueRamp' );
+wo( 'woodTongueExactShade', 'mix', 'wood_c96', 'woodTongueDetail', woodTongueFade ); woodPatternShade.Tongue = 'woodTongueExactShade';
+wo( 'woodTongueAtEdge', 'lessThan', 'woodPatTongueFraction', 'woodTongueRange' );
+wo( 'woodTongueSlopeRaw', 'select', 'woodTongueAtEdge', 'wood_one', 'wood_cminus1' );
+wo( 'woodTongueSlopeX', 'multiply', 'woodTongueSlopeRaw', woodTongueFade ); woodPatternSlope.TongueX = 'woodTongueSlopeX';
+
+const woodLouverFade = woodExactFade( 'woodLouverExact', 0.008, 0.03, 'woodFootY' );
+wc( 'woodLouverRange', 0.8 ); wc( 'woodLouverLow', 0.42 ); wc( 'woodLouverHigh', 1.05 ); wc( 'woodLouverSlopeEdge', 0.85 );
+wo( 'woodLouverRamp', 'smoothstep', 'wood_zero', 'woodLouverRange', 'woodPatLouverFraction' );
+wo( 'woodLouverDetail', 'mix', 'woodLouverLow', 'woodLouverHigh', 'woodLouverRamp' );
+wo( 'woodLouverExactShade', 'mix', 'wood_c8', 'woodLouverDetail', woodLouverFade ); woodPatternShade.Louver = 'woodLouverExactShade';
+wo( 'woodLouverAfter', 'greaterThan', 'woodPatLouverFraction', 'woodLouverSlopeEdge' );
+wo( 'woodLouverSlopeRaw', 'select', 'woodLouverAfter', 'wood_c12', 'wood_cminus1' );
+wo( 'woodLouverSlopeY', 'multiply', 'woodLouverSlopeRaw', woodLouverFade ); woodPatternSlope.LouverY = 'woodLouverSlopeY';
+
+const woodUPlankFade = woodExactFade( 'woodUPlankExact', 0.012, 0.04, 'woodFootY' );
+wc( 'woodUPlankRange', 0.07 ); wc( 'woodUPlankLow', 0.58 );
+wo( 'woodUPlankRamp', 'smoothstep', 'wood_zero', 'woodUPlankRange', 'woodPatUPlankFraction' );
+wo( 'woodUPlankDetail', 'mix', 'woodUPlankLow', 'wood_one', 'woodUPlankRamp' );
+wo( 'woodUPlankExactShade', 'mix', 'wood_c95', 'woodUPlankDetail', woodUPlankFade ); woodPatternShade.UPlank = 'woodUPlankExactShade';
+wc( 'woodUPlankSlopeEdge', 0.035 ); wc( 'woodUPlankSlopeOuter', 0.07 );
+wo( 'woodUPlankAtInner', 'lessThan', 'woodPatUPlankFraction', 'woodUPlankSlopeOuter' );
+wo( 'woodUPlankAtOuter', 'lessThan', 'woodPatUPlankFraction', 'woodUPlankSlopeEdge' );
+wo( 'woodUPlankInnerSlope', 'select', 'woodUPlankAtInner', 'wood_one', 'wood_zero' );
+wo( 'woodUPlankSlopeRaw', 'select', 'woodUPlankAtOuter', 'wood_cminus1', 'woodUPlankInnerSlope' );
+wo( 'woodUPlankSlopeY', 'multiply', 'woodUPlankSlopeRaw', woodUPlankFade ); woodPatternSlope.UPlankY = 'woodUPlankSlopeY';
+
+const woodHorizontalFade = woodExactFade( 'woodHorizontalExact', 0.015, 0.05, 'woodFootY' );
+wc( 'woodHorizontalRange', 0.05 ); wc( 'woodHorizontalLow', 0.5 );
+wo( 'woodHorizontalRamp', 'smoothstep', 'wood_zero', 'woodHorizontalRange', 'woodPatHorizontalFraction' );
+wo( 'woodHorizontalDetail', 'mix', 'woodHorizontalLow', 'wood_one', 'woodHorizontalRamp' );
+wo( 'woodHorizontalExactShade', 'mix', 'wood_c95', 'woodHorizontalDetail', woodHorizontalFade ); woodPatternShade.Horizontal = 'woodHorizontalExactShade';
+
+// Nail heads and rust stains in the authored deck-plank pattern.
+wo( 'woodNailU0', 'subtract', 'woodU', 'wood_c1' ); wo( 'woodNailU1', 'divide', 'woodNailU0', 'wood_c8' );
+wo( 'woodNailU2', 'add', 'woodNailU1', 'wood_half' ); wo( 'woodNailU3', 'fract', 'woodNailU2' );
+wo( 'woodNailU4', 'subtract', 'woodNailU3', 'wood_half' ); wo( 'woodNailU', 'multiply', 'woodNailU4', 'wood_c8' );
+wo( 'woodNailV1', 'subtract', 'woodV', 'wood_c045' ); wo( 'woodNailV2', 'abs', 'woodNailV1' );
+wo( 'woodNailV3', 'subtract', 'woodV', 'wood_c155' ); wo( 'woodNailV4', 'abs', 'woodNailV3' ); wo( 'woodNailV', 'min', 'woodNailV2', 'woodNailV4' );
+wo( 'woodNailCoord', 'vec2', 'woodNailU', 'woodNailV' ); wo( 'woodNailDistance', 'length', 'woodNailCoord' );
+wo( 'woodNailFade', 'smoothstep', 'wood_c0045', 'wood_c0075', 'woodNailDistance' ); wo( 'woodNailDisk', 'subtract', 'wood_one', 'woodNailFade' );
+wo( 'woodNailNearRaw', 'smoothstep', 'wood_c0015', 'wood_c004', 'woodPixelFootprint' ); wo( 'woodNailNear', 'subtract', 'wood_one', 'woodNailNearRaw' );
+wo( 'woodNailPattern', 'multiply', 'woodNailDisk', 'woodMNail' ); wo( 'woodNail', 'multiply', 'woodNailPattern', 'woodNailNear' );
+wo( 'woodStainU', 'multiply', 'woodNailU', 'wood_c3' ); wo( 'woodStainV', 'multiply', 'woodNailV', 'wood_c14' );
+wo( 'woodStainCoord', 'vec2', 'woodStainU', 'woodStainV' ); wo( 'woodStainDistance', 'length', 'woodStainCoord' );
+wo( 'woodStainFade', 'smoothstep', 'wood_zero', 'wood_c05', 'woodStainDistance' ); wo( 'woodStainDisk', 'subtract', 'wood_one', 'woodStainFade' );
+wo( 'woodStain', 'multiply', 'woodStainDisk', 'woodMNail' );
+
+wo( 'woodShadeLapDelta', 'subtract', woodPatternShade.Lap, 'wood_one' );
+wo( 'woodShadeBattenDelta', 'subtract', woodPatternShade.Batten, 'wood_one' );
+wo( 'woodShadeTongueDelta', 'subtract', woodPatternShade.Tongue, 'wood_one' );
+wo( 'woodShadeLouverDelta', 'subtract', woodPatternShade.Louver, 'wood_one' );
+wo( 'woodShadeUPlankDelta', 'subtract', woodPatternShade.UPlank, 'wood_one' );
+wo( 'woodShadeHorizontalDelta', 'subtract', woodPatternShade.Horizontal, 'wood_one' );
+wo( 'woodShadeLapPart', 'multiply', 'woodMLap', 'woodShadeLapDelta' );
+wo( 'woodShadeBattenPart', 'multiply', 'woodMBatten', 'woodShadeBattenDelta' );
+wo( 'woodShadeTonguePart', 'multiply', 'woodMTongue', 'woodShadeTongueDelta' );
+wo( 'woodShadeLouverPart', 'multiply', 'woodMLouver', 'woodShadeLouverDelta' );
+wo( 'woodShadeUPlankPart', 'multiply', 'woodMUPlank', 'woodShadeUPlankDelta' );
+wo( 'woodShadeHorizontalPart', 'multiply', 'woodMHorizontal', 'woodShadeHorizontalDelta' );
+wo( 'woodShadeSumA', 'add', 'woodShadeLapPart', 'woodShadeBattenPart' ); wo( 'woodShadeSumB', 'add', 'woodShadeTonguePart', 'woodShadeLouverPart' );
+wo( 'woodShadeSumC', 'add', 'woodShadeUPlankPart', 'woodShadeHorizontalPart' ); wo( 'woodShadeSumD', 'add', 'woodShadeSumA', 'woodShadeSumB' );
+wo( 'woodShadeSumE', 'add', 'woodShadeSumD', 'woodShadeSumC' ); wo( 'woodShade', 'add', 'wood_one', 'woodShadeSumE' );
+
+// Surface color: chips/stains, general dirt and salt, splash-zone splashback,
+// pattern shading, baked occlusion, and the deck wear treatment.
+wo( 'woodStainScale', 'multiply', 'woodStain', 'wood_cminus04' ); wo( 'woodStainBright', 'add', 'wood_one', 'woodStainScale' );
+wo( 'woodStainedBase', 'multiply', 'woodBaseAlbedo', 'woodStainBright' );
+wo( 'woodPaintedColor', 'mix', 'woodStainedBase', 'woodPaintColor', 'woodPainted' );
+wo( 'woodNailedColor', 'mix', 'woodPaintedColor', 'wood_stainRGB', 'woodNail' );
+wo( 'woodDirtWeather', 'mix', 'wood_c22', 'wood_half', 'woodW' );
+wo( 'woodGrimeDirt', 'mix', 'woodGm', 'woodGs', 'woodRawK' ); wo( 'woodDirtRawScale', 'mix', 'wood_c75', 'wood_c35', 'woodRawK' );
+wo( 'woodDirtR', 'x', 'woodGrimeDirt' ); wo( 'woodDirtG', 'y', 'woodGrimeDirt' );
+wo( 'woodDirtAmount', 'multiply', 'woodDirtR', 'woodDirtWeather' ); wo( 'woodDirtScale', 'multiply', 'woodDirtAmount', 'woodDirtRawScale' );
+wo( 'woodDirtKeep', 'subtract', 'wood_one', 'woodDirtScale' ); wo( 'woodDirtColor', 'multiply', 'woodNailedColor', 'woodDirtKeep' );
+wo( 'woodSaltRaw', 'mix', 'wood_c28', 'wood_c16', 'woodRawK' ); wo( 'woodSaltPaint', 'add', 'woodPainted', 'wood_half' );
+wo( 'woodSaltAmountA', 'multiply', 'woodDirtG', 'woodSaltRaw' ); wo( 'woodSaltAmount', 'multiply', 'woodSaltAmountA', 'woodSaltPaint' );
+wo( 'woodSaltColor', 'mix', 'woodDirtColor', 'wood_saltRGB', 'woodSaltAmount' );
+wo( 'woodPaintGrimeAmount', 'multiply', 'woodGrimeB', 'wood_c3' ); wo( 'woodPaintGrimeKeep', 'subtract', 'wood_one', 'woodPaintGrimeAmount' );
+wo( 'woodGrimeColor', 'multiply', 'woodSaltColor', 'woodPaintGrimeKeep' );
+wo( 'woodSplashNoise0', 'subtract', 'woodGrimeA', 'wood_half' ); wo( 'woodSplashNoise', 'multiply', 'woodSplashNoise0', 'wood_half' );
+wo( 'woodSplashMacro0', 'subtract', 'woodMacroV', 'wood_half' ); wo( 'woodSplashMacro', 'multiply', 'woodSplashMacro0', 'wood_c3' );
+wo( 'woodSplashHeightA', 'add', 'wood_c55', 'woodSplashNoise' ); wo( 'woodSplashHeight', 'add', 'woodSplashHeightA', 'woodSplashMacro' );
+wo( 'woodSplashRiseOut', 'smoothstep', 'wood_zero', 'woodSplashHeight', 'woodV' ); wo( 'woodSplashRise', 'subtract', 'wood_one', 'woodSplashRiseOut' );
+wo( 'woodSplash', 'multiply', 'woodWall', 'woodSplashRise' ); wo( 'woodSplashHalf', 'multiply', 'woodSplash', 'wood_half' );
+wo( 'woodSplashKeep', 'subtract', 'wood_one', 'woodSplashHalf' );
+wo( 'woodSplashDarkColor', 'multiply', 'woodGrimeColor', 'woodSplashKeep' ); wo( 'woodSplashGreenInput', 'multiply', 'woodGrimeA', 'wood_half' );
+wo( 'woodSplashGreenSignal', 'add', 'woodGrimeB', 'woodSplashGreenInput' );
+wo( 'woodSplashGreenFade', 'smoothstep', 'wood_c4', 'wood_c7', 'woodSplashGreenSignal' );
+wo( 'woodSplashGreenAmountA', 'multiply', 'woodSplash', 'woodSplashGreenFade' ); wo( 'woodSplashGreenAmount', 'multiply', 'woodSplashGreenAmountA', 'wood_c7' );
+wo( 'woodSplashGreenColor', 'multiply', 'woodSplashDarkColor', 'wood_splashRGB' );
+wo( 'woodSplashColor', 'mix', 'woodSplashDarkColor', 'woodSplashGreenColor', 'woodSplashGreenAmount' );
+wo( 'woodAONRaw', 'z', 'woodN' ); wo( 'woodAONormalAO', 'w', 'woodN' ); wo( 'woodPAO', 'w', 'woodP' );
+wo( 'woodAOPaintedMix', 'mix', 'wood_one', 'woodAONormalAO', 'wood_c35' ); wo( 'woodAOPainted', 'multiply', 'woodAOPaintedMix', 'woodPAO' );
+wo( 'woodAO', 'mix', 'woodAONormalAO', 'woodAOPainted', 'woodPainted' );
+wo( 'woodAOScale', 'mix', 'wood_one', 'woodAO', 'wood_half' ); wo( 'woodPatternColor', 'multiply', 'woodSplashColor', 'woodShade' );
+wo( 'woodBaseColor', 'multiply', 'woodPatternColor', 'woodAOScale' );
+
+// The graph retains the source walking stripe, board-edge dirt, and dampness.
+
+// Vertex-normal-space weather, rain streaks, and the original tidal belt.
+wo( 'woodWpX', 'x', 'woodWorldPosition' ); wo( 'woodWpY', 'y', 'woodWorldPosition' ); wo( 'woodWpZ', 'z', 'woodWorldPosition' );
+wo( 'woodRainQZ', 'multiply', 'woodWpZ', 'wood_c7' ); wo( 'woodRainQX', 'add', 'woodWpX', 'woodRainQZ' ); wo( 'woodRainQ', 'vec2', 'woodRainQX', 'woodWpY' );
+wo( 'woodRainAXZ', 'add', 'woodWpX', 'woodWpZ' ); wo( 'woodRainAXZScale', 'multiply', 'woodRainAXZ', 'wood_c23' );
+wo( 'woodRainASeed', 'multiply', 'woodSeed', 'wood_c5mul' ); wo( 'woodRainAX', 'add', 'woodRainAXZScale', 'woodRainASeed' );
+wo( 'woodRainAY', 'multiply', 'woodWpY', 'wood_c12m' ); wo( 'woodRainUvA', 'vec2', 'woodRainAX', 'woodRainAY' ); ws( 'woodRainA', 'emissive', 'woodRainUvA' );
+wo( 'woodRainBXZ', 'subtract', 'woodWpX', 'woodWpZ' ); wo( 'woodRainBX', 'multiply', 'woodRainBXZ', 'wood_c51' );
+wo( 'woodRainBY0', 'multiply', 'woodWpY', 'wood_c3' ); wo( 'woodRainBY', 'add', 'woodRainBY0', 'wood_c37' );
+wo( 'woodRainUvB', 'vec2', 'woodRainBX', 'woodRainBY' ); ws( 'woodRainB', 'emissive', 'woodRainUvB' );
+wo( 'woodRainAAlpha', 'w', 'woodRainA' ); wo( 'woodRainBR', 'x', 'woodRainB' );
+wo( 'woodRainBWide', 'smoothstep', 'wood_c45', 'wood_c85', 'woodRainBR' ); wo( 'woodRainANarrow', 'smoothstep', 'wood_c6', 'wood_c7', 'woodRainAAlpha' );
+wo( 'woodRainAWeighted', 'multiply', 'woodRainANarrow', 'wood_c35' ); wo( 'woodRainSum', 'add', 'woodRainBWide', 'woodRainAWeighted' );
+wo( 'woodRainClamp', 'clamp', 'woodRainSum', 'wood_zero', 'wood_one' ); wo( 'woodWorldNormalY', 'y', 'woodWorldNormal' );
+wo( 'woodSideFace', 'subtract', 'wood_one', 'woodWorldNormalY' ); wo( 'woodSideAbs', 'abs', 'woodWorldNormalY' ); wo( 'woodSide', 'subtract', 'wood_one', 'woodSideAbs' );
+wo( 'woodSideSquared', 'multiply', 'woodSide', 'woodSide' ); wo( 'woodRainSide', 'multiply', 'woodSideSquared', 'woodRainClamp' );
+wo( 'woodWeatherMix', 'mix', 'wood_c45', 'wood_c55', 'woodW' ); wo( 'woodRainStrength', 'multiply', 'woodRainSide', 'woodWeatherMix' );
+wo( 'woodNoEndForRain', 'subtract', 'wood_one', 'woodEndAny' ); wo( 'woodRain', 'multiply', 'woodRainStrength', 'woodNoEndForRain' );
+wo( 'woodRainDark', 'multiply', 'woodRain', 'wood_c24' ); wo( 'woodRainKeep', 'subtract', 'wood_one', 'woodRainDark' );
+wo( 'woodRainDarkColor', 'multiply', 'woodSplashColor', 'woodRainKeep' ); wo( 'woodRustThreshold', 'smoothstep', 'wood_c5', 'wood_c6', 'woodRainAAlpha' );
+wo( 'woodRustColorMix', 'multiply', 'woodRain', 'woodRustThreshold' ); wo( 'woodRustColorScale', 'multiply', 'woodRustColorMix', 'wood_c6' );
+wo( 'woodRustTint', 'multiply', 'woodRainDarkColor', 'wood_rustRGB' ); wo( 'woodRainColor', 'mix', 'woodRainDarkColor', 'woodRustTint', 'woodRustColorScale' );
+
+// Walking wear, plank-edge grit and dampness are UV-authored in the source.
+wo( 'woodWalkNegativePaint', 'subtract', 'wood_zero', 'woodPaint' ); wo( 'woodWalkCenter', 'subtract', 'woodWalkNegativePaint', 'wood_one' );
+wo( 'woodWalkMacroDelta', 'subtract', 'woodMacroV', 'wood_half' ); wo( 'woodWalkMacroNoise', 'multiply', 'woodWalkMacroDelta', 'wood_half' );
+wo( 'woodWalkOffset0', 'subtract', 'woodUSurface', 'woodWalkCenter' ); wo( 'woodWalkOffset', 'add', 'woodWalkOffset0', 'woodWalkMacroNoise' );
+wo( 'woodWalkWidth', 'divide', 'woodWalkOffset', 'wood_c6' ); wo( 'woodWalkSquare', 'multiply', 'woodWalkWidth', 'woodWalkWidth' );
+wo( 'woodWalkExpArg', 'subtract', 'wood_zero', 'woodWalkSquare' ); wo( 'woodWalkExp', 'exp', 'woodWalkExpArg' );
+wo( 'woodUp', 'clamp', 'woodWorldNormalY', 'wood_zero', 'wood_one' ); wo( 'woodWalkUp', 'smoothstep', 'wood_c6', 'wood_c9', 'woodUp' );
+wo( 'woodWalkEnabled', 'step', 'woodPaint', 'wood_cminus05' ); wo( 'woodWalkEnabledUp', 'multiply', 'woodWalkEnabled', 'woodWalkUp' );
+wo( 'woodWalkPath', 'multiply', 'woodWalkEnabledUp', 'woodWalkExp' ); wo( 'woodWalkK', 'multiply', 'woodWalkPath', 'woodNoEndForRain' );
+wo( 'woodWalkHalf', 'multiply', 'woodWalkK', 'wood_c55' );
+wo( 'woodWalkTrodden', 'multiply', 'woodRainColor', 'wood_troddenRGB' ); wo( 'woodWalkColor', 'mix', 'woodRainColor', 'woodWalkTrodden', 'woodWalkHalf' );
+wo( 'woodBevelOther', 'subtract', 'wood_c18', 'woodV' ); wo( 'woodBevel', 'min', 'woodV', 'woodBevelOther' );
+wo( 'woodEdgeDirtFade', 'smoothstep', 'wood_c004', 'wood_c03', 'woodBevel' ); wo( 'woodEdgeDirtNear', 'subtract', 'wood_one', 'woodEdgeDirtFade' );
+wo( 'woodEdgeDirtUp', 'multiply', 'woodMNail', 'woodWalkUp' ); wo( 'woodEdgeDirtOpen', 'multiply', 'woodEdgeDirtUp', 'woodEdgeDirtNear' );
+wo( 'woodEdgeDirtNoEnd', 'multiply', 'woodEdgeDirtOpen', 'woodNoEndForRain' );
+wo( 'woodGsR', 'x', 'woodGs' ); wo( 'woodEdgeDirtGrit', 'multiply', 'woodGsR', 'wood_c15m' ); wo( 'woodEdgeDirtBase', 'add', 'wood_c18', 'woodEdgeDirtGrit' );
+wo( 'woodEdgeDirtAmount', 'multiply', 'woodEdgeDirtNoEnd', 'woodEdgeDirtBase' );
+wo( 'woodEdgeDirtKeep', 'subtract', 'wood_one', 'woodEdgeDirtAmount' ); wo( 'woodEdgeDirtColor', 'multiply', 'woodWalkColor', 'woodEdgeDirtKeep' );
+wo( 'woodDampUp', 'multiply', 'woodWalkUp', 'woodRawK' ); wo( 'woodDampNoEnd', 'multiply', 'woodDampUp', 'woodNoEndForRain' );
+wo( 'woodDampMacro', 'smoothstep', 'wood_c45', 'wood_c75', 'woodMacroV' ); wo( 'woodDeckDamp', 'multiply', 'woodDampNoEnd', 'woodDampMacro' );
+wo( 'woodDampOpen', 'smoothstep', 'wood_zero', 'wood_c06', 'woodBevel' ); wo( 'woodDampEdge', 'subtract', 'wood_one', 'woodDampOpen' );
+wo( 'woodDampDarkAmount', 'multiply', 'woodDeckDamp', 'woodDampEdge' ); wo( 'woodDampDark', 'multiply', 'woodDampDarkAmount', 'wood_c18' );
+wo( 'woodDampKeep', 'subtract', 'wood_one', 'woodDampDark' ); wo( 'woodDeckColor', 'multiply', 'woodEdgeDirtColor', 'woodDampKeep' );
+
+// Sparse upward-facing bird droppings, matching the source's seed/position hash.
+wo( 'woodBirdQ', 'vec2', 'woodWpX', 'woodWpZ' ); wo( 'woodBirdScale', 'divide', 'wood_one', 'wood_c3' ); wo( 'woodBirdScaled', 'multiply', 'woodBirdQ', 'woodBirdScale' );
+wo( 'woodBirdCell', 'floor', 'woodBirdScaled' ); wo( 'woodBirdCellX', 'x', 'woodBirdCell' ); wo( 'woodBirdCellY', 'y', 'woodBirdCell' );
+wo( 'woodBirdHashX', 'add', 'woodBirdCellX', 'woodSeed' );
+const woodBirdChanceHash = woodHash( 'woodBirdChance', 'woodBirdHashX', 'woodBirdCellY' );
+wo( 'woodBirdChance', 'step', 'wood_c93', woodBirdChanceHash );
+wo( 'woodBirdFrac', 'fract', 'woodBirdScaled' ); wo( 'woodBirdFracCentered', 'subtract', 'woodBirdFrac', 'wood_half2' );
+wo( 'woodBirdHashX2Input', 'add', 'woodBirdCellX', 'wood_c31' );
+const woodBirdOffsetHashX = woodHash( 'woodBirdOffX', 'woodBirdHashX2Input', 'woodBirdCellY' );
+wo( 'woodBirdHashY2Input', 'add', 'woodBirdCellY', 'wood_c77x' );
+const woodBirdOffsetHashY = woodHash( 'woodBirdOffY', 'woodBirdCellX', 'woodBirdHashY2Input' );
+wo( 'woodBirdOffset', 'vec2', woodBirdOffsetHashX, woodBirdOffsetHashY ); wo( 'woodBirdOffsetCentered', 'subtract', 'woodBirdOffset', 'wood_half2' );
+wo( 'woodBirdOffsetScaled', 'multiply', 'woodBirdOffsetCentered', 'wood_c45' ); wo( 'woodBirdCenter', 'subtract', 'woodBirdFracCentered', 'woodBirdOffsetScaled' );
+wo( 'woodBirdCenterX', 'x', 'woodBirdCenter' ); wo( 'woodBirdCenterY', 'y', 'woodBirdCenter' ); wo( 'woodBirdYScaled', 'multiply', 'woodBirdCenterY', 'wood_c135' );
+wo( 'woodBirdShape', 'vec2', 'woodBirdCenterX', 'woodBirdYScaled' ); wo( 'woodBirdDistance', 'length', 'woodBirdShape' );
+wo( 'woodBirdGrimeNoise', 'subtract', 'woodGrimeA', 'wood_half' ); wo( 'woodBirdGrimeOffset', 'multiply', 'woodBirdGrimeNoise', 'wood_c08' );
+wo( 'woodBirdDistanceNoisy', 'add', 'woodBirdDistance', 'woodBirdGrimeOffset' );
+wo( 'woodBirdUp', 'smoothstep', 'wood_c75', 'wood_c95', 'woodUp' );
+wo( 'woodBirdHeight', 'step', 'wood_c26', 'woodWpY' );
+wo( 'woodBirdOuterFade', 'smoothstep', 'wood_c10', 'wood_c15m', 'woodBirdDistanceNoisy' ); wo( 'woodBirdOuter', 'subtract', 'wood_one', 'woodBirdOuterFade' );
+wo( 'woodBirdPresenceA', 'multiply', 'woodBirdChance', 'woodBirdUp' ); wo( 'woodBirdPresenceB', 'multiply', 'woodBirdPresenceA', 'woodBirdHeight' );
+wo( 'woodBirdK', 'multiply', 'woodBirdPresenceB', 'woodBirdOuter' ); wo( 'woodBirdCoreFade', 'smoothstep', 'wood_c02', 'wood_c07', 'woodBirdDistanceNoisy' );
+wo( 'woodBirdCoreKeep', 'subtract', 'wood_one', 'woodBirdCoreFade' ); wo( 'woodBirdCore', 'multiply', 'woodBirdK', 'woodBirdCoreKeep' );
+wo( 'woodBirdCoreLight', 'mix', 'wood_dropLowRGB', 'wood_dropHighRGB', 'woodBirdCore' );
+wo( 'woodBirdK06', 'multiply', 'woodBirdK', 'wood_c6' ); wo( 'woodBirdColor', 'mix', 'woodDeckColor', 'woodBirdCoreLight', 'woodBirdK06' );
+wc( 'wood_half2', [ 0.5, 0.5 ] ); wc( 'woodNearHalf', 0.5 );
+
+// Tide-height weathering uses the same grayscale-authored world map as the
+// source material, preserving wetness, algae, barnacles, and roughness shifts.
+wo( 'woodTideQZ', 'multiply', 'woodWpZ', 'wood_c7' ); wo( 'woodTideQX', 'add', 'woodWpX', 'woodTideQZ' ); wo( 'woodTideQ', 'vec2', 'woodTideQX', 'woodWpY' );
+wo( 'woodTideUV0Scale', 'vec2', 'wood_c6', 'wood_c12' ); wo( 'woodTideUV0', 'multiply', 'woodTideQ', 'woodTideUV0Scale' ); ws( 'woodTideG0', 'emissive', 'woodTideUV0' );
+wo( 'woodTideG0A', 'w', 'woodTideG0' ); wo( 'woodTideG0R', 'x', 'woodTideG0' ); wo( 'woodTideG0Bump', 'subtract', 'woodTideG0A', 'wood_half' );
+wo( 'woodTideHeightNoise', 'multiply', 'woodTideG0Bump', 'wood_c3' ); wo( 'woodTideHeight', 'add', 'woodWpY', 'woodTideHeightNoise' );
+wo( 'woodWetFade', 'smoothstep', 'wood_c3', 'wood_c75', 'woodTideHeight' ); wo( 'woodWet', 'subtract', 'wood_one', 'woodWetFade' );
+wo( 'woodDampFade', 'smoothstep', 'wood_c7', 'wood_c15', 'woodTideHeight' ); wo( 'woodDamp', 'subtract', 'wood_one', 'woodDampFade' );
+wo( 'woodDampScale', 'multiply', 'woodDamp', 'wood_c4' );
+wo( 'woodAlgaeBlend', 'multiply', 'woodTideG0A', 'wood_c6' ); wo( 'woodAlgaeR', 'multiply', 'woodTideG0R', 'wood_c4' );
+wo( 'woodAlgaeSignal', 'add', 'woodAlgaeBlend', 'woodAlgaeR' );
+wo( 'woodAlgaeDark', 'multiply', 'wood_woodAlgaeDark', 'woodAlgaeSignal' );
+wo( 'woodAlgaeColor', 'mix', 'wood_woodAlgaeDark', 'wood_woodAlgaeLight', 'woodAlgaeSignal' );
+wo( 'woodTideDampKeep', 'subtract', 'wood_one', 'woodDampScale' ); wo( 'woodTideDampInput', 'multiply', 'woodBirdColor', 'woodTideDampKeep' );
+wo( 'woodTideDampColor', 'mix', 'woodTideDampInput', 'woodAlgaeColor', 'woodWet' );
+wo( 'woodTideUvScale', 'multiply', 'woodTideQ', 'wood_c31' ); ws( 'woodTideG1', 'emissive', 'woodTideUvScale' );
+wo( 'woodTideG1B', 'z', 'woodTideG1' );
+wo( 'woodBarnHeightLow', 'smoothstep', 'wood_cminus16', 'wood_cminus035', 'woodTideHeight' );
+wo( 'woodBarnHeightHigh', 'smoothstep', 'wood_c25', 'wood_c6', 'woodTideHeight' ); wo( 'woodBarnHeightFade', 'subtract', 'wood_one', 'woodBarnHeightHigh' );
+wo( 'woodBarnHeight', 'multiply', 'woodBarnHeightLow', 'woodBarnHeightFade' ); wo( 'woodBarn', 'multiply', 'woodTideG1B', 'woodBarnHeight' );
+wo( 'woodBarnTint', 'multiply', 'woodBarn', 'wood_c9' ); wo( 'woodBarnColor', 'mix', 'woodTideDampColor', 'wood_barnRGB', 'woodBarnTint' );
+
+// Convert packed RG texture normals to UV-space slopes, blend raw and painted
+// relief, and let the engine's shared graph compiler produce each backend.
+const woodSlope = ( prefix, sample ) => {
+	wo( `${prefix}XY`, 'xy', sample ); wo( `${prefix}Scaled`, 'multiply', `${prefix}XY`, 'wood_two' );
+	wo( `${prefix}Centered`, 'subtract', `${prefix}Scaled`, 'wood_one2' );
+	wo( `${prefix}Dot`, 'dot', `${prefix}Centered`, `${prefix}Centered` );
+	wo( `${prefix}Remainder`, 'subtract', 'wood_one', `${prefix}Dot` );
+	wo( `${prefix}Denom2`, 'max', `${prefix}Remainder`, 'wood_c04' ); wo( `${prefix}Denom`, 'sqrt', `${prefix}Denom2` );
+	wo( `${prefix}DenomV`, 'vec2', `${prefix}Denom`, `${prefix}Denom` ); wo( `${prefix}Slope`, 'divide', `${prefix}Centered`, `${prefix}DenomV` );
+	return `${prefix}Slope`;
+};
+wc( 'wood_one2', [ 1, 1 ] ); wc( 'wood_cminus16', -1.6 ); wc( 'wood_cminus035', -0.35 );
+wc( 'wood_c15', 1.5 ); wc( 'wood_c24', 0.24 ); wc( 'wood_cminus04', -0.4 );
+wc( 'wood_woodAlgaeDark', [ 0.028, 0.042, 0.02 ] ); wc( 'wood_woodAlgaeLight', [ 0.11, 0.105, 0.05 ] );
+wc( 'wood_barnRGB', [ 0.52, 0.5, 0.44 ] );
+const woodSlopeN = woodSlope( 'woodSlopeN', 'woodN' ); const woodSlopeD = woodSlope( 'woodSlopeD', 'woodD' ); const woodSlopeP = woodSlope( 'woodSlopeP', 'woodP' );
+wo( 'woodDetailSlope', 'multiply', woodSlopeD, 'woodNearHalf' ); wo( 'woodSlopeWood', 'add', woodSlopeN, 'woodDetailSlope' );
+wo( 'woodSlopePaintN', 'multiply', woodSlopeN, 'wood_c3' ); wo( 'woodSlopePaint', 'add', 'woodSlopePaintN', woodSlopeP );
+wo( 'woodSlopeSelected', 'mix', 'woodSlopeWood', 'woodSlopePaint', 'woodPainted' );
+wo( 'woodSlopeEdge', 'add', 'woodSlopeSelected', 'woodEdgeSlope' );
+wo( 'woodSlopeEndScale', 'mix', 'wood_one', 'wood_c4', 'woodEndAny' ); wo( 'woodSlopeEnd', 'multiply', 'woodSlopeEdge', 'woodSlopeEndScale' );
+wo( 'woodWalkSlopeScale', 'multiply', 'woodWalkK', 'wood_c45' ); wo( 'woodWalkSlopeKeep', 'subtract', 'wood_one', 'woodWalkSlopeScale' );
+wo( 'woodSlopeWalk', 'multiply', 'woodSlopeEnd', 'woodWalkSlopeKeep' );
+wo( 'woodDropSlopeScale', 'multiply', 'woodBirdK', 'wood_c7' ); wo( 'woodDropSlopeKeep', 'subtract', 'wood_one', 'woodDropSlopeScale' );
+wo( 'woodSlopeWeather', 'multiply', 'woodSlopeWalk', 'woodDropSlopeKeep' );
+wo( 'woodSlopeMeshX', 'x', 'woodSlopeWeather' ); wo( 'woodSlopeMeshY', 'y', 'woodSlopeWeather' );
+wo( 'woodSlopeSwap', 'vec2', 'woodSlopeMeshY', 'woodSlopeMeshX' );
+wo( 'woodSlopeFinal', 'mix', 'woodSlopeWeather', 'woodSlopeSwap', 'woodIsVertical' );
+wo( 'woodPatBattenSlopeX', 'multiply', 'woodMBatten', 'woodBattenSlopeX' ); wo( 'woodPatTongueSlopeX', 'multiply', 'woodMTongue', 'woodTongueSlopeX' );
+wo( 'woodPatSlopeX', 'add', 'woodPatBattenSlopeX', 'woodPatTongueSlopeX' );
+wo( 'woodPatLapSlopeY', 'multiply', 'woodMLap', 'woodLapSlopeY' ); wo( 'woodPatLouverSlopeY', 'multiply', 'woodMLouver', 'woodLouverSlopeY' );
+wo( 'woodPatUPlankSlopeY', 'multiply', 'woodMUPlank', 'woodUPlankSlopeY' ); wo( 'woodPatSlopeYA', 'add', 'woodPatLapSlopeY', 'woodPatLouverSlopeY' );
+wo( 'woodPatSlopeY', 'add', 'woodPatSlopeYA', 'woodPatUPlankSlopeY' ); wo( 'woodPatSlope', 'vec2', 'woodPatSlopeX', 'woodPatSlopeY' );
+wo( 'woodSlopeAll', 'add', 'woodSlopeFinal', 'woodPatSlope' );
+wo( 'woodSurfaceNormal', 'normalFromSlope', 'woodWorldPosition', 'woodWorldNormal', 'woodUV', 'woodSlopeAll' );
+
+// Roughness and AO mirror source response, including nail, walking, rain, and
+// bird-dropping adjustments.
+wc( 'woodNearHalf', 0.5 ); wo( 'woodW03', 'multiply', 'woodW', 'wood_c03' );
+wo( 'woodRawRough', 'z', 'woodN' ); wo( 'woodRawWeatherRough', 'add', 'woodRawRough', 'woodW03' );
+wo( 'woodPaintRoughMap', 'z', 'woodP' ); wo( 'woodPaintRough', 'mix', 'wood_c4', 'wood_c7', 'woodPaintRoughMap' );
+wo( 'woodPaintRoughFade', 'multiply', 'woodFade', 'wood_c12m' ); wo( 'woodPaintRoughFinal', 'add', 'woodPaintRough', 'woodPaintRoughFade' );
+wo( 'woodRoughBase', 'mix', 'woodRawWeatherRough', 'woodPaintRoughFinal', 'woodPainted' );
+wo( 'woodRoughGrimeR', 'multiply', 'woodGrimeR', 'wood_c06' ); wo( 'woodRoughGrimeG', 'multiply', 'woodGrimeG', 'wood_c08' );
+wo( 'woodRoughGrime', 'add', 'woodRoughGrimeR', 'woodRoughGrimeG' ); wo( 'woodRoughDirty', 'add', 'woodRoughBase', 'woodRoughGrime' );
+wo( 'woodRoughNail', 'multiply', 'woodNail', 'wood_c3' ); wo( 'woodRoughNoNail', 'subtract', 'woodRoughDirty', 'woodRoughNail' );
+wo( 'woodRoughWalk', 'multiply', 'woodWalkK', 'wood_c10' ); wo( 'woodRoughNoWalk', 'subtract', 'woodRoughNoNail', 'woodRoughWalk' );
+wo( 'woodRoughRain', 'multiply', 'woodRain', 'wood_c05' ); wo( 'woodRoughWeathered', 'add', 'woodRoughNoWalk', 'woodRoughRain' );
+wo( 'woodRoughDrop', 'multiply', 'woodBirdCore', 'wood_c2' ); wo( 'woodRoughBaseFinal', 'subtract', 'woodRoughWeathered', 'woodRoughDrop' );
+wo( 'woodWet09', 'multiply', 'woodWet', 'wood_c9' ); wo( 'woodBarn09', 'multiply', 'woodBarn', 'wood_c9' );
+wo( 'woodRoughTideWet', 'mix', 'woodRoughBaseFinal', 'wood_c3', 'woodWet09' );
+wo( 'woodRoughTideDamp', 'mix', 'woodRoughTideWet', 'wood_c55', 'woodDampScale' );
+wo( 'woodRoughBarn', 'mix', 'woodRoughTideDamp', 'wood_c9', 'woodBarn' ); wo( 'woodRoughClamped', 'clamp', 'woodRoughBarn', 'wood_c03', 'wood_one' );
+wo( 'woodTideBarnAmount', 'multiply', 'woodBarn', 'wood_c9' );
+wo( 'woodAlbedoBarn', 'mix', 'woodTideDampColor', 'wood_barnRGB', 'woodTideBarnAmount' );
+
+const woodRoots = new Set( [ 'woodAlbedoBarn', 'woodRoughClamped', 'woodAO', 'woodSurfaceNormal', 'wood_zero' ] );
+// Reuse equal literals. This is important because the signed graph has a
+// strict node cap and constants are otherwise repeated by each material term.
+const woodAliases = new Map(), woodLiteralIDs = new Map(), woodDeduplicated = [];
+for ( const node of woodNodes ) {
+	if ( node.op !== 'constant' ) { woodDeduplicated.push( node ); continue; }
+	const key = JSON.stringify( node.value ), existing = woodLiteralIDs.get( key );
+	if ( existing ) woodAliases.set( node.id, existing );
+	else { woodLiteralIDs.set( key, node.id ); woodDeduplicated.push( node ); }
+}
+const woodResolve = id => woodAliases.get( id ) || id;
+const woodNormalized = woodDeduplicated.map( node => node.op === 'input' || node.op === 'constant' ? node : node.op === 'textureSample'
+	? { ...node, uv: woodResolve( node.uv ) }
+	: node.op === 'textureSampleLevel' ? { ...node, uv: woodResolve( node.uv ), lod: woodResolve( node.lod ) }
+	: { ...node, args: node.args.map( woodResolve ) } );
+const woodByID = new Map( woodNormalized.map( node => [ node.id, node ] ) );
+const woodReachable = new Set();
+const visitWood = id => {
+	if ( woodReachable.has( id ) ) return;
+	woodReachable.add( id ); const node = woodByID.get( id ); if ( ! node ) throw new Error( `Missing Tidewater wood graph node: ${id}` );
+	for ( const dependency of node.op === 'textureSample' ? [ node.uv ] : node.op === 'textureSampleLevel' ? [ node.uv, node.lod ] : node.args || [] ) visitWood( dependency );
+};
+for ( const id of woodRoots ) visitWood( id );
+const woodGraphNodes = woodNormalized.filter( node => woodReachable.has( node.id ) );
+
+export const TIDEWATER_WOOD_MATERIAL_GRAPH = Object.freeze( {
+	format: 'elsemesh.material-graph/1',
+	nodes: Object.freeze( woodGraphNodes.map( node => Object.freeze( node ) ) ),
+	outputs: Object.freeze( { baseColor: 'woodAlbedoBarn', roughness: 'woodRoughClamped', metalness: 'wood_zero', occlusion: 'woodAO', surfaceNormal: 'woodSurfaceNormal' } ),
+} );

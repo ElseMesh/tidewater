@@ -12,17 +12,15 @@ import { GPU } from '../../../src/engine/gpu/GPU.js';
 import { parseGLB } from '../../../src/engine/loaders/GLTF.js';
 import { getDetailImage } from '../../../src/world/terrain/DetailTextures.js';
 import { appendWorldPackageAssets, disposeWorldPackage, loadWorldPackage, registerWorldPackageCollisions, unregisterWorldPackageCollisions } from '../../../src/network/WorldPackage.js';
-import { VILLAGE_MATERIAL_MAPS, VILLAGE_MATERIAL_PROFILE, VILLAGE_MATERIAL_RENDERER_PROFILE, VILLAGE_MATERIAL_ROLES } from '../VillageMaterialProfile.js';
+import { VILLAGE_MATERIAL_PROFILE, VILLAGE_MATERIAL_ROLES } from '../VillageMaterialProfile.js';
 import { validateWorldSource } from '../../../src/network/WorldSource.js';
 import { Colliders } from '../../../src/world/Colliders.js';
-import { standard } from '../../../src/materials/Materials.js';
 import { decodeVegetationPlacements } from '../VegetationPlacements.js';
 import { decodeReefPlacements } from '../ReefPlacements.js';
 import { decodeFishPropPlacements } from '../FishPropPlacements.js';
 import { decodeTerrainSurfaceAsset } from '../../../src/network/TerrainSurfaceAsset.js';
 import { decodeGrassDensityAsset } from '../../../src/network/GrassDensityAsset.js';
 import { decodeGroundDetailDensityAsset, GROUND_DETAIL_DENSITY_ASSET_KIND } from '../../../src/network/GroundDetailDensityAsset.js';
-import { decodeVillageMaterialAsset } from '../VillageMaterialAsset.js';
 import { BANK } from '../../../src/audio/soundBank.js';
 import { transformBoundsCenter } from '../../../src/network/WorldStreaming.js';
 import { Vector3 } from '../../../src/engine/math/Vector3.js';
@@ -192,9 +190,10 @@ try {
 	assert.deepEqual( naturalDebrisGLB.materials.map( material => material.name ), [ 'Tidewater natural debris coconut', 'Tidewater natural debris husk', 'Tidewater natural debris fallen-frond' ], 'portable coconut, husk, and frond geometry uses separate generic GLB materials' );
 	assert.ok( naturalDebrisGLB.meshes[ 0 ].every( primitive => primitive.indices?.length > 0 && primitive.attributes.COLOR_0 ), 'portable natural debris retains indexed geometry and vertex coloration' );
 	assert.deepEqual( naturalDebrisGLB.meshes[ 0 ].map( primitive => primitive.indices.length / 3 ), [ 12768, 6192, 10978 ], 'the hosted asset preserves the complete generated coconut, husk, and fallen-frond geometry' );
-	assert.deepEqual( source.rules.requiredFeatures, [ 'elsemesh.static-glb/1', 'elsemesh.static-glb-quaternion/1', 'elsemesh.village-materials/1', 'elsemesh.village-materials/2', 'elsemesh.terrain-surface/1', 'elsemesh.ground-detail-field/1', 'elsemesh.static-vegetation/1', 'elsemesh.static-grass/1', 'elsemesh.static-reef/1', 'elsemesh.static-fish-props/1', 'elsemesh.example-island-wildlife/1', 'elsemesh.humpback-whale/1', 'elsemesh.island-ocean/1', 'elsemesh.downeast-boat/1', 'elsemesh.ambient-audio/1', 'elsemesh.portal-handoff/1', 'elsemesh.portal-preview-static/1' ], 'portable content declares the renderer capabilities it requires' );
+	assert.deepEqual( source.rules.requiredFeatures, [ 'elsemesh.static-glb/1', 'elsemesh.static-glb-quaternion/1', 'elsemesh.terrain-surface/1', 'elsemesh.ground-detail-field/1', 'elsemesh.static-vegetation/1', 'elsemesh.static-grass/1', 'elsemesh.static-reef/1', 'elsemesh.static-fish-props/1', 'elsemesh.example-island-wildlife/1', 'elsemesh.humpback-whale/1', 'elsemesh.island-ocean/1', 'elsemesh.downeast-boat/1', 'elsemesh.ambient-audio/1', 'elsemesh.portal-handoff/1', 'elsemesh.portal-preview-static/1' ], 'portable content declares the renderer capabilities it requires' );
 	assert.deepEqual( source.portals, [], 'the island package contains no undeclared external world links' );
-	assert.equal( source.components.length, 10 + source.components.filter( ( component ) => component.type === 'elsemesh.static-reef/1' ).length, 'portable island declares village materials, vegetation, reef tiles, fish props, ground detail, terrain renderer, wildlife, humpback, ocean, boat, and ambient components' );
+	assert.equal( source.components.some( component => component.type.startsWith( 'elsemesh.village-materials/' ) ), false, 'village materials travel with the signed GLB instead of a Tidewater renderer component' );
+	assert.equal( source.components.length, 9 + source.components.filter( ( component ) => component.type === 'elsemesh.static-reef/1' ).length, 'portable island declares vegetation, reef tiles, fish props, ground detail, terrain renderer, wildlife, humpback, ocean, boat, and ambient components' );
 	assert.equal( vegetationComponent.type, 'elsemesh.static-vegetation/1', 'portable island uses terrain-independent, authored world-space vegetation placements' );
 	assert.match( componentData( vegetationComponent ).placementAssetId, /^sha256:[0-9a-f]{64}$/, 'vegetation placement data is content addressed' );
 	assert.match( componentData( vegetationComponent ).grassMaskAssetId, /^sha256:[0-9a-f]{64}$/, 'grass density data is content addressed' );
@@ -220,13 +219,11 @@ try {
 		assert.deepEqual( JSON.parse( instance.placementId ), { kind: sourceRecord.kind, species: sourceRecord.species, pattern: sourceRecord.pattern, seed: sourceRecord.seed, curl: sourceRecord.curl, sag: sourceRecord.sag, jaw: sourceRecord.jaw, flags: sourceRecord.flags }, 'generic instance retains every original placement field losslessly' );
 		assert.deepEqual( instance.materialData, [ sourceRecord.pattern + ( sourceRecord.seed % 1 ) * 0.9, sourceRecord.curl, sourceRecord.sag, sourceRecord.jaw, ...sourceRecord.flags ], 'generic instance preserves all renderer inputs in its material data' );
 	}
-	const villageMaterialsComponent = source.components.find( component => component.type === 'elsemesh.village-materials/2' );
-	assert.equal( componentData( villageMaterialsComponent ).profile, VILLAGE_MATERIAL_RENDERER_PROFILE, 'hosted village selects the versioned original material renderer' );
-	assert.equal( componentData( villageMaterialsComponent ).objectId, villageObject.id, 'packaged village textures are associated with the village object' );
-	assert.equal( villageMaterialsComponent?.priority, 'visible', 'village maps stream at visible priority, not for portal previews' );
-	assert.ok( firstAssets.has( componentData( villageMaterialsComponent ).dataAssetId ), 'village PBR maps are included in the exported package' );
-	const villageMaterialData = await decodeVillageMaterialAsset( new Uint8Array( firstAssets.get( componentData( villageMaterialsComponent ).dataAssetId ) ) );
-	assert.deepEqual( Object.keys( villageMaterialData.maps ), VILLAGE_MATERIAL_MAPS.map( map => map.name ), 'village package contains every renderer map in schema order' );
+	const packagedVillageGLB = parseGLB( firstAssets.get( villageObject.assetId ) );
+	const packagedWood = packagedVillageGLB.materials.find( material => material.extras?.elsemeshWorld?.materialRole === 'wood' );
+	assert.equal( packagedWood?.extras?.elsemeshMaterial?.profile, 'elsemesh.material-graph/1', 'wood appearance is authored as signed renderer-neutral graph data' );
+	assert.ok( packagedWood.extras.elsemeshMaterial.graph.nodes.length > 512 && packagedWood.extras.elsemeshMaterial.graph.nodes.length <= 1024, 'the complete wood appearance fits the bounded material graph contract' );
+	assert.ok( packagedWood.pbrMetallicRoughness.baseColorTexture && packagedWood.pbrMetallicRoughness.metallicRoughnessTexture && packagedWood.normalTexture && packagedWood.emissiveTexture, 'wood maps are ordinary signed glTF textures' );
 	const terrainSurface = source.components.find( ( component ) => component.type === 'elsemesh.terrain-surface/1' );
 	assert.equal( componentData( terrainSurface ).profile, 'example-island-v1', 'hosted island declares the compatible terrain renderer profile' );
 	assert.deepEqual( componentData( terrainSurface ).surfaceProfile, { swellDirection: [ -0.12, -1 ], reef: { center: [ -78, 58 ], radius: 58 } }, 'terrain surface profile stays authored in the Tidewater world source' );
@@ -448,9 +445,8 @@ try {
 	assert.equal( progressiveRoot.children.find( ( object ) => object.userData.worldObjectId === terrainPreview.id ).visible, false, 'full terrain hides the preview when it arrives' );
 	assert.equal( progressiveRoot.children.find( ( object ) => object.userData.worldObjectId === source.objects[ 0 ].id ).visible, true, 'full terrain remains visible after replacement' );
 	const villagePayload = villageBytes.buffer.slice( villageBytes.byteOffset, villageBytes.byteOffset + villageBytes.byteLength );
-	const villageMaterials = Object.fromEntries( VILLAGE_MATERIAL_ROLES.map( role => [ role, standard( { name: role } ) ] ) );
 	const villageConnector = { worldId: source.worldId, manifest: { rules: source.rules, assets: [ { id: villageObject.assetId, priority: 'visible' }, { id: villageObject.lods[ 0 ].assetId, priority: 'visible' } ], objects: [ villageObject ] }, getAsset: async id => firstAssets.get( id ) };
-	const villageRoot = await loadWorldPackage( villageConnector, { assets: new Map( [ [ villageObject.assetId, villagePayload ] ] ), materialContext: { materials: villageMaterials, textures: { bake() {} } } } );
+	const villageRoot = await loadWorldPackage( villageConnector, { assets: new Map( [ [ villageObject.assetId, villagePayload ] ] ) } );
 	let villageRuntimeMeshes = 0;
 	const villageRoles = new Set();
 	villageRoot.traverse( ( object ) => { if ( object.isMesh ) {
@@ -482,6 +478,9 @@ try {
 		} else if ( object.material.name.endsWith( 'hard' ) ) {
 			assert.match( object.material.surface, /s\.ao \*= emg_occlusion/, 'the package hard-surface graph uses the engine occlusion output' );
 			villageRoles.add( 'hard' );
+		} else if ( object.material.surface?.includes( 'emg_woodAlbedoBarn' ) ) {
+			assert.match( object.material.surface, /emg_woodRoughClamped/, 'the complete wood graph compiles in the hosted WebGPU package path' );
+			villageRoles.add( 'wood' );
 		} else villageRoles.add( object.material.name );
 	} } );
 	assert.equal( villageRuntimeMeshes, villageGLB.meshes[ 0 ].length, 'hosted package loader creates each village material batch' );
@@ -490,7 +489,7 @@ try {
 	await villageLODController.loadLevel( 1, new AbortController().signal );
 	let villageLODMeshes = 0;
 	villageRoot.traverse( object => { if ( object.isMesh && object.geometry.getAttribute( 'vdata' ) ) villageLODMeshes ++; } );
-	assert.equal( villageLODMeshes, villageRuntimeMeshes + villageLOD.meshes[ 0 ].length, 'hosted village loader builds the low LOD with the same trusted material context' );
+	assert.equal( villageLODMeshes, villageRuntimeMeshes + villageLOD.meshes[ 0 ].length, 'hosted village loader builds the low LOD with the same signed material graphs' );
 	const villageColliders = new Colliders();
 	registerWorldPackageCollisions( villageRoot, villageColliders );
 	assert.equal( villageColliders.boxes.length, villageObject.collision.boxes.length, 'hosted village registers every authored collider' );

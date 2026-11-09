@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { accessSync, constants, existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { spawn } from 'node:child_process';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { createServer } from 'vite';
 
 const engineRoot = process.cwd();
@@ -21,13 +21,21 @@ async function stopBrowser( browser ) {
 }
 
 const profile = mkdtempSync( join( '/var/tmp', 'tidewater-village-graphs-webgl-' ) );
-const source = JSON.parse( readFileSync( join( engineRoot, 'worlds/tidewater/world-source.json' ), 'utf8' ) );
+const packageDirectory = resolve( process.argv[ 2 ] || join( engineRoot, 'worlds/tidewater' ) );
+const source = JSON.parse( readFileSync( join( packageDirectory, 'world-source.json' ), 'utf8' ) );
 const village = source.objects.find( object => object.id === 'elsemesh-object:island-village' );
 assert( village?.assetId?.startsWith( 'sha256:' ), 'signed Tidewater source identifies the village GLB' );
-const villageBytes = readFileSync( join( engineRoot, 'worlds/tidewater/assets', village.assetId.slice( 'sha256:'.length ) ) );
+const villageBytes = readFileSync( join( packageDirectory, 'assets', village.assetId.slice( 'sha256:'.length ) ) );
 const villageAssetPlugin = {
 	name: 'tidewater-village-net-test-asset',
 	configureServer( server ) {
+		server.middlewares.use( '/__tidewater/world-source.json', ( _request, response ) => {
+			const bytes = Buffer.from( JSON.stringify( source ) );
+			response.statusCode = 200;
+			response.setHeader( 'Content-Type', 'application/json' );
+			response.setHeader( 'Content-Length', bytes.length );
+			response.end( bytes );
+		} );
 		server.middlewares.use( '/__tidewater/village.glb', ( _request, response ) => {
 			response.statusCode = 200;
 			response.setHeader( 'Content-Type', 'model/gltf-binary' );
@@ -90,10 +98,10 @@ try {
 	}
 	assert.equal( result?.status, 'complete', `Tidewater WebGL village graph render completed: ${result?.text || 'no page result'}` );
 	const metrics = JSON.parse( result.text );
-	assert( metrics.net >= 30 && metrics.hard >= 30 && metrics.thatch >= 30 && metrics.fabric >= 5 && metrics.stone >= 30 && metrics.roofMetal >= 30 && metrics.glass >= 30 && metrics.lanternGlass >= 10, `signed Tidewater net/hard/thatch/fabric/stone/roof-metal/glass graphs render visible pixels (${metrics.net}/${metrics.hard}/${metrics.thatch}/${metrics.fabric}/${metrics.stone}/${metrics.roofMetal}/${metrics.glass}/${metrics.lanternGlass})` );
+	assert( metrics.net >= 30 && metrics.hard >= 30 && metrics.thatch >= 30 && metrics.fabric >= 5 && metrics.stone >= 30 && metrics.roofMetal >= 30 && metrics.glass >= 30 && metrics.lanternGlass >= 10 && metrics.wood >= 30, `signed Tidewater net/hard/thatch/fabric/stone/roof-metal/glass/wood graphs render visible pixels (${metrics.net}/${metrics.hard}/${metrics.thatch}/${metrics.fabric}/${metrics.stone}/${metrics.roofMetal}/${metrics.glass}/${metrics.lanternGlass}/${metrics.wood})` );
 	assert( metrics.programs > 0, 'WebGL compiled the signed Tidewater graph shaders' );
 	assert.equal( metrics.glError, 0, 'WebGL reports no graphics error' );
-	console.log( `Tidewater WebGL net/hard/thatch/fabric/stone/roof-metal/glass/lantern-glass graph render passed (${metrics.net}/${metrics.hard}/${metrics.thatch}/${metrics.fabric}/${metrics.stone}/${metrics.roofMetal}/${metrics.glass}/${metrics.lanternGlass} visible pixels; ${metrics.programs} program(s); no GL errors)` );
+	console.log( `Tidewater WebGL net/hard/thatch/fabric/stone/roof-metal/glass/lantern-glass/wood graph render passed (${metrics.net}/${metrics.hard}/${metrics.thatch}/${metrics.fabric}/${metrics.stone}/${metrics.roofMetal}/${metrics.glass}/${metrics.lanternGlass}/${metrics.wood} visible pixels; ${metrics.programs} program(s); no GL errors)` );
 } finally {
 	socket?.close();
 	if ( browser ) await stopBrowser( browser );

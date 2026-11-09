@@ -25,7 +25,6 @@ const INSTALLERS = new Map( [
 	[ 'elsemesh.static-reef/1', installReef ],
 	[ 'elsemesh.humpback-whale/1', installWhale ],
 	[ 'elsemesh.island-ocean/1', installIslandOcean ],
-	[ 'elsemesh.village-materials/2', installVillageMaterials ],
 	[ 'elsemesh.downeast-boat/1', installBoat ],
 ] );
 
@@ -143,11 +142,6 @@ async function installIslandOcean( { app, root, installed } ) {
 	root.add( mesh );
 	installed.push( { islandOcean: true, isWorldOcean: true, surface: app.surface, update: ( _dt, camera ) => lod.update( camera ), dispose: () => { root.remove( mesh ); lod.geometry.dispose(); } } );
 	return true;
-}
-
-async function installVillageMaterials() {
-	// WorldPackage loads these maps only when the associated village object is needed.
-	return { installed: true, runtime: { dispose() {} } };
 }
 
 async function installBoat( { root, connector, installed }, component ) {
