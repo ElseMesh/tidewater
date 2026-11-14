@@ -85,11 +85,14 @@ try {
 	const rawTerrainSamples = [];
 	const terrainFramebuffer = gl.createFramebuffer();
 	const previousFramebuffer = gl.getParameter( gl.FRAMEBUFFER_BINDING );
+	let terrainAttachmentType = null;
 	try {
 		gl.bindFramebuffer( gl.FRAMEBUFFER, terrainFramebuffer );
 		gl.framebufferTexture2D( gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, renderer.properties.get( query.terrainTexture ).__webglTexture, 0 );
 		const framebufferStatus = gl.checkFramebufferStatus( gl.FRAMEBUFFER );
 		if ( framebufferStatus === gl.FRAMEBUFFER_COMPLETE ) {
+			const type = gl.getFramebufferAttachmentParameter( gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE );
+			terrainAttachmentType = type === gl.FLOAT ? 'FLOAT' : type === gl.HALF_FLOAT ? 'HALF_FLOAT' : type;
 			for ( const point of reference.points ) {
 				const fx = Math.max( 0, Math.min( terrain.res - 1.001, ( point[ 0 ] - terrain.origin ) / terrain.size * terrain.res - 0.5 ) );
 				const fz = Math.max( 0, Math.min( terrain.res - 1.001, ( point[ 1 ] - terrain.origin ) / terrain.size * terrain.res - 0.5 ) );
@@ -111,6 +114,7 @@ try {
 		query: { heightError, maxHeightError, normalError, floorError, floorCpuError },
 		shoreOnly: { heightError: shoreHeightError, maxHeightError: maxShoreHeightError, normalError: shoreNormalError, floorError: shoreFloorError, floorCpuError: shoreFloorCpuError },
 		textures: { terrain: { internalFormat: query.terrainTexture.internalFormat, format: query.terrainTexture.format, type: query.terrainTexture.type, dataType: query.terrainTexture.image.data.constructor.name }, output: { internalFormat: query.target.texture.internalFormat, format: query.target.texture.format, type: query.target.texture.type }, glError: gl.getError() },
+		uniforms: { terrainOrigin: query.material.uniforms.uTerrainOrigin.value.toArray(), terrainSize: query.material.uniforms.uTerrainSize.value, terrainResolution: query.material.uniforms.uResolution.value, terrainAttachmentType },
 		rawTerrainSamples,
 		querySamples: samples.map( sample => ( { point: sample.point, webgpuHeight: sample.webgpu[ 0 ], webglHeight: sample.webgl[ 0 ], webgpuFloor: sample.webgpu[ 3 ], webglFloor: sample.webgl[ 3 ], cpuFloor: terrain.heightAt( ...sample.point ) } ) ),
 		shoreOnlySamples: shoreOnlySamples.map( sample => ( { point: sample.point, webgpuHeight: sample.webgpu[ 0 ], webglHeight: sample.webgl[ 0 ], webgpuNormal: sample.webgpu.slice( 1, 3 ), webglNormal: sample.webgl.slice( 1, 3 ), webgpuFloor: sample.webgpu[ 3 ], webglFloor: sample.webgl[ 3 ], cpuFloor: terrain.heightAt( ...sample.point ) } ) ),
