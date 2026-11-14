@@ -84,6 +84,8 @@ try {
 	diagnostics = {
 		query: { heightError, maxHeightError, normalError, floorError, floorCpuError },
 		shoreOnly: { heightError: shoreHeightError, maxHeightError: maxShoreHeightError, normalError: shoreNormalError, floorError: shoreFloorError, floorCpuError: shoreFloorCpuError },
+		querySamples: samples.map( sample => ( { point: sample.point, webgpuHeight: sample.webgpu[ 0 ], webglHeight: sample.webgl[ 0 ], webgpuFloor: sample.webgpu[ 3 ], webglFloor: sample.webgl[ 3 ], cpuFloor: terrain.heightAt( ...sample.point ) } ) ),
+		shoreOnlySamples: shoreOnlySamples.map( sample => ( { point: sample.point, webgpuHeight: sample.webgpu[ 0 ], webglHeight: sample.webgl[ 0 ], webgpuNormal: sample.webgpu.slice( 1, 3 ), webglNormal: sample.webgl.slice( 1, 3 ), webgpuFloor: sample.webgpu[ 3 ], webglFloor: sample.webgl[ 3 ], cpuFloor: terrain.heightAt( ...sample.point ) } ) ),
 	};
 	const berthObject = source.objects.find( object => object.id === 'elsemesh-object:moored-lobster-boat' );
 	if ( ! Array.isArray( berthObject?.transform?.position ) || ! Number.isFinite( berthObject?.transform?.yaw ) ) throw new Error( 'Tidewater package has no authored boat berth and heading' );
