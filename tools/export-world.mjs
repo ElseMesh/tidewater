@@ -720,6 +720,8 @@ function exportPalmStaticModelSet( records ) {
 	const assets = new Map();
 	const lods = [];
 	let bounds = null;
+	// Match the values consumed at runtime from the signed float32 placement asset.
+	const placements = records.map( record => Object.fromEntries( Object.entries( record ).map( ( [ key, value ] ) => [ key, Math.fround( value ) ] ) ) );
 	for ( const [ name, build ] of [ [ 'palm-far', buildPalmFar ], [ 'palm-near', buildPalmNear ] ] ) {
 		const { geometry } = build( 11 );
 		const glb = exportVegetationGLB( name, geometry );
@@ -737,7 +739,7 @@ function exportPalmStaticModelSet( records ) {
 				lodThresholds: [ 120 ], lodMetric: 'scaled-distance', lodFadeFraction: 0.12,
 				shadowLod: 0, shadowMaxDistance: 0, drawMaxDistance: 2800, drawFadeStartDistance: 2600,
 			} ],
-			instances: records.map( record => ( {
+			instances: placements.map( record => ( {
 				model: 'coconut-palm',
 				position: [ record.x, record.y, record.z ],
 				rotation: [ 0, Math.sin( record.yaw * 0.5 ), 0, Math.cos( record.yaw * 0.5 ) ],
