@@ -145,23 +145,24 @@ try {
 		assert.equal( result?.status, 'complete', `WebGL shoreline query completed: ${result?.text || 'no page result'}` );
 		const metrics = JSON.parse( result.text );
 		assert.equal( metrics.status, 'complete' );
-		assert( [ metrics.heightError, metrics.maxHeightError, metrics.normalError, metrics.floorError ].every( Number.isFinite ), 'query parity metrics are finite' );
+		assert( [ metrics.heightError, metrics.maxHeightError, metrics.normalError, metrics.floorError, metrics.floorCpuError, metrics.shoreOnly?.heightError, metrics.shoreOnly?.maxHeightError, metrics.shoreOnly?.normalError, metrics.shoreOnly?.floorError, metrics.shoreOnly?.floorCpuError ].every( Number.isFinite ), 'query parity metrics are finite' );
 		const largestNormalSamples = metrics.samples
 			.map( sample => ( { point: sample.point, webgpu: sample.webgpu.slice( 1, 3 ), webgl: sample.webgl.slice( 1, 3 ), error: sample.errors.slice( 1, 3 ) } ) )
 			.sort( ( a, b ) => Math.hypot( ...b.error ) - Math.hypot( ...a.error ) )
 			.slice( 0, 3 );
 		console.log( `shoreline query normals: component MAE ${metrics.normalError.toFixed( 5 )}; largest vector deltas ${JSON.stringify( largestNormalSamples )}` );
 		console.log( `shoreline query height/floor samples: ${JSON.stringify( metrics.samples.map( sample => ( { point: sample.point, webgpu: [ sample.webgpu[ 0 ], sample.webgpu[ 3 ] ], webgl: [ sample.webgl[ 0 ], sample.webgl[ 3 ] ], error: [ sample.errors[ 0 ], sample.errors[ 3 ] ] } ) ) )}` );
-		console.log( `shoreline/boat parity summary: ${JSON.stringify( { heightMAE: metrics.heightError, maxHeight: metrics.maxHeightError, floorMAE: metrics.floorError, shoreOffsetMAE: metrics.shoreProfile.shoreOffsetError, shoreOffsetMax: metrics.shoreProfile.maxShoreOffsetError, shorePointMAE: metrics.shoreProfile.shorePointError, shorePointMax: metrics.shoreProfile.maxShorePointError, boatPositionMax: metrics.boat.maxPositionDelta, boatSpeedMax: metrics.boat.maxSpeedDelta, boatWaterHeightMax: metrics.boat.maxTraceWaterHeightError, wakePositionMax: metrics.wakeBoat.maxPositionDelta, wakeSpeedMax: metrics.wakeBoat.maxSpeedDelta, wakeHeightMax: metrics.wakeBoat.maxWaterHeightDelta, wakeNormalMax: metrics.wakeBoat.maxWaterNormalDelta, wakeStepMax: metrics.wakeBoat.maxWakeStepDelta, fishingCast: metrics.fishingCast } )}` );
+		console.log( `shoreline/boat parity summary: ${JSON.stringify( { heightMAE: metrics.heightError, maxHeight: metrics.maxHeightError, floorMAE: metrics.floorError, floorCpuMAE: metrics.floorCpuError, shoreOnlyHeightMAE: metrics.shoreOnly.heightError, shoreOnlyHeightMax: metrics.shoreOnly.maxHeightError, shoreOnlyNormalMAE: metrics.shoreOnly.normalError, shoreOnlyFloorMAE: metrics.shoreOnly.floorError, shoreOnlyFloorCpuMAE: metrics.shoreOnly.floorCpuError, boatPositionMax: metrics.boat.maxPositionDelta, boatSpeedMax: metrics.boat.maxSpeedDelta, boatWaterHeightMax: metrics.boat.maxTraceWaterHeightError, wakePositionMax: metrics.wakeBoat.maxPositionDelta, wakeSpeedMax: metrics.wakeBoat.maxSpeedDelta, wakeHeightMax: metrics.wakeBoat.maxWaterHeightDelta, wakeNormalMax: metrics.wakeBoat.maxWaterNormalDelta, wakeStepMax: metrics.wakeBoat.maxWakeStepDelta, fishingCast: metrics.fishingCast } )}` );
 		assert( metrics.heightError <= 0.04, `Tidewater WebGL shoreline height MAE ${metrics.heightError} m <= 0.04 m` );
 		assert( metrics.maxHeightError <= 0.11, `Tidewater WebGL shoreline max height error ${metrics.maxHeightError} m <= 0.11 m` );
 		assert( metrics.normalError <= 0.01, `Tidewater WebGL shoreline normal MAE ${metrics.normalError} <= 0.01` );
 		assert( metrics.floorError <= 1e-5, `Tidewater WebGL terrain floor MAE ${metrics.floorError} m <= 1e-5 m` );
 		console.log( `Tidewater shoreline query parity passed (${metrics.count} packaged-terrain points; height MAE ${metrics.heightError.toFixed(4)} m, max ${metrics.maxHeightError.toFixed(4)} m; normal MAE ${metrics.normalError.toFixed(4)}; floor MAE ${metrics.floorError.toExponential(1)} m)` );
-		console.log( `Tidewater shore hook vs WebGPU shore-only query: height MAE ${metrics.shoreProfile.shoreOffsetError.toFixed(4)} m, max ${metrics.shoreProfile.maxShoreOffsetError.toFixed(4)} m` );
-		console.log( `Tidewater CPU shore profile vs direct WebGPU shoreEvaluate: height MAE ${metrics.shoreProfile.shorePointError.toFixed(4)} m, max ${metrics.shoreProfile.maxShorePointError.toFixed(4)} m` );
-		assert( metrics.shoreProfile.shoreOffsetError <= 0.001 && metrics.shoreProfile.maxShoreOffsetError <= 0.002, 'Tidewater shore hook tracks Eulerian WebGPU shoreline within 2 mm' );
-		assert( metrics.shoreProfile.shorePointError <= 0.0001 && metrics.shoreProfile.maxShorePointError <= 0.0001, 'Tidewater CPU shore profile matches direct WebGPU displacement within 0.1 mm' );
+		console.log( `Tidewater shore-only query parity: height MAE ${metrics.shoreOnly.heightError.toFixed(4)} m, max ${metrics.shoreOnly.maxHeightError.toFixed(4)} m; normal component MAE ${metrics.shoreOnly.normalError.toFixed(5)}` );
+		assert( metrics.shoreOnly.heightError <= 0.01 && metrics.shoreOnly.maxHeightError <= 0.02, 'Tidewater shore-only query height matches WebGPU within 2 cm' );
+		assert( metrics.shoreOnly.normalError <= 0.01, 'Tidewater shore-only query normal component MAE is <= 0.01' );
+		assert( metrics.shoreOnly.floorError <= 1e-5 && metrics.shoreOnly.floorCpuError <= 1e-5, 'shore-only WebGL terrain floor matches WebGPU and CPU terrain within 0.01 mm' );
+		console.log( `terrain floor checks: WebGL vs WebGPU MAE ${metrics.floorError.toExponential(1)} m; WebGL vs CPU ${metrics.floorCpuError.toExponential(1)} m; shore-only WebGL vs CPU ${metrics.shoreOnly.floorCpuError.toExponential(1)} m` );
 		assert( metrics.boat && Number.isFinite( metrics.boat.maxPositionDelta ) && Number.isFinite( metrics.boat.maxSpeedDelta ), 'production boat traces yield finite backend deltas' );
 		assert( metrics.boat.maxPositionDelta <= 0.15, `18-second WebGPU/WebGL boat position delta ${metrics.boat.maxPositionDelta} m <= 0.15 m` );
 		assert( metrics.boat.maxSpeedDelta <= 0.02, `18-second WebGPU/WebGL boat speed delta ${metrics.boat.maxSpeedDelta} m/s <= 0.02 m/s` );
