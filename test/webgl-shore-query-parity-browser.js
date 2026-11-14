@@ -81,9 +81,19 @@ try {
 	normalError /= samples.length * 2;
 	floorError /= samples.length;
 	floorCpuError /= samples.length;
+	const gl = renderer.getContext();
+	const actualInternalFormat = texture => {
+		const handle = renderer.properties.get( texture ).__webglTexture;
+		const previous = gl.getParameter( gl.TEXTURE_BINDING_2D );
+		gl.bindTexture( gl.TEXTURE_2D, handle );
+		const value = gl.getTexLevelParameter( gl.TEXTURE_2D, 0, gl.TEXTURE_INTERNAL_FORMAT );
+		gl.bindTexture( gl.TEXTURE_2D, previous );
+		return value === gl.R32F ? 'R32F' : value === gl.R16F ? 'R16F' : value;
+	};
 	diagnostics = {
 		query: { heightError, maxHeightError, normalError, floorError, floorCpuError },
 		shoreOnly: { heightError: shoreHeightError, maxHeightError: maxShoreHeightError, normalError: shoreNormalError, floorError: shoreFloorError, floorCpuError: shoreFloorCpuError },
+		textures: { terrain: { requested: query.terrainTexture.internalFormat, actual: actualInternalFormat( query.terrainTexture ) }, output: { requested: query.target.texture.internalFormat, actual: actualInternalFormat( query.target.texture ) } },
 		querySamples: samples.map( sample => ( { point: sample.point, webgpuHeight: sample.webgpu[ 0 ], webglHeight: sample.webgl[ 0 ], webgpuFloor: sample.webgpu[ 3 ], webglFloor: sample.webgl[ 3 ], cpuFloor: terrain.heightAt( ...sample.point ) } ) ),
 		shoreOnlySamples: shoreOnlySamples.map( sample => ( { point: sample.point, webgpuHeight: sample.webgpu[ 0 ], webglHeight: sample.webgl[ 0 ], webgpuNormal: sample.webgpu.slice( 1, 3 ), webglNormal: sample.webgl.slice( 1, 3 ), webgpuFloor: sample.webgpu[ 3 ], webglFloor: sample.webgl[ 3 ], cpuFloor: terrain.heightAt( ...sample.point ) } ) ),
 	};
