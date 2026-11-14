@@ -3,10 +3,12 @@ import { WebGLWaterQuery } from '../../../src/fallback/WebGLWaterQuery.js';
 import { decodeTerrainSurfaceAsset } from '../../../src/network/TerrainSurfaceAsset.js';
 import { HeightfieldTerrainData } from '../../../src/world/HeightfieldTerrainData.js';
 import { BoatController } from '../../../src/player/BoatController.js';
+import { PerspectiveCamera } from '../../../src/engine/index.js';
 import { BoatDesign } from '../../../src/world/boat/BoatDesign.js';
 import { Vector3 } from '../../../src/engine/math/Vector3.js';
 import { createWebGLShoreSurfaceOffset } from '../../../src/fallback/WebGLShoreSurface.js';
 import { WebGLWakeSim } from '../../../src/ocean/WebGLWakeSim.js';
+import { FishingRod } from '../game/FishingRod.js';
 import { tidewaterPierColliders } from './tidewater-pier-colliders.js';
 
 const result = document.querySelector( '#result' );
@@ -16,7 +18,7 @@ try {
 	const referenceResponse = await fetch( './webgpu-shore-query-reference.json', { cache: 'no-store' } );
 	if ( ! referenceResponse.ok ) throw new Error( 'Generate webgpu-shore-query-reference.json with the Tidewater WebGPU reference writer first' );
 	const reference = await referenceResponse.json();
-	if ( reference.protocol !== 'elsemesh.tidewater-shore-query-parity/2' ) throw new Error( 'Invalid Tidewater shoreline parity reference protocol' );
+	if ( reference.protocol !== 'elsemesh.tidewater-shore-query-parity/3' ) throw new Error( 'Invalid Tidewater shoreline parity reference protocol' );
 	const source = await fetch( '../world-source.json', { cache: 'no-store' } ).then( response => response.json() );
 	const terrainComponent = source.components.find( component => component.type === 'elsemesh.terrain-surface/1' );
 	const assetResponse = await fetch( `../assets/${terrainComponent.data.dataAssetId.slice( 'sha256:'.length )}`, { cache: 'no-store' } );
@@ -234,7 +236,72 @@ try {
 		return { second: i + 1, positionDelta, speedDelta, heightDelta, normalDelta, stepDelta, webgpu: expected, webgl: actual };
 	} );
 	if ( ! wakeBoatSamples.every( sample => [ sample.positionDelta, sample.speedDelta, sample.heightDelta, sample.normalDelta ].every( Number.isFinite ) ) ) throw new Error( 'WebGL wake-enabled boat or water trace contains non-finite values' );
-	result.textContent = JSON.stringify( { status: 'complete', count: samples.length, heightError, maxHeightError, normalError, floorError, samples, shoreProfile: { shoreOffsetError, maxShoreOffsetError, shorePointError, maxShorePointError }, boat: { maxPositionDelta: maxBoatPositionDelta, maxSpeedDelta: maxBoatSpeedDelta, traceWaterHeightError, maxTraceWaterHeightError, traceWaterNormalError, fftOnlyHeightError, maxFFTOnlyHeightError, fftOnlyNormalError, samples: boatSamples, traceWaterSamples, fftOnlySamples }, wakeBoat: { maxPositionDelta: maxWakeBoatPositionDelta, maxSpeedDelta: maxWakeBoatSpeedDelta, maxWaterHeightDelta: maxWakeWaterHeightDelta, maxWaterNormalDelta: maxWakeWaterNormalDelta, maxWakeStepDelta, samples: wakeBoatSamples } } );
+	async function traceFishingCast() {
+
+		const dt = 1 / 60, x = 12, z = - 44, ground = terrain.heightAt( 12, - 44 );
+		query.time = 0;
+		query.latency = dt;
+		const camera = new PerspectiveCamera( 62, 1, 0.1, 500 );
+		camera.position.set( x, ground + 1.62, z );
+		camera.rotation.order = 'YXZ';
+		camera.rotation.set( 0, Math.PI + 0.25, 0 );
+		camera.updateMatrixWorld( true );
+		const rod = new FishingRod( { camera, query, terrain, render: false } );
+		rod.equip( true );
+		if ( ! rod.startWindup() ) throw new Error( 'WebGL production-query rod did not enter cast windup' );
+		let landing = null;
+		rod.onLand = where => { landing = where; };
+		const trace = [];
+		let released = false;
+
+		for ( let frame = 0; frame < 360 && landing === null; frame ++ ) {
+
+			const time = ( frame + 1 ) * dt;
+			while ( query._pending ) await new Promise( resolve => setTimeout( resolve, 1 ) );
+			const previousVersion = query.version;
+			query.update( dt, time );
+			const deadline = performance.now() + 5000;
+			while ( query.version === previousVersion && performance.now() < deadline ) await new Promise( resolve => setTimeout( resolve, 1 ) );
+			if ( query.version === previousVersion ) throw new Error( `WebGL production fishing query timed out at frame ${frame}` );
+			rod.update( dt, { visible: false } );
+			if ( ! released && rod.power >= 1 ) released = rod.release();
+			trace.push( {
+				state: rod.state,
+				bobber: rod.bobber.toArray(),
+				velocity: rod.bobberVel.toArray(),
+				waterY: rod.waterY,
+				depth: rod.depth,
+			} );
+
+		}
+
+		if ( landing !== 'water' ) throw new Error( `WebGL production query cast landed on ${landing || 'nothing'}` );
+		return { start: [ x, ground + 1.62, z ], yaw: Math.PI + 0.25, landing, trace };
+
+	}
+
+	const fishingCast = await traceFishingCast();
+	const expectedCast = reference.fishingCast;
+	if ( ! expectedCast?.trace?.length ) throw new Error( 'Pre-split WebGPU shoreline reference has no production fishing cast trace' );
+	const sharedCastFrames = Math.min( fishingCast.trace.length, expectedCast.trace.length );
+	const webgpuLandingFrame = expectedCast.trace.findIndex( sample => sample.state === 'floating' ), webglLandingFrame = fishingCast.trace.findIndex( sample => sample.state === 'floating' );
+	if ( webgpuLandingFrame < 0 || webglLandingFrame < 0 ) throw new Error( 'Both production water queries must land their casts in water' );
+	const landingFrameDelta = Math.abs( webglLandingFrame - webgpuLandingFrame );
+	let maxBobberDelta = 0, maxCastWaterDelta = 0, stateFrameMismatches = 0;
+const fishingCastSamples = [];
+	for ( let i = 0; i < sharedCastFrames; i ++ ) {
+		const actual = fishingCast.trace[ i ], expected = expectedCast.trace[ i ];
+		const bobberDelta = Math.hypot( ...actual.bobber.map( ( value, axis ) => value - expected.bobber[ axis ] ) );
+		const waterDelta = Math.abs( actual.waterY - expected.waterY );
+		maxBobberDelta = Math.max( maxBobberDelta, bobberDelta );
+		maxCastWaterDelta = Math.max( maxCastWaterDelta, waterDelta );
+		if ( actual.state !== expected.state ) stateFrameMismatches ++;
+		fishingCastSamples.push( { frame: i, state: [ expected.state, actual.state ], bobberDelta, waterDelta } );
+	}
+	if ( Math.abs( fishingCast.trace.length - expectedCast.trace.length ) > 2 || landingFrameDelta > 2 || stateFrameMismatches > 2 || maxBobberDelta > 0.25 || maxCastWaterDelta > 0.1 ) {
+		throw new Error( `Production WebGL cast differs from pre-split WebGPU: ${JSON.stringify( { webgpuFrames: expectedCast.trace.length, webglFrames: fishingCast.trace.length, landingFrameDelta, stateFrameMismatches, maxBobberDelta, maxCastWaterDelta, samples: fishingCastSamples } )}` );
+	}
+	result.textContent = JSON.stringify( { status: 'complete', count: samples.length, heightError, maxHeightError, normalError, floorError, samples, shoreProfile: { shoreOffsetError, maxShoreOffsetError, shorePointError, maxShorePointError }, boat: { maxPositionDelta: maxBoatPositionDelta, maxSpeedDelta: maxBoatSpeedDelta, traceWaterHeightError, maxTraceWaterHeightError, traceWaterNormalError, fftOnlyHeightError, maxFFTOnlyHeightError, fftOnlyNormalError, samples: boatSamples, traceWaterSamples, fftOnlySamples }, wakeBoat: { maxPositionDelta: maxWakeBoatPositionDelta, maxSpeedDelta: maxWakeBoatSpeedDelta, maxWaterHeightDelta: maxWakeWaterHeightDelta, maxWaterNormalDelta: maxWakeWaterNormalDelta, maxWakeStepDelta, samples: wakeBoatSamples }, fishingCast: { webgpuFrames: expectedCast.trace.length, webglFrames: fishingCast.trace.length, landingFrameDelta, stateFrameMismatches, maxBobberDelta, maxCastWaterDelta } } );
 	result.dataset.status = 'complete';
 } catch ( error ) {
 	result.textContent = JSON.stringify( { status: 'failed', error: error.stack || String( error ) } );

@@ -44,9 +44,15 @@ collision handling. The second includes WakeSim and the authored Tidewater pier
 colliders. Before generating the WebGPU reference it pins the wake solver,
 water query, boat design, boat physics, berth, and pier inputs to pre-split
 ElseMesh `23c30bf`. The comparison checks boat motion and fixed-position water
-height and normals. Its headless WebGL harness uses synchronous pixel readback
-because Chromium's async readback stopped completing after its first sample.
-It does not measure live readback timing, rendered pixels, or FPS.
+height and normals. It also runs Tidewater's `FishingRod` cast and landing from
+the authored central beach over the production WebGPU and WebGL FFT, terrain,
+shore, and water-query paths. The generated WebGPU trace is tied to the same
+pre-split source check; the WebGL trace compares bobber motion, water samples,
+state transitions, and landing frame. This verifies cast-and-landing behavior,
+not the signed Worker fight or a rendered fishing scene. Its headless WebGL
+harness uses synchronous pixel readback because Chromium's async readback
+stopped completing after its first sample. It does not measure live readback
+timing, rendered pixels, or FPS.
 
 The optional Blender authoring checks use the Tidewater package as their source
 fixture:

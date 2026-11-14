@@ -11,8 +11,10 @@ import { decodeTerrainSurfaceAsset } from '../../../src/network/TerrainSurfaceAs
 import { HeightfieldTerrainData } from '../../../src/world/HeightfieldTerrainData.js';
 import { TerrainGPU } from '../../../src/world/TerrainGPU.js';
 import { BoatController } from '../../../src/player/BoatController.js';
+import { PerspectiveCamera } from '../../../src/engine/index.js';
 import { BoatDesign } from '../../../src/world/boat/BoatDesign.js';
 import { Vector3 } from '../../../src/engine/math/Vector3.js';
+import { FishingRod } from '../game/FishingRod.js';
 import { WakeSim } from '../../../src/ocean/WakeSim.js';
 import { tidewaterPierColliders } from './tidewater-pier-colliders.js';
 import { assertPreSplitWaterSource } from './pre-split-water-source-parity.mjs';
@@ -191,6 +193,56 @@ async function traceBoatWithWake() {
 
 }
 
+async function traceFishingCast() {
+
+	const dt = 1 / 60;
+	fft.time.value = 0;
+	query.latency = dt;
+	G.seaLevel.value = source.rules.seaLevel;
+	const x = 12, z = - 44, ground = terrain.heightAt( x, z );
+	const camera = new PerspectiveCamera( 62, 1, 0.1, 500 );
+	camera.position.set( x, ground + 1.62, z );
+	camera.rotation.order = 'YXZ';
+	camera.rotation.set( 0, Math.PI + 0.25, 0 );
+	camera.updateMatrixWorld( true );
+	const rod = new FishingRod( { camera, query, terrain, render: false } );
+	rod.equip( true );
+	assert( rod.startWindup(), 'pre-split WebGPU rod enters windup from the beach' );
+	let landing = null;
+	rod.onLand = where => { landing = where; };
+	const trace = [];
+	let released = false;
+
+	for ( let frame = 0; frame < 360 && landing === null; frame ++ ) {
+
+		const time = ( frame + 1 ) * dt, previousVersion = query.version;
+		GPU.beginFrame();
+		G.time.value = time;
+		G.dt.value = dt;
+		fft.update( dt );
+		query.update();
+		GPU.submit();
+		const deadline = Date.now() + 5000;
+		while ( query.version === previousVersion && Date.now() < deadline ) await new Promise( resolve => setTimeout( resolve, 1 ) );
+		assert.notEqual( query.version, previousVersion, `pre-split WebGPU fishing query returns at frame ${frame}` );
+		rod.update( dt, { visible: false } );
+		if ( ! released && rod.power >= 1 ) released = rod.release();
+		query.latency = dt;
+		trace.push( {
+			state: rod.state,
+			bobber: rod.bobber.toArray(),
+			velocity: rod.bobberVel.toArray(),
+			waterY: rod.waterY,
+			depth: rod.depth,
+		} );
+
+	}
+
+	assert.equal( landing, 'water', 'pre-split WebGPU production query lands the cast in the sea' );
+	return { start: [ x, ground + 1.62, z ], yaw: Math.PI + 0.25, landing, trace };
+
+}
+
 try {
 	const time = 4.25, start = query.allocate( 'parity', points.length );
 	for ( let i = 0; i < points.length; i ++ ) query.setPoint( start + i, ...points[ i ] );
@@ -248,6 +300,7 @@ fn main( @builtin( global_invocation_id ) gid: vec3u ) {
 	const shoreAtPoint = points.map( ( _, i ) => Array.from( rawShore.slice( i * 4, i * 4 + 4 ) ) );
 	const boatTrace = await traceBoat();
 	const wakeBoatTrace = await traceBoatWithWake();
+	const fishingCast = await traceFishingCast();
 	const fftOnlySurface = Object.create( surface );
 	fftOnlySurface.shore = null;
 	fftOnlySurface.wake = null;
@@ -270,15 +323,15 @@ fn main( @builtin( global_invocation_id ) gid: vec3u ) {
 		boatTrace[ i ].waterFFTOnly = Array.from( fftOnlyQuery.cpu.slice( fftOnlySlot * 4, fftOnlySlot * 4 + 4 ) );
 	}
 	const reference = {
-		protocol: 'elsemesh.tidewater-shore-query-parity/2', time, seaLevel: source.rules.seaLevel,
+		protocol: 'elsemesh.tidewater-shore-query-parity/3', time, seaLevel: source.rules.seaLevel,
 		terrain: { size: maps.size, origin: maps.origin, resolution: maps.resolution }, shoreField: maps.shoreField,
 		points, webgpu, shoreOnly, shoreAtPoint,
-		boatTrace, wakeBoatTrace,
+		boatTrace, wakeBoatTrace, fishingCast,
 	};
 	const outputPath = resolve( output );
 	await mkdir( dirname( outputPath ), { recursive: true } );
 	await writeFile( outputPath, JSON.stringify( reference ) );
-	console.log( `wrote ${points.length} Tidewater WebGPU shoreline query samples and 18-second boat traces with and without WakeSim against Tidewater pier collisions at ${time.toFixed( 2 )} s` );
+	console.log( `wrote ${points.length} Tidewater WebGPU shoreline query samples, 18-second boat traces, and a ${fishingCast.trace.length}-frame pre-split fishing cast against the production terrain/shore query at ${time.toFixed( 2 )} s` );
 } finally {
 	surface.shore.dispose?.();
 	terrainGPU.dispose();
