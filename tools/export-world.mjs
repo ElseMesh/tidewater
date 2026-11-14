@@ -40,6 +40,7 @@ import { TIDEWATER_WHALE_PROFILE } from '../WhaleProfile.js';
 import { writeWorldAssetIndex } from '../../../tools/world-asset-index.mjs';
 import { generateTidewaterReefURLs } from './generate-reef-asset-urls.mjs';
 import { fishPropGeometry } from '../../../src/world/fish/FishProps.js';
+import { buildPalmFar, buildPalmNear } from '../renderers/webgpu-vegetation/PlantGeometry.js';
 
 const REPO = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '../../..' );
 const WORLD_ROOT = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..' );
@@ -203,6 +204,12 @@ const fishStaticModelsPath = path.join( output, 'fish-static-models' );
 await mkdir( fishStaticModelsPath, { recursive: true } );
 for ( const entry of await readdir( fishStaticModelsPath, { withFileTypes: true } ) ) if ( entry.isFile() && /^[0-9a-f]{64}\.glb$/.test( entry.name ) && ! fishStaticModelSet.assets.has( entry.name.slice( 0, 64 ) ) ) await rm( path.join( fishStaticModelsPath, entry.name ) );
 for ( const [ hash, bytes ] of fishStaticModelSet.assets ) await writeFile( path.join( fishStaticModelsPath, `${hash}.glb` ), bytes );
+const vegetationStaticModelSet = exportPalmStaticModelSet( generated.vegetation.palms );
+await writeFile( path.join( output, 'vegetation-static-model-instance-set.json' ), JSON.stringify( vegetationStaticModelSet.document, null, 2 ) + '\n' );
+const vegetationStaticModelsPath = path.join( output, 'vegetation-static-models' );
+await mkdir( vegetationStaticModelsPath, { recursive: true } );
+for ( const entry of await readdir( vegetationStaticModelsPath, { withFileTypes: true } ) ) if ( entry.isFile() && /^[0-9a-f]{64}\.glb$/.test( entry.name ) && ! vegetationStaticModelSet.assets.has( entry.name.slice( 0, 64 ) ) ) await rm( path.join( vegetationStaticModelsPath, entry.name ) );
+for ( const [ hash, bytes ] of vegetationStaticModelSet.assets ) await writeFile( path.join( vegetationStaticModelsPath, `${hash}.glb` ), bytes );
 const reefLayout = new Reef( { terrain, worldLayout: TIDEWATER_LAYOUT, layoutOnly: true } );
 const reefRecords = reefLayout.placements();
 const reefModelRadius = Math.max( ...[ ...reefLayout.kinds.hard, ...reefLayout.kinds.soft ].filter( ( kind ) => kind.lod === 0 ).map( ( kind ) => {
@@ -693,6 +700,95 @@ function exportFishPropGLB( name, position, normal, vdata, indices ) {
 		scene: 0, scenes: [ { nodes: [ 0 ] } ], nodes: [ { name } ],
 		meshes: [ { name, primitives: [ { attributes, indices: indexAccessor, material: 0, mode: 4 } ] } ],
 		materials: [ { name: `${name} portable PBR`, pbrMetallicRoughness: { baseColorFactor: [ 1, 1, 1, 1 ], metallicFactor: 0, roughnessFactor: 0.8 }, doubleSided: true } ],
+		accessors, bufferViews, buffers: [ { byteLength: binary.length } ],
+	};
+	const json = Buffer.from( JSON.stringify( gltf ) );
+	const jsonPadded = Buffer.concat( [ json, Buffer.alloc( ( 4 - json.length % 4 ) % 4, 0x20 ) ] );
+	const binPadded = Buffer.concat( [ binary, Buffer.alloc( ( 4 - binary.length % 4 ) % 4 ) ] );
+	const totalLength = 12 + 8 + jsonPadded.length + 8 + binPadded.length;
+	const header = Buffer.alloc( 12 );
+	header.writeUInt32LE( 0x46546c67, 0 ); header.writeUInt32LE( 2, 4 ); header.writeUInt32LE( totalLength, 8 );
+	const jsonHeader = Buffer.alloc( 8 ); jsonHeader.writeUInt32LE( jsonPadded.length, 0 ); jsonHeader.writeUInt32LE( 0x4e4f534a, 4 );
+	const binHeader = Buffer.alloc( 8 ); binHeader.writeUInt32LE( binPadded.length, 0 ); binHeader.writeUInt32LE( 0x004e4942, 4 );
+	return Buffer.concat( [ header, jsonHeader, jsonPadded, binHeader, binPadded ] );
+}
+
+// Emit a renderer-neutral palm migration artifact beside the live vegetation
+// component. This intentionally does not enter the signed package yet: its LOD
+// thresholds and shadow policy still need matched WebGPU/WebGL parity evidence.
+function exportPalmStaticModelSet( records ) {
+	const assets = new Map();
+	const lods = [];
+	let bounds = null;
+	for ( const [ name, build ] of [ [ 'palm-far', buildPalmFar ], [ 'palm-near', buildPalmNear ] ] ) {
+		const { geometry } = build( 11 );
+		const glb = exportVegetationGLB( name, geometry );
+		const assetId = `sha256:${createHash( 'sha256' ).update( glb ).digest( 'hex' )}`;
+		assets.set( assetId.slice( 'sha256:'.length ), glb );
+		lods.push( { assetId } );
+		if ( ! bounds ) bounds = { center: geometry.boundingSphere.center.toArray(), radius: geometry.boundingSphere.radius };
+		geometry.dispose();
+	}
+	return {
+		document: {
+			format: 'elsemesh.static-model-instance-set/1',
+			models: [ {
+				id: 'coconut-palm', bounds, geometryMirrorX: false, lods,
+				lodThresholds: [ 120 ], lodMetric: 'scaled-distance', lodFadeFraction: 0.12,
+				shadowLod: 0, shadowMaxDistance: 0, drawMaxDistance: 2800, drawFadeStartDistance: 2600,
+			} ],
+			instances: records.map( record => ( {
+				model: 'coconut-palm',
+				position: [ record.x, record.y, record.z ],
+				rotation: [ 0, Math.sin( record.yaw * 0.5 ), 0, Math.cos( record.yaw * 0.5 ) ],
+				scale: [ record.s, record.s * Math.abs( record.sy || 1 ), record.s ],
+				placementId: JSON.stringify( record ),
+				materialData: [ record.x, record.y, record.z, record.s, record.la || 0, record.l || 0, record.H || 1, record.seed ],
+			} ) ),
+		},
+		assets,
+	};
+}
+
+function exportVegetationGLB( name, geometry ) {
+	const chunks = [], bufferViews = [], accessors = [];
+	let byteLength = 0;
+	const add = ( typed, target, type, size, componentType = 5126, includeBounds = false ) => {
+		const padding = ( 4 - byteLength % 4 ) % 4;
+		if ( padding ) { chunks.push( Buffer.alloc( padding ) ); byteLength += padding; }
+		const bytes = Buffer.from( typed.buffer, typed.byteOffset, typed.byteLength );
+		const bufferView = bufferViews.length;
+		bufferViews.push( { buffer: 0, byteOffset: byteLength, byteLength: bytes.byteLength, target } );
+		chunks.push( bytes ); byteLength += bytes.byteLength;
+		const accessor = { bufferView, componentType, count: typed.length / size, type };
+		if ( includeBounds ) {
+			accessor.min = [ Infinity, Infinity, Infinity ]; accessor.max = [ - Infinity, - Infinity, - Infinity ];
+			for ( let i = 0; i < typed.length; i += 3 ) for ( let axis = 0; axis < 3; axis ++ ) { accessor.min[ axis ] = Math.min( accessor.min[ axis ], typed[ i + axis ] ); accessor.max[ axis ] = Math.max( accessor.max[ axis ], typed[ i + axis ] ); }
+		}
+		accessors.push( accessor );
+		return accessors.length - 1;
+	};
+	const extract = ( attribute ) => {
+		const values = new Float32Array( attribute.count * attribute.itemSize );
+		for ( let i = 0; i < attribute.count; i ++ ) for ( let c = 0; c < attribute.itemSize; c ++ ) values[ i * attribute.itemSize + c ] = attribute.getComponent( i, c );
+		return values;
+	};
+	const attributes = {
+		POSITION: add( extract( geometry.attributes.position ), 34962, 'VEC3', 3, 5126, true ),
+		NORMAL: add( extract( geometry.attributes.normal ), 34962, 'VEC3', 3 ),
+		TEXCOORD_0: add( extract( geometry.attributes.uv ), 34962, 'VEC2', 2 ),
+		_ELSEMESH_VDATA: add( extract( geometry.attributes.aVeg ), 34962, 'VEC4', 4 ),
+		_ELSEMESH_VDATA1: add( extract( geometry.attributes.aMat ), 34962, 'VEC4', 4 ),
+		_ELSEMESH_VDATA2: add( extract( geometry.attributes.aLobe ), 34962, 'VEC4', 4 ),
+	};
+	const indices = Uint32Array.from( geometry.index.array );
+	const indexAccessor = add( indices, 34963, 'SCALAR', 1, 5125 );
+	const binary = Buffer.concat( chunks );
+	const gltf = {
+		asset: { version: '2.0', generator: 'Tidewater vegetation migration exporter/1' },
+		scene: 0, scenes: [ { nodes: [ 0 ] } ], nodes: [ { name } ],
+		meshes: [ { name, primitives: [ { attributes, indices: indexAccessor, material: 0, mode: 4 } ] } ],
+		materials: [ { name: 'portable vegetation material input', pbrMetallicRoughness: { baseColorFactor: [ 1, 1, 1, 1 ], metallicFactor: 0, roughnessFactor: 0.8 }, doubleSided: true } ],
 		accessors, bufferViews, buffers: [ { byteLength: binary.length } ],
 	};
 	const json = Buffer.from( JSON.stringify( gltf ) );

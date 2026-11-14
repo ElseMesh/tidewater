@@ -91,6 +91,7 @@ try {
 	const sourcePath = path.join( output, 'world-source.json' );
 	const firstExportOutput = execFileSync( process.execPath, [ 'worlds/tidewater/tools/export-world.mjs', '--out', output ], { cwd: repositoryRoot, encoding: 'utf8' } );
 	const fishSetBytesFirst = await readFile( path.join( output, 'fish-static-model-instance-set.json' ) );
+	const vegetationSetBytesFirst = await readFile( path.join( output, 'vegetation-static-model-instance-set.json' ) );
 	const sourceFirst = await readFile( sourcePath );
 	const terrainReportPath = path.join( output, 'terrain-validation.json' );
 	const terrainReportFirst = await readFile( terrainReportPath );
@@ -102,6 +103,32 @@ try {
 	for ( const id of referencedIDs( firstDocument ) ) firstAssets.set( id, await readFile( path.join( output, 'assets', id.slice( 'sha256:'.length ) ) ) );
 	const secondExportOutput = execFileSync( process.execPath, [ 'worlds/tidewater/tools/export-world.mjs', '--out', output ], { cwd: repositoryRoot, encoding: 'utf8' } );
 	const fishSetBytes = await readFile( path.join( output, 'fish-static-model-instance-set.json' ) );
+	const vegetationSetBytes = await readFile( path.join( output, 'vegetation-static-model-instance-set.json' ) );
+	const vegetationSet = validateStaticModelInstanceSet( JSON.parse( vegetationSetBytes ) );
+	assert.equal( vegetationSet.models.length, 1, 'vegetation migration artifact exports the coconut-palm model' );
+	assert.equal( vegetationSet.models[ 0 ].id, 'coconut-palm', 'vegetation migration artifact identifies its first supported category' );
+	assert.equal( vegetationSet.models[ 0 ].lods.length, 2, 'palm migration artifact preserves near and far source meshes' );
+	assert.deepEqual( vegetationSet.models[ 0 ].lodThresholds, [ 120 ], 'palm artifact records the source near/far distance' );
+	assert.equal( vegetationSet.models[ 0 ].drawMaxDistance, 2800, 'palm artifact preserves the authored far fade end' );
+	const vegetationComponent = firstDocument.components.find( component => component.type === 'elsemesh.static-vegetation/1' );
+	const vegetationPlacement = decodeVegetationPlacements( await readFile( path.join( output, 'assets', componentData( vegetationComponent ).placementAssetId.slice( 'sha256:'.length ) ) ) );
+	assert.equal( vegetationSet.instances.length, vegetationPlacement.palms.length, 'palm artifact exports every post-scatter palm placement' );
+	for ( let i = 0; i < vegetationSet.instances.length; i ++ ) {
+		const instance = vegetationSet.instances[ i ], record = vegetationPlacement.palms[ i ];
+		assert.deepEqual( instance.position, [ record.x, record.y, record.z ], 'palm placement uses its already-authored world coordinates' );
+		assert.deepEqual( instance.scale, [ record.s, record.s * Math.abs( record.sy || 1 ), record.s ], 'palm placement keeps source scale semantics' );
+		assert.deepEqual( instance.materialData, [ record.x, record.y, record.z, record.s, record.la || 0, record.l || 0, record.H || 1, record.seed ], 'palm source shader inputs remain available during migration' );
+	}
+	const vegetationFiles = await readdir( path.join( output, 'vegetation-static-models' ) );
+	assert.equal( vegetationFiles.length, 2, 'palm migration artifact writes one content-addressed GLB per LOD' );
+	for ( const { assetId } of vegetationSet.models[ 0 ].lods ) {
+		const bytes = await readFile( path.join( output, 'vegetation-static-models', `${assetId.slice( 'sha256:'.length )}.glb` ) );
+		assert.equal( `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`, assetId, 'palm GLB filename and bytes match its content address' );
+		const primitive = parseGLB( bytes ).meshes[ 0 ][ 0 ];
+		assert.ok( primitive.indices?.length > 0 && primitive.attributes.POSITION && primitive.attributes.NORMAL && primitive.attributes.TEXCOORD_0, 'palm GLB contains portable indexed geometry, normals, and UVs' );
+		for ( const name of [ '_ELSEMESH_VDATA', '_ELSEMESH_VDATA1', '_ELSEMESH_VDATA2' ] ) assert.equal( primitive.attributes[ name ]?.itemSize, 4, `palm GLB preserves ${name} as a VEC4 renderer-neutral input` );
+	}
+	assert.deepEqual( vegetationSetBytes, vegetationSetBytesFirst, 'the generic palm model-set descriptor is deterministic' );
 	const fishSet = validateStaticModelInstanceSet( JSON.parse( fishSetBytes ) );
 	assert.equal( fishSet.instances.length, 78, 'generic fish model set exports all 78 original placements' );
 	assert.equal( fishSet.models.length, 18, 'generic fish model set exports all 18 kind/species geometry classes' );
