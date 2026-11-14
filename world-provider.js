@@ -2,7 +2,6 @@ export const TIDEWATER_WORLD_COMPONENTS = Object.freeze( [
 	[ 'elsemesh.static-grass/1', {} ],
 	[ 'elsemesh.static-reef/1', {} ],
 	[ 'elsemesh.humpback-whale/1', {} ],
-	[ 'elsemesh.terrain-surface/1', { installRank: 0 } ],
 	[ 'elsemesh.procedural-island-terrain/1', { installRank: 0 } ],
 	[ 'elsemesh.procedural-island-vegetation/1', { vegetation: true, installRank: 1 } ],
 	[ 'elsemesh.static-vegetation/1', { vegetation: true, installRank: 1 } ],

@@ -1,8 +1,6 @@
 import { Mesh } from '../../src/engine/scene/Mesh.js';
 import { CDLOD } from '../../src/core/CDLOD.js';
 import { LAYERS } from '../../src/core/SceneRenderer.js';
-import { HeightfieldTerrainData } from '../../src/world/HeightfieldTerrainData.js';
-import { TerrainGPU } from '../../src/world/TerrainGPU.js';
 import { Terrain } from '../../src/world/Terrain.js';
 import { Vegetation } from './renderers/WebGPUVegetation.js';
 import { Reef } from './Reef.js';
@@ -13,13 +11,11 @@ import { worldComponentDescriptor } from '../../src/network/WorldComponentRegist
 import { HostedBoat } from '../../src/network/HostedBoat.js';
 import { decodeWorldComponentAsset } from '../../src/network/WorldComponentAssetCodecRegistry.js';
 import { decodeGrassDensityAsset } from '../../src/network/GrassDensityAsset.js';
-import { decodeTerrainSurfaceAsset } from '../../src/network/TerrainSurfaceAsset.js';
 import { decodeReefPlacements, MAX_REEF_PLACEMENTS, REEF_PLACEMENT_HEADER_BYTES, REEF_PLACEMENT_RECORD_BYTES } from './ReefPlacements.js';
 
 const INSTALLERS = new Map( [
 	[ 'elsemesh.procedural-island-vegetation/1', installVegetation ],
 	[ 'elsemesh.static-vegetation/1', installVegetation ],
-	[ 'elsemesh.terrain-surface/1', installTerrainSurface ],
 	[ 'elsemesh.example-island-wildlife/1', installWildlife ],
 	[ 'elsemesh.procedural-island-terrain/1', installProceduralTerrain ],
 	[ 'elsemesh.static-reef/1', installReef ],
@@ -48,25 +44,6 @@ async function installVegetation( { app, root, connector, installed }, component
 	return true;
 }
 
-async function installTerrainSurface( { app, root, connector, installed }, component ) {
-	const fallback = root.children.find( child => child.userData.worldObjectId === component.objectId );
-	const replacedObjects = root.userData.worldPackage?.replacedByComponents || ( root.userData.worldPackage.replacedByComponents = new Set() );
-	replacedObjects.add( component.objectId );
-	const maps = await decodeTerrainSurfaceAsset( connector.assets.get( component.dataAssetId ) );
-	const terrainData = new HeightfieldTerrainData( maps );
-	root.userData.terrainData = terrainData;
-	const surfaceMaps = { normal: maps.normal, splat: maps.splat, detailWidth: maps.detailWidth, detailHeight: maps.detailHeight, detail: maps.detail };
-	const terrainGPU = new TerrainGPU( terrainData, maps.shoreField, surfaceMaps );
-	const terrain = new Terrain( { scene: root, terrainData, terrainGPU, surfaceProfile: component.surfaceProfile } );
-	if ( fallback ) fallback.visible = false;
-	installed.push( {
-		islandTerrain: true, terrain, terrainGPU,
-		update: ( _dt, camera ) => terrain.update( camera, true ),
-		dispose: () => { replacedObjects.delete( component.objectId ); root.remove( terrain.mesh ); terrain.mesh.geometry.dispose(); terrain.mesh.material.dispose(); terrainGPU.dispose(); if ( fallback ) fallback.visible = true; },
-	} );
-	return true;
-}
-
 async function installWildlife( { app, root, installed }, component ) {
 	const terrain = root.userData.terrainData;
 	if ( ! terrain ) throw new Error( `Wildlife component ${component.id} requires the packaged terrain surface to install first` );
@@ -90,7 +67,7 @@ async function installProceduralTerrain( { app, root, installed }, component ) {
 	const terrain = new Terrain( { scene: root, terrainData: app.terrainData, terrainGPU: app.terrainGPU, surfaceProfile: component.surfaceProfile } );
 	if ( fallback ) fallback.visible = false;
 	installed.push( {
-		islandTerrain: true,
+		terrainSurface: true,
 		update: ( _dt, camera ) => terrain.update( camera, false ),
 		dispose: () => { replacedObjects.delete( component.objectId ); root.remove( terrain.mesh ); terrain.mesh.geometry.dispose(); terrain.mesh.material.dispose(); if ( fallback ) fallback.visible = true; },
 	} );
