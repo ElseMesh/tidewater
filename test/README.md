@@ -54,6 +54,14 @@ harness uses synchronous pixel readback because Chromium's async readback
 stopped completing after its first sample. It does not measure live readback
 timing, rendered pixels, or FPS.
 
+To run its WebGL side on the AMD hardware in the isolated Weston display, start
+`worlds/Hogwarts/tools/hogwartsmp-parity/start-weston-review.sh`, then run the
+check with `ELSEMESH_TEST_HARDWARE_GPU=1`. This uses `tools/review-browser.mjs`
+on the Weston Wayland socket, selects the WebGL ANGLE path, and verifies the
+reported renderer contains AMD/Radeon before starting the parity trace. The
+default headless mode explicitly disables GPU acceleration and is intended for
+software-only query checks.
+
 The optional Blender authoring checks use the Tidewater package as their source
 fixture:
 

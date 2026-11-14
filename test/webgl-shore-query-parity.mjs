@@ -11,6 +11,7 @@ const engineRoot = resolve( testDirectory, '../../..' );
 const referencePath = join( testDirectory, 'webgpu-shore-query-reference.json' );
 const reuseReference = process.env.ELSEMESH_REUSE_SHORE_QUERY_REFERENCE === '1';
 const keepReference = process.env.ELSEMESH_KEEP_SHORE_QUERY_REFERENCE === '1';
+const hardwareGPU = process.env.ELSEMESH_TEST_HARDWARE_GPU === '1';
 
 function chromiumPath() {
 	if ( process.env.ELSEMESH_TEST_CHROMIUM ) return process.env.ELSEMESH_TEST_CHROMIUM;
@@ -64,12 +65,20 @@ try {
 	await vite.listen();
 	const address = vite.httpServer.address();
 	assert( address && typeof address === 'object' && address.port > 0, 'Vite exposes an ephemeral localhost port' );
-	const url = `http://127.0.0.1:${address.port}/worlds/tidewater/test/webgl-shore-query-parity.html`;
-	browser = spawn( chromiumPath(), [
-		'--headless=new', '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--disable-extensions',
-		'--no-first-run', '--no-default-browser-check', '--remote-debugging-address=127.0.0.1',
-		'--remote-debugging-port=0', '--remote-allow-origins=*', `--user-data-dir=${profile}`, 'about:blank',
-	], { detached: true, stdio: 'ignore' } );
+	const url = `http://127.0.0.1:${address.port}/worlds/tidewater/test/webgl-shore-query-parity.html${hardwareGPU ? '?renderer=webgl' : ''}`;
+	if ( hardwareGPU ) {
+		browser = spawn( process.execPath, [ join( engineRoot, 'tools/review-browser.mjs' ), url, profile, '0' ], {
+			detached: true,
+			stdio: 'ignore',
+			env: { ...process.env, CHROMIUM_BIN: chromiumPath(), CHROMIUM_OZONE_PLATFORM: 'wayland' },
+		} );
+	} else {
+		browser = spawn( chromiumPath(), [
+			'--headless=new', '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--disable-extensions',
+			'--no-first-run', '--no-default-browser-check', '--remote-debugging-address=127.0.0.1',
+			'--remote-debugging-port=0', '--remote-allow-origins=*', `--user-data-dir=${profile}`, 'about:blank',
+		], { detached: true, stdio: 'ignore' } );
+	}
 	const activePort = join( profile, 'DevToolsActivePort' ), startDeadline = Date.now() + 10000;
 	while ( ! existsSync( activePort ) && Date.now() < startDeadline ) {
 		if ( browser.exitCode !== null ) throw new Error( `isolated Chromium exited early (${browser.exitCode})` );
@@ -104,6 +113,15 @@ try {
 	try {
 		await command( 'Page.enable' );
 		await command( 'Runtime.enable' );
+		if ( hardwareGPU ) {
+			const renderer = await command( 'Runtime.evaluate', {
+				expression: "(()=>{const gl=document.createElement('canvas').getContext('webgl2');const ext=gl?.getExtension('WEBGL_debug_renderer_info');return ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):'WebGL renderer unavailable'})()",
+				returnByValue: true,
+			} );
+			const rendererName = renderer.result?.value;
+			assert.match( rendererName || '', /AMD|Radeon/i, `hardware parity mode uses AMD WebGL; got ${rendererName}` );
+			console.log( `Tidewater parity WebGL device: ${rendererName}` );
+		}
 		await command( 'Page.navigate', { url } );
 		const deadline = Date.now() + 3600000;
 		let result;
