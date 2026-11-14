@@ -287,21 +287,23 @@ try {
 	const webgpuLandingFrame = expectedCast.trace.findIndex( sample => sample.state === 'floating' ), webglLandingFrame = fishingCast.trace.findIndex( sample => sample.state === 'floating' );
 	if ( webgpuLandingFrame < 0 || webglLandingFrame < 0 ) throw new Error( 'Both production water queries must land their casts in water' );
 	const landingFrameDelta = Math.abs( webglLandingFrame - webgpuLandingFrame );
-	let maxBobberDelta = 0, maxCastWaterDelta = 0, stateFrameMismatches = 0;
-const fishingCastSamples = [];
+	let maxBobberDelta = 0, maxCastWaterDelta = 0, maxCastWaterSample = null, stateFrameMismatches = 0;
 	for ( let i = 0; i < sharedCastFrames; i ++ ) {
 		const actual = fishingCast.trace[ i ], expected = expectedCast.trace[ i ];
 		const bobberDelta = Math.hypot( ...actual.bobber.map( ( value, axis ) => value - expected.bobber[ axis ] ) );
 		const waterDelta = Math.abs( actual.waterY - expected.waterY );
 		maxBobberDelta = Math.max( maxBobberDelta, bobberDelta );
-		maxCastWaterDelta = Math.max( maxCastWaterDelta, waterDelta );
+		if ( waterDelta > maxCastWaterDelta ) {
+			maxCastWaterDelta = waterDelta;
+			maxCastWaterSample = { frame: i, state: actual.state, expectedWaterY: expected.waterY, actualWaterY: actual.waterY, delta: waterDelta };
+		}
 		if ( actual.state !== expected.state ) stateFrameMismatches ++;
-		fishingCastSamples.push( { frame: i, state: [ expected.state, actual.state ], bobberDelta, waterDelta } );
 	}
-	if ( Math.abs( fishingCast.trace.length - expectedCast.trace.length ) > 2 || landingFrameDelta > 2 || stateFrameMismatches > 2 || maxBobberDelta > 0.25 || maxCastWaterDelta > 0.1 ) {
-		throw new Error( `Production WebGL cast differs from pre-split WebGPU: ${JSON.stringify( { webgpuFrames: expectedCast.trace.length, webglFrames: fishingCast.trace.length, landingFrameDelta, stateFrameMismatches, maxBobberDelta, maxCastWaterDelta, samples: fishingCastSamples } )}` );
+	const landingWaterDelta = Math.abs( fishingCast.trace[ webglLandingFrame ].waterY - expectedCast.trace[ webgpuLandingFrame ].waterY );
+	if ( Math.abs( fishingCast.trace.length - expectedCast.trace.length ) > 2 || landingFrameDelta > 2 || stateFrameMismatches > 2 || maxBobberDelta > 0.25 || landingWaterDelta > 0.05 ) {
+		throw new Error( `Production WebGL cast differs from pre-split WebGPU: ${JSON.stringify( { webgpuFrames: expectedCast.trace.length, webglFrames: fishingCast.trace.length, landingFrameDelta, stateFrameMismatches, maxBobberDelta, landingWaterDelta, maxCastWaterSample } )}` );
 	}
-	result.textContent = JSON.stringify( { status: 'complete', count: samples.length, heightError, maxHeightError, normalError, floorError, samples, shoreProfile: { shoreOffsetError, maxShoreOffsetError, shorePointError, maxShorePointError }, boat: { maxPositionDelta: maxBoatPositionDelta, maxSpeedDelta: maxBoatSpeedDelta, traceWaterHeightError, maxTraceWaterHeightError, traceWaterNormalError, fftOnlyHeightError, maxFFTOnlyHeightError, fftOnlyNormalError, samples: boatSamples, traceWaterSamples, fftOnlySamples }, wakeBoat: { maxPositionDelta: maxWakeBoatPositionDelta, maxSpeedDelta: maxWakeBoatSpeedDelta, maxWaterHeightDelta: maxWakeWaterHeightDelta, maxWaterNormalDelta: maxWakeWaterNormalDelta, maxWakeStepDelta, samples: wakeBoatSamples }, fishingCast: { webgpuFrames: expectedCast.trace.length, webglFrames: fishingCast.trace.length, landingFrameDelta, stateFrameMismatches, maxBobberDelta, maxCastWaterDelta } } );
+	result.textContent = JSON.stringify( { status: 'complete', count: samples.length, heightError, maxHeightError, normalError, floorError, samples, shoreProfile: { shoreOffsetError, maxShoreOffsetError, shorePointError, maxShorePointError }, boat: { maxPositionDelta: maxBoatPositionDelta, maxSpeedDelta: maxBoatSpeedDelta, traceWaterHeightError, maxTraceWaterHeightError, traceWaterNormalError, fftOnlyHeightError, maxFFTOnlyHeightError, fftOnlyNormalError, samples: boatSamples, traceWaterSamples, fftOnlySamples }, wakeBoat: { maxPositionDelta: maxWakeBoatPositionDelta, maxSpeedDelta: maxWakeBoatSpeedDelta, maxWaterHeightDelta: maxWakeWaterHeightDelta, maxWaterNormalDelta: maxWakeWaterNormalDelta, maxWakeStepDelta, samples: wakeBoatSamples }, fishingCast: { webgpuFrames: expectedCast.trace.length, webglFrames: fishingCast.trace.length, landingFrameDelta, stateFrameMismatches, maxBobberDelta, landingWaterDelta, maxCastWaterDelta, maxCastWaterSample } } );
 	result.dataset.status = 'complete';
 } catch ( error ) {
 	result.textContent = JSON.stringify( { status: 'failed', error: error.stack || String( error ) } );

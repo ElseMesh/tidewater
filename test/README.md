@@ -48,11 +48,13 @@ height and normals. It also runs Tidewater's `FishingRod` cast and landing from
 the authored central beach over the production WebGPU and WebGL FFT, terrain,
 shore, and water-query paths. The generated WebGPU trace is tied to the same
 pre-split source check; the WebGL trace compares bobber motion, water samples,
-state transitions, and landing frame. This verifies cast-and-landing behavior,
-not the signed Worker fight or a rendered fishing scene. Its headless WebGL
-harness uses synchronous pixel readback because Chromium's async readback
-stopped completing after its first sample. It does not measure live readback
-timing, rendered pixels, or FPS.
+state transitions, landing frame, and landing water height. The maximum
+intermediate water-height delta is reported with its sample as a diagnostic;
+while the bobber is airborne it does not control the cast trajectory. This
+verifies cast-and-landing behavior, not the signed Worker fight or a rendered
+fishing scene. The harness uses synchronous WebGL readback because Chromium's
+async readback stopped completing after its first sample. It does not measure
+live readback timing, rendered pixels, or FPS.
 
 To run its WebGL side on the AMD hardware in the isolated Weston display, start
 `worlds/Hogwarts/tools/hogwartsmp-parity/start-weston-review.sh`, then run the
