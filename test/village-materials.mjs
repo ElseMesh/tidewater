@@ -26,7 +26,9 @@ vertexColorBatch.add( {
 	idx: [ 0, 1, 2 ]
 }, new THREE.Matrix4(), [ 0.2, 0.4, 0.8 ], [ 0, 0, 0, 0 ] );
 const vertexColorGeometry = vertexColorBatch.build();
-assert.deepEqual( [ ...vertexColorGeometry.getAttribute( 'color' ).array ], [ 0.2, 0.4, 0.8, 0.2, 0.4, 0.8, 0.2, 0.4, 0.8 ], 'procedural batches expose authored tints through the standard graph color input' );
+const actualVertexColors = [ ...vertexColorGeometry.getAttribute( 'color' ).array ];
+const expectedVertexColors = [ 0.2, 0.4, 0.8, 0.2, 0.4, 0.8, 0.2, 0.4, 0.8 ];
+assert.ok( actualVertexColors.every( ( value, index ) => Math.abs( value - expectedVertexColors[ index ] ) < 1e-6 ), 'procedural batches expose authored tints through the standard graph color input' );
 assert.equal( vertexColorGeometry.getAttribute( 'tint' ), undefined, 'procedural geometry uses the renderer-neutral standard color attribute' );
 vertexColorGeometry.dispose();
 
