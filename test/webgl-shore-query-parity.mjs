@@ -146,6 +146,11 @@ try {
 		const metrics = JSON.parse( result.text );
 		assert.equal( metrics.status, 'complete' );
 		assert( [ metrics.heightError, metrics.maxHeightError, metrics.normalError, metrics.floorError ].every( Number.isFinite ), 'query parity metrics are finite' );
+		const largestNormalSamples = metrics.samples
+			.map( sample => ( { point: sample.point, webgpu: sample.webgpu.slice( 1, 3 ), webgl: sample.webgl.slice( 1, 3 ), error: sample.errors.slice( 1, 3 ) } ) )
+			.sort( ( a, b ) => Math.hypot( ...b.error ) - Math.hypot( ...a.error ) )
+			.slice( 0, 3 );
+		console.log( `shoreline query normals: component MAE ${metrics.normalError.toFixed( 5 )}; largest vector deltas ${JSON.stringify( largestNormalSamples )}` );
 		assert( metrics.heightError <= 0.04, `Tidewater WebGL shoreline height MAE ${metrics.heightError} m <= 0.04 m` );
 		assert( metrics.maxHeightError <= 0.11, `Tidewater WebGL shoreline max height error ${metrics.maxHeightError} m <= 0.11 m` );
 		assert( metrics.normalError <= 0.01, `Tidewater WebGL shoreline normal MAE ${metrics.normalError} <= 0.01` );
