@@ -81,70 +81,9 @@ try {
 	normalError /= samples.length * 2;
 	floorError /= samples.length;
 	floorCpuError /= samples.length;
-	const gl = renderer.getContext();
-	const currentProgram = gl.getParameter( gl.CURRENT_PROGRAM );
-	const terrainUnit = gl.getUniform( currentProgram, gl.getUniformLocation( currentProgram, 'uTerrain' ) );
-	const originalActiveTexture = gl.getParameter( gl.ACTIVE_TEXTURE );
-	gl.activeTexture( gl.TEXTURE0 + terrainUnit );
-	const boundTerrainTexture = gl.getParameter( gl.TEXTURE_BINDING_2D );
-	gl.activeTexture( originalActiveTexture );
-	const rawTerrainSamples = [];
-	let terrainQueryProbe = null;
-	const originalFragmentShader = query.material.fragmentShader;
-	const probeFragmentShader = originalFragmentShader.replace( 'outResult = vec4( h, n.x, n.z, terrainHeightAt( xz ) );', `vec2 probeF = ( xz - uTerrainOrigin ) / uTerrainSize * float( uResolution ) - 0.5;
-	vec2 probeC = clamp( probeF, vec2( 0.0 ), vec2( float( uResolution ) - 1.001 ) );
-	ivec2 probeP = ivec2( floor( probeC ) );
-	outResult = vec4( terrainHeightAt( xz ), texelFetch( uTerrain, probeP, 0 ).r, fract( probeC ) );` );
-	if ( probeFragmentShader === originalFragmentShader ) throw new Error( 'Could not build the terrain shader diagnostic probe' );
-	query.material.fragmentShader = probeFragmentShader;
-	query.material.needsUpdate = true;
-	const priorTarget = renderer.getRenderTarget();
-	renderer.setRenderTarget( query.target );
-	renderer.render( query.scene, query.camera );
-	renderer.setRenderTarget( priorTarget );
-	const probeReadback = new Float32Array( 4 );
-	readRenderTargetPixels( query.target, 1, 0, 1, 1, probeReadback );
-	terrainQueryProbe = Array.from( probeReadback );
-	query.material.fragmentShader = originalFragmentShader;
-	query.material.needsUpdate = true;
-	const terrainFramebuffer = gl.createFramebuffer();
-	const previousFramebuffer = gl.getParameter( gl.FRAMEBUFFER_BINDING );
-	let terrainAttachmentType = null;
-	try {
-		gl.bindFramebuffer( gl.FRAMEBUFFER, terrainFramebuffer );
-		gl.framebufferTexture2D( gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, renderer.properties.get( query.terrainTexture ).__webglTexture, 0 );
-		const framebufferStatus = gl.checkFramebufferStatus( gl.FRAMEBUFFER );
-		if ( framebufferStatus === gl.FRAMEBUFFER_COMPLETE ) {
-			const type = gl.getFramebufferAttachmentParameter( gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE );
-			terrainAttachmentType = type === gl.FLOAT ? 'FLOAT' : type === gl.HALF_FLOAT ? 'HALF_FLOAT' : type;
-			for ( const point of reference.points ) {
-				const fx = Math.max( 0, Math.min( terrain.res - 1.001, ( point[ 0 ] - terrain.origin ) / terrain.size * terrain.res - 0.5 ) );
-				const fz = Math.max( 0, Math.min( terrain.res - 1.001, ( point[ 1 ] - terrain.origin ) / terrain.size * terrain.res - 0.5 ) );
-				const ix = Math.floor( fx ), iz = Math.floor( fz );
-				const expected = [ terrain.heights[ iz * terrain.res + ix ], terrain.heights[ iz * terrain.res + ix + 1 ], terrain.heights[ ( iz + 1 ) * terrain.res + ix ], terrain.heights[ ( iz + 1 ) * terrain.res + ix + 1 ] ];
-				const read = ( x, y ) => {
-					const value = new Float32Array( 1 );
-					gl.readPixels( x, y, 1, 1, gl.RED, gl.FLOAT, value );
-					return value[ 0 ];
-				};
-				rawTerrainSamples.push( { point, expected, actual: [ read( ix, iz ), read( ix + 1, iz ), read( ix, iz + 1 ), read( ix + 1, iz + 1 ) ], glError: gl.getError() } );
-			}
-		} else rawTerrainSamples.push( { framebufferStatus } );
-	} finally {
-		gl.bindFramebuffer( gl.FRAMEBUFFER, previousFramebuffer );
-		gl.deleteFramebuffer( terrainFramebuffer );
-	}
 	diagnostics = {
 		query: { heightError, maxHeightError, normalError, floorError, floorCpuError },
 		shoreOnly: { heightError: shoreHeightError, maxHeightError: maxShoreHeightError, normalError: shoreNormalError, floorError: shoreFloorError, floorCpuError: shoreFloorCpuError },
-		textures: { terrain: { internalFormat: query.terrainTexture.internalFormat, format: query.terrainTexture.format, type: query.terrainTexture.type, dataType: query.terrainTexture.image.data.constructor.name }, output: { internalFormat: query.target.texture.internalFormat, format: query.target.texture.format, type: query.target.texture.type }, glError: gl.getError() },
-		terrainBinding: { unit: terrainUnit, matchesQueryTexture: boundTerrainTexture === renderer.properties.get( query.terrainTexture ).__webglTexture },
-		uniforms: { terrainOrigin: query.material.uniforms.uTerrainOrigin.value.toArray(), terrainSize: query.material.uniforms.uTerrainSize.value, terrainResolution: query.material.uniforms.uResolution.value, terrainAttachmentType },
-		terrainQueryProbe,
-		firstQuerySlot: { input: Array.from( query.inputs.slice( 4, 8 ) ), result: Array.from( query.cpu.slice( 4, 8 ) ), directResult: Array.from( ( () => { const value = new Float32Array( 4 ); readRenderTargetPixels( query.target, 1, 0, 1, 1, value ); return value; } )() ) },
-		rawTerrainSamples,
-		querySamples: samples.map( sample => ( { point: sample.point, webgpuHeight: sample.webgpu[ 0 ], webglHeight: sample.webgl[ 0 ], webgpuFloor: sample.webgpu[ 3 ], webglFloor: sample.webgl[ 3 ], cpuFloor: terrain.heightAt( ...sample.point ) } ) ),
-		shoreOnlySamples: shoreOnlySamples.map( sample => ( { point: sample.point, webgpuHeight: sample.webgpu[ 0 ], webglHeight: sample.webgl[ 0 ], webgpuNormal: sample.webgpu.slice( 1, 3 ), webglNormal: sample.webgl.slice( 1, 3 ), webgpuFloor: sample.webgpu[ 3 ], webglFloor: sample.webgl[ 3 ], cpuFloor: terrain.heightAt( ...sample.point ) } ) ),
 	};
 	const berthObject = source.objects.find( object => object.id === 'elsemesh-object:moored-lobster-boat' );
 	if ( ! Array.isArray( berthObject?.transform?.position ) || ! Number.isFinite( berthObject?.transform?.yaw ) ) throw new Error( 'Tidewater package has no authored boat berth and heading' );
