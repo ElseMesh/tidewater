@@ -82,10 +82,36 @@ try {
 	floorError /= samples.length;
 	floorCpuError /= samples.length;
 	const gl = renderer.getContext();
+	const rawTerrainSamples = [];
+	const terrainFramebuffer = gl.createFramebuffer();
+	const previousFramebuffer = gl.getParameter( gl.FRAMEBUFFER_BINDING );
+	try {
+		gl.bindFramebuffer( gl.FRAMEBUFFER, terrainFramebuffer );
+		gl.framebufferTexture2D( gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, renderer.properties.get( query.terrainTexture ).__webglTexture, 0 );
+		const framebufferStatus = gl.checkFramebufferStatus( gl.FRAMEBUFFER );
+		if ( framebufferStatus === gl.FRAMEBUFFER_COMPLETE ) {
+			for ( const point of reference.points ) {
+				const fx = Math.max( 0, Math.min( terrain.res - 1.001, ( point[ 0 ] - terrain.origin ) / terrain.size * terrain.res - 0.5 ) );
+				const fz = Math.max( 0, Math.min( terrain.res - 1.001, ( point[ 1 ] - terrain.origin ) / terrain.size * terrain.res - 0.5 ) );
+				const ix = Math.floor( fx ), iz = Math.floor( fz );
+				const expected = [ terrain.heights[ iz * terrain.res + ix ], terrain.heights[ iz * terrain.res + ix + 1 ], terrain.heights[ ( iz + 1 ) * terrain.res + ix ], terrain.heights[ ( iz + 1 ) * terrain.res + ix + 1 ] ];
+				const read = ( x, y ) => {
+					const value = new Float32Array( 1 );
+					gl.readPixels( x, y, 1, 1, gl.RED, gl.FLOAT, value );
+					return value[ 0 ];
+				};
+				rawTerrainSamples.push( { point, expected, actual: [ read( ix, iz ), read( ix + 1, iz ), read( ix, iz + 1 ), read( ix + 1, iz + 1 ) ], glError: gl.getError() } );
+			}
+		} else rawTerrainSamples.push( { framebufferStatus } );
+	} finally {
+		gl.bindFramebuffer( gl.FRAMEBUFFER, previousFramebuffer );
+		gl.deleteFramebuffer( terrainFramebuffer );
+	}
 	diagnostics = {
 		query: { heightError, maxHeightError, normalError, floorError, floorCpuError },
 		shoreOnly: { heightError: shoreHeightError, maxHeightError: maxShoreHeightError, normalError: shoreNormalError, floorError: shoreFloorError, floorCpuError: shoreFloorCpuError },
 		textures: { terrain: { internalFormat: query.terrainTexture.internalFormat, format: query.terrainTexture.format, type: query.terrainTexture.type, dataType: query.terrainTexture.image.data.constructor.name }, output: { internalFormat: query.target.texture.internalFormat, format: query.target.texture.format, type: query.target.texture.type }, glError: gl.getError() },
+		rawTerrainSamples,
 		querySamples: samples.map( sample => ( { point: sample.point, webgpuHeight: sample.webgpu[ 0 ], webglHeight: sample.webgl[ 0 ], webgpuFloor: sample.webgpu[ 3 ], webglFloor: sample.webgl[ 3 ], cpuFloor: terrain.heightAt( ...sample.point ) } ) ),
 		shoreOnlySamples: shoreOnlySamples.map( sample => ( { point: sample.point, webgpuHeight: sample.webgpu[ 0 ], webglHeight: sample.webgl[ 0 ], webgpuNormal: sample.webgpu.slice( 1, 3 ), webglNormal: sample.webgl.slice( 1, 3 ), webgpuFloor: sample.webgpu[ 3 ], webglFloor: sample.webgl[ 3 ], cpuFloor: terrain.heightAt( ...sample.point ) } ) ),
 	};
