@@ -83,6 +83,24 @@ try {
 	floorCpuError /= samples.length;
 	const gl = renderer.getContext();
 	const rawTerrainSamples = [];
+	let terrainQueryProbe = null;
+	const originalFragmentShader = query.material.fragmentShader;
+	const probeFragmentShader = originalFragmentShader.replace( 'outResult = vec4( h, n.x, n.z, terrainHeightAt( xz ) );', `vec2 probeF = ( xz - uTerrainOrigin ) / uTerrainSize * float( uResolution ) - 0.5;
+	vec2 probeC = clamp( probeF, vec2( 0.0 ), vec2( float( uResolution ) - 1.001 ) );
+	ivec2 probeP = ivec2( floor( probeC ) );
+	outResult = vec4( terrainHeightAt( xz ), texelFetch( uTerrain, probeP, 0 ).r, fract( probeC ) );` );
+	if ( probeFragmentShader === originalFragmentShader ) throw new Error( 'Could not build the terrain shader diagnostic probe' );
+	query.material.fragmentShader = probeFragmentShader;
+	query.material.needsUpdate = true;
+	const priorTarget = renderer.getRenderTarget();
+	renderer.setRenderTarget( query.target );
+	renderer.render( query.scene, query.camera );
+	renderer.setRenderTarget( priorTarget );
+	const probeReadback = new Float32Array( 4 );
+	readRenderTargetPixels( query.target, 1, 0, 1, 1, probeReadback );
+	terrainQueryProbe = Array.from( probeReadback );
+	query.material.fragmentShader = originalFragmentShader;
+	query.material.needsUpdate = true;
 	const terrainFramebuffer = gl.createFramebuffer();
 	const previousFramebuffer = gl.getParameter( gl.FRAMEBUFFER_BINDING );
 	let terrainAttachmentType = null;
@@ -115,6 +133,7 @@ try {
 		shoreOnly: { heightError: shoreHeightError, maxHeightError: maxShoreHeightError, normalError: shoreNormalError, floorError: shoreFloorError, floorCpuError: shoreFloorCpuError },
 		textures: { terrain: { internalFormat: query.terrainTexture.internalFormat, format: query.terrainTexture.format, type: query.terrainTexture.type, dataType: query.terrainTexture.image.data.constructor.name }, output: { internalFormat: query.target.texture.internalFormat, format: query.target.texture.format, type: query.target.texture.type }, glError: gl.getError() },
 		uniforms: { terrainOrigin: query.material.uniforms.uTerrainOrigin.value.toArray(), terrainSize: query.material.uniforms.uTerrainSize.value, terrainResolution: query.material.uniforms.uResolution.value, terrainAttachmentType },
+		terrainQueryProbe,
 		firstQuerySlot: { input: Array.from( query.inputs.slice( 4, 8 ) ), result: Array.from( query.cpu.slice( 4, 8 ) ), directResult: Array.from( ( () => { const value = new Float32Array( 4 ); readRenderTargetPixels( query.target, 1, 0, 1, 1, value ); return value; } )() ) },
 		rawTerrainSamples,
 		querySamples: samples.map( sample => ( { point: sample.point, webgpuHeight: sample.webgpu[ 0 ], webglHeight: sample.webgl[ 0 ], webgpuFloor: sample.webgpu[ 3 ], webglFloor: sample.webgl[ 3 ], cpuFloor: terrain.heightAt( ...sample.point ) } ) ),
