@@ -6,7 +6,6 @@ import { BoatController } from '../../../src/player/BoatController.js';
 import { PerspectiveCamera } from '../../../src/engine/index.js';
 import { BoatDesign } from '../../../src/world/boat/BoatDesign.js';
 import { Vector3 } from '../../../src/engine/math/Vector3.js';
-import { createWebGLShoreSurfaceOffset } from '../../../src/fallback/WebGLShoreSurface.js';
 import { WebGLWakeSim } from '../../../src/ocean/WebGLWakeSim.js';
 import { FishingRod } from '../game/FishingRod.js';
 import { tidewaterPierColliders } from './tidewater-pier-colliders.js';
@@ -37,40 +36,51 @@ try {
 		return Promise.resolve( buffer );
 	};
 	query = new WebGLWaterQuery( THREE, renderer, terrain, reference.seaLevel );
-	query.setSurfaceOffsetSampler( 'shore', createWebGLShoreSurfaceOffset( { terrain, seaLevel: reference.seaLevel, field: maps.shoreField } ) );
-	let shoreOffsetError = 0, maxShoreOffsetError = 0, shorePointError = 0, maxShorePointError = 0;
-	for ( let i = 0; i < reference.points.length; i ++ ) {
-		const actual = query.sampleSurfaceOffset( ...reference.points[ i ], reference.time );
-		const expected = reference.shoreOnly[ i ][ 0 ] - reference.seaLevel;
-		const error = Math.abs( actual - expected );
-		shoreOffsetError += error;
-		maxShoreOffsetError = Math.max( maxShoreOffsetError, error );
-		const pointError = Math.abs( actual - reference.shoreAtPoint[ i ][ 1 ] );
-		shorePointError += pointError;
-		maxShorePointError = Math.max( maxShorePointError, pointError );
-	}
-	shoreOffsetError /= reference.points.length;
-	shorePointError /= reference.points.length;
+	query.setShoreField( maps.shoreField );
 	const start = query.allocate( 'shore-parity', reference.points.length );
 	for ( let i = 0; i < reference.points.length; i ++ ) query.setPoint( start + i, ...reference.points[ i ] );
-	const deadline = performance.now() + 20000;
-	while ( ! query.cpuValid && performance.now() < deadline ) {
-		query.update( 0, reference.time );
-		await new Promise( resolve => setTimeout( resolve, 0 ) );
-	}
-	if ( ! query.cpuValid ) throw new Error( `WebGL shoreline query timed out${query.readbackError ? `: ${query.readbackError}` : ''}` );
-	let heightError = 0, maxHeightError = 0, normalError = 0, floorError = 0;
+	query.oceanAmplitude = 0;
+	let previousVersion = query.version;
+	query.update( 0, reference.time );
+	let deadline = performance.now() + 20000;
+	while ( query.version === previousVersion && performance.now() < deadline ) await new Promise( resolve => setTimeout( resolve, 0 ) );
+	if ( query.version === previousVersion ) throw new Error( `WebGL shore-only query timed out${query.readbackError ? `: ${query.readbackError}` : ''}` );
+	let shoreHeightError = 0, maxShoreHeightError = 0, shoreNormalError = 0, shoreFloorError = 0, shoreFloorCpuError = 0;
+	const shoreOnlySamples = reference.points.map( ( point, i ) => {
+		const actual = Array.from( query.cpu.slice( ( start + i ) * 4, ( start + i + 1 ) * 4 ) );
+		const expected = reference.shoreOnly[ i ];
+		const errors = actual.map( ( value, channel ) => Math.abs( value - expected[ channel ] ) );
+		shoreHeightError += errors[ 0 ];
+		maxShoreHeightError = Math.max( maxShoreHeightError, errors[ 0 ] );
+		shoreNormalError += errors[ 1 ] + errors[ 2 ];
+		shoreFloorError += errors[ 3 ];
+		shoreFloorCpuError += Math.abs( actual[ 3 ] - terrain.heightAt( ...point ) );
+		return { point, webgpu: expected, webgl: actual, errors };
+	} );
+	shoreHeightError /= shoreOnlySamples.length;
+	shoreNormalError /= shoreOnlySamples.length * 2;
+	shoreFloorError /= shoreOnlySamples.length;
+	shoreFloorCpuError /= shoreOnlySamples.length;
+	query.oceanAmplitude = 1;
+	previousVersion = query.version;
+	query.update( 0, reference.time );
+	deadline = performance.now() + 20000;
+	while ( query.version === previousVersion && performance.now() < deadline ) await new Promise( resolve => setTimeout( resolve, 0 ) );
+	if ( query.version === previousVersion ) throw new Error( `WebGL full shoreline query timed out${query.readbackError ? `: ${query.readbackError}` : ''}` );
+	let heightError = 0, maxHeightError = 0, normalError = 0, floorError = 0, floorCpuError = 0;
 	const samples = reference.points.map( ( point, i ) => {
 		const actual = Array.from( query.cpu.slice( ( start + i ) * 4, ( start + i + 1 ) * 4 ) );
 		const expected = reference.webgpu[ i ];
 		const errors = actual.map( ( value, channel ) => Math.abs( value - expected[ channel ] ) );
 		heightError += errors[ 0 ]; maxHeightError = Math.max( maxHeightError, errors[ 0 ] );
 		normalError += errors[ 1 ] + errors[ 2 ]; floorError += errors[ 3 ];
+		floorCpuError += Math.abs( actual[ 3 ] - terrain.heightAt( ...point ) );
 		return { point, webgpu: expected, webgl: actual, errors };
 	} );
 	heightError /= samples.length;
 	normalError /= samples.length * 2;
 	floorError /= samples.length;
+	floorCpuError /= samples.length;
 	const berthObject = source.objects.find( object => object.id === 'elsemesh-object:moored-lobster-boat' );
 	if ( ! Array.isArray( berthObject?.transform?.position ) || ! Number.isFinite( berthObject?.transform?.yaw ) ) throw new Error( 'Tidewater package has no authored boat berth and heading' );
 	query.latency = 1 / 60;
@@ -145,11 +155,10 @@ try {
 	}
 	traceWaterHeightError /= reference.boatTrace.length;
 	traceWaterNormalError /= reference.boatTrace.length * 2;
-	const surfaceOffsetSampler = query.getSurfaceOffsetSampler( 'shore' );
 	let fftOnlyHeightError = 0, maxFFTOnlyHeightError = 0, fftOnlyNormalError = 0;
 	const fftOnlySamples = [];
 	try {
-		query.setSurfaceOffsetSampler( 'shore', null );
+		query.setShoreField( null );
 		for ( let i = 0; i < reference.boatTrace.length; i ++ ) {
 			const expected = reference.boatTrace[ i ], time = i + 1;
 			query.setPoint( traceProbeSlot, ...expected.waterPoint );
@@ -170,11 +179,12 @@ try {
 			fftOnlySamples.push( { second: time, point: expected.waterPoint, webgpu: expectedFFT, webgl: actual, heightDelta, normalDelta } );
 		}
 	} finally {
-		query.setSurfaceOffsetSampler( 'shore', surfaceOffsetSampler );
+		query.setShoreField( maps.shoreField );
 	}
 	fftOnlyHeightError /= reference.boatTrace.length;
 	fftOnlyNormalError /= reference.boatTrace.length * 2;
 	const wakeQueryInstance = wakeQuery = new WebGLWaterQuery( THREE, renderer, terrain, reference.seaLevel );
+	wakeQueryInstance.setShoreField( maps.shoreField );
 	const wakeColliders = tidewaterPierColliders( terrain );
 	const wakeBoat = new BoatController( {
 		design: new BoatDesign(), query: wakeQueryInstance, terrain,
@@ -182,7 +192,6 @@ try {
 	} );
 	wakeBoat.driven = true;
 	wakeBoat.moored = false;
-	wakeQueryInstance.setSurfaceOffsetSampler( 'shore', createWebGLShoreSurfaceOffset( { terrain, seaLevel: reference.seaLevel, field: maps.shoreField } ) );
 	wake = new WebGLWakeSim( THREE, renderer, { terrain, boat: wakeBoat, colliders: wakeColliders, seaLevel: reference.seaLevel } );
 	wakeQueryInstance.setWakeReader( wake.readerUniforms );
 	wakeQueryInstance.latency = 1 / 60;
@@ -303,7 +312,7 @@ try {
 	if ( Math.abs( fishingCast.trace.length - expectedCast.trace.length ) > 2 || landingFrameDelta > 2 || stateFrameMismatches > 2 || maxBobberDelta > 0.25 || landingWaterDelta > 0.05 ) {
 		throw new Error( `Production WebGL cast differs from pre-split WebGPU: ${JSON.stringify( { webgpuFrames: expectedCast.trace.length, webglFrames: fishingCast.trace.length, landingFrameDelta, stateFrameMismatches, maxBobberDelta, landingWaterDelta, maxCastWaterSample } )}` );
 	}
-	result.textContent = JSON.stringify( { status: 'complete', count: samples.length, heightError, maxHeightError, normalError, floorError, samples, shoreProfile: { shoreOffsetError, maxShoreOffsetError, shorePointError, maxShorePointError }, boat: { maxPositionDelta: maxBoatPositionDelta, maxSpeedDelta: maxBoatSpeedDelta, traceWaterHeightError, maxTraceWaterHeightError, traceWaterNormalError, fftOnlyHeightError, maxFFTOnlyHeightError, fftOnlyNormalError, samples: boatSamples, traceWaterSamples, fftOnlySamples }, wakeBoat: { maxPositionDelta: maxWakeBoatPositionDelta, maxSpeedDelta: maxWakeBoatSpeedDelta, maxWaterHeightDelta: maxWakeWaterHeightDelta, maxWaterNormalDelta: maxWakeWaterNormalDelta, maxWakeStepDelta, samples: wakeBoatSamples }, fishingCast: { webgpuFrames: expectedCast.trace.length, webglFrames: fishingCast.trace.length, landingFrameDelta, stateFrameMismatches, maxBobberDelta, landingWaterDelta, maxCastWaterDelta, maxCastWaterSample } } );
+	result.textContent = JSON.stringify( { status: 'complete', count: samples.length, heightError, maxHeightError, normalError, floorError, floorCpuError, samples, shoreOnly: { heightError: shoreHeightError, maxHeightError: maxShoreHeightError, normalError: shoreNormalError, floorError: shoreFloorError, floorCpuError: shoreFloorCpuError, samples: shoreOnlySamples }, boat: { maxPositionDelta: maxBoatPositionDelta, maxSpeedDelta: maxBoatSpeedDelta, traceWaterHeightError, maxTraceWaterHeightError, traceWaterNormalError, fftOnlyHeightError, maxFFTOnlyHeightError, fftOnlyNormalError, samples: boatSamples, traceWaterSamples, fftOnlySamples }, wakeBoat: { maxPositionDelta: maxWakeBoatPositionDelta, maxSpeedDelta: maxWakeBoatSpeedDelta, maxWaterHeightDelta: maxWakeWaterHeightDelta, maxWaterNormalDelta: maxWakeWaterNormalDelta, maxWakeStepDelta, samples: wakeBoatSamples }, fishingCast: { webgpuFrames: expectedCast.trace.length, webglFrames: fishingCast.trace.length, landingFrameDelta, stateFrameMismatches, maxBobberDelta, landingWaterDelta, maxCastWaterDelta, maxCastWaterSample } } );
 	result.dataset.status = 'complete';
 } catch ( error ) {
 	result.textContent = JSON.stringify( { status: 'failed', error: error.stack || String( error ) } );
