@@ -82,6 +82,12 @@ try {
 	floorError /= samples.length;
 	floorCpuError /= samples.length;
 	const gl = renderer.getContext();
+	const currentProgram = gl.getParameter( gl.CURRENT_PROGRAM );
+	const terrainUnit = gl.getUniform( currentProgram, gl.getUniformLocation( currentProgram, 'uTerrain' ) );
+	const originalActiveTexture = gl.getParameter( gl.ACTIVE_TEXTURE );
+	gl.activeTexture( gl.TEXTURE0 + terrainUnit );
+	const boundTerrainTexture = gl.getParameter( gl.TEXTURE_BINDING_2D );
+	gl.activeTexture( originalActiveTexture );
 	const rawTerrainSamples = [];
 	let terrainQueryProbe = null;
 	const originalFragmentShader = query.material.fragmentShader;
@@ -132,6 +138,7 @@ try {
 		query: { heightError, maxHeightError, normalError, floorError, floorCpuError },
 		shoreOnly: { heightError: shoreHeightError, maxHeightError: maxShoreHeightError, normalError: shoreNormalError, floorError: shoreFloorError, floorCpuError: shoreFloorCpuError },
 		textures: { terrain: { internalFormat: query.terrainTexture.internalFormat, format: query.terrainTexture.format, type: query.terrainTexture.type, dataType: query.terrainTexture.image.data.constructor.name }, output: { internalFormat: query.target.texture.internalFormat, format: query.target.texture.format, type: query.target.texture.type }, glError: gl.getError() },
+		terrainBinding: { unit: terrainUnit, matchesQueryTexture: boundTerrainTexture === renderer.properties.get( query.terrainTexture ).__webglTexture },
 		uniforms: { terrainOrigin: query.material.uniforms.uTerrainOrigin.value.toArray(), terrainSize: query.material.uniforms.uTerrainSize.value, terrainResolution: query.material.uniforms.uResolution.value, terrainAttachmentType },
 		terrainQueryProbe,
 		firstQuerySlot: { input: Array.from( query.inputs.slice( 4, 8 ) ), result: Array.from( query.cpu.slice( 4, 8 ) ), directResult: Array.from( ( () => { const value = new Float32Array( 4 ); readRenderTargetPixels( query.target, 1, 0, 1, 1, value ); return value; } )() ) },
