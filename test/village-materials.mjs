@@ -16,6 +16,19 @@ import { TIDEWATER_NET_MATERIAL_GRAPH, TIDEWATER_WOOD_MATERIAL_GRAPH, TIDEWATER_
 import { createGlassMaterial, createHardMaterial, createRoofMetalMaterial, createWoodMaterial } from '../renderers/webgpu-village/VillageMaterials.js';
 import { createWebGLMaterialGraph } from '../../../src/materials/WorldMaterialGraph.js';
 import { compileWorldMaterialGraph } from '../../../src/materials/WorldMaterialGraphCompiler.js';
+import { Batch } from '../village/GeoBuilder.js';
+
+const vertexColorBatch = new Batch();
+vertexColorBatch.add( {
+	p: [ 0, 0, 0, 1, 0, 0, 0, 1, 0 ],
+	n: [ 0, 0, 1, 0, 0, 1, 0, 0, 1 ],
+	uv: [ 0, 0, 1, 0, 0, 1 ],
+	idx: [ 0, 1, 2 ]
+}, new THREE.Matrix4(), [ 0.2, 0.4, 0.8 ], [ 0, 0, 0, 0 ] );
+const vertexColorGeometry = vertexColorBatch.build();
+assert.deepEqual( [ ...vertexColorGeometry.getAttribute( 'color' ).array ], [ 0.2, 0.4, 0.8, 0.2, 0.4, 0.8, 0.2, 0.4, 0.8 ], 'procedural batches expose authored tints through the standard graph color input' );
+assert.equal( vertexColorGeometry.getAttribute( 'tint' ), undefined, 'procedural geometry uses the renderer-neutral standard color attribute' );
+vertexColorGeometry.dispose();
 
 const netGraphWebGPU = compileWorldMaterialGraph( TIDEWATER_NET_MATERIAL_GRAPH, 'webgpu', { doubleSided: true } );
 const netGraphWebGL = compileWorldMaterialGraph( TIDEWATER_NET_MATERIAL_GRAPH, 'webgl', { doubleSided: true } );

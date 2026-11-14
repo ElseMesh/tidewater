@@ -548,7 +548,7 @@ export class Batch {
 		g.setAttribute( 'position', new Float32BufferAttribute( this.pos, 3 ) );
 		g.setAttribute( 'normal', new Float32BufferAttribute( this.nrm, 3 ) );
 		g.setAttribute( 'uv', new Float32BufferAttribute( this.uv, 2 ) );
-		g.setAttribute( 'tint', new Float32BufferAttribute( this.tint, 3 ) );
+		g.setAttribute( 'color', new Float32BufferAttribute( this.tint, 3 ) );
 		g.setAttribute( 'vdata', new Float32BufferAttribute( this.data, 4 ) );
 		const Idx = this.vcount > 65535 ? Uint32BufferAttribute : Uint16BufferAttribute;
 		g.setIndex( new Idx( this.idx, 1 ) );

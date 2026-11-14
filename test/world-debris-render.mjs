@@ -128,8 +128,8 @@ try {
 } catch ( e ) {
 
 	console.log( 'village materials unavailable (' + e.message.split( '\n' )[ 0 ] + '): stubs' );
-	const stub = ( name, color, rough ) => standard( { name, color, roughness: rough, attributes: { tint: 'vec3f' }, varyings: { vT: 'vec3f' },
-		vertex: 'o.vT = v.tint;', surface: 's.albedo = s.albedo * in.vs.vT;' } );
+	const stub = ( name, color, rough ) => standard( { name, color, roughness: rough, attributes: { color: 'vec3f' }, varyings: { vT: 'vec3f' },
+		vertex: 'o.vT = v.color;', surface: 's.albedo = s.albedo * in.vs.vT;' } );
 	villageMats = { wood: stub( 'stubWood', 0xffffff, 0.8 ), hard: stub( 'stubHard', 0xffffff, 0.5 ), fabric: stub( 'stubFabric', 0xffffff, 0.9 ) };
 
 }
