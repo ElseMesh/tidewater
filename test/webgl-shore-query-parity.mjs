@@ -34,10 +34,18 @@ async function stopBrowser( browser ) {
 if ( reuseReference ) {
 	await assertPreSplitWaterSource();
 	assert( existsSync( referencePath ), `set ELSEMESH_KEEP_SHORE_QUERY_REFERENCE=1 on the writer run to preserve ${referencePath}` );
+	if ( hardwareGPU ) {
+		const reference = JSON.parse( readFileSync( referencePath, 'utf8' ) );
+		assert.match( reference.gpuAdapter?.vendor || '', /amd/i, 'AMD parity mode requires a pre-split WebGPU reference generated on AMD' );
+	}
 } else {
 	const writer = spawnSync( process.execPath, [ '--preserve-symlinks', join( testDirectory, 'write-webgpu-shore-query-reference.mjs' ) ], {
 		cwd: engineRoot, encoding: 'utf8', timeout: 3600000, maxBuffer: 1024 * 1024,
-		env: { ...process.env, ELSEMESH_SHORE_QUERY_REFERENCE: referencePath },
+		env: {
+			...process.env,
+			ELSEMESH_SHORE_QUERY_REFERENCE: referencePath,
+			...( hardwareGPU ? { ELSEMESH_TEST_GPU_ADAPTER: process.env.ELSEMESH_TEST_GPU_ADAPTER || 'AMD Radeon Graphics' } : {} ),
+		},
 	} );
 	if ( writer.error ) throw writer.error;
 	assert.equal( writer.status, 0, `headless Dawn builds the WebGPU reference: ${writer.stdout}\n${writer.stderr}` );

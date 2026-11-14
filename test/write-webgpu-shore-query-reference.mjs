@@ -31,6 +31,15 @@ const compressed = await readFile( new URL( `../assets/${terrainComponent.data.d
 const maps = await decodeTerrainSurfaceAsset( new Uint8Array( compressed ) );
 const terrain = new HeightfieldTerrainData( maps );
 await GPU.init( { headless: true } );
+const adapterInfo = GPU.adapter.info;
+const gpuAdapter = {
+	vendor: adapterInfo.vendor,
+	architecture: adapterInfo.architecture,
+	device: adapterInfo.device,
+	description: adapterInfo.description,
+};
+if ( process.env.ELSEMESH_TEST_HARDWARE_GPU === '1' ) assert.match( gpuAdapter.vendor || '', /amd/i, `AMD parity reference requires AMD WebGPU; got ${JSON.stringify( gpuAdapter )}` );
+console.log( `Tidewater WebGPU reference device: ${gpuAdapter.vendor} ${gpuAdapter.device} (${gpuAdapter.description})` );
 const terrainGPU = new TerrainGPU( terrain, maps.shoreField, {
 	normal: maps.normal, splat: maps.splat, detailWidth: maps.detailWidth,
 	detailHeight: maps.detailHeight, detail: maps.detail,
@@ -323,7 +332,7 @@ fn main( @builtin( global_invocation_id ) gid: vec3u ) {
 		boatTrace[ i ].waterFFTOnly = Array.from( fftOnlyQuery.cpu.slice( fftOnlySlot * 4, fftOnlySlot * 4 + 4 ) );
 	}
 	const reference = {
-		protocol: 'elsemesh.tidewater-shore-query-parity/3', time, seaLevel: source.rules.seaLevel,
+		protocol: 'elsemesh.tidewater-shore-query-parity/4', gpuAdapter, time, seaLevel: source.rules.seaLevel,
 		terrain: { size: maps.size, origin: maps.origin, resolution: maps.resolution }, shoreField: maps.shoreField,
 		points, webgpu, shoreOnly, shoreAtPoint,
 		boatTrace, wakeBoatTrace, fishingCast,

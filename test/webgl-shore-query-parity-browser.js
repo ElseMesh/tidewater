@@ -18,7 +18,7 @@ try {
 	const referenceResponse = await fetch( './webgpu-shore-query-reference.json', { cache: 'no-store' } );
 	if ( ! referenceResponse.ok ) throw new Error( 'Generate webgpu-shore-query-reference.json with the Tidewater WebGPU reference writer first' );
 	const reference = await referenceResponse.json();
-	if ( reference.protocol !== 'elsemesh.tidewater-shore-query-parity/3' ) throw new Error( 'Invalid Tidewater shoreline parity reference protocol' );
+	if ( reference.protocol !== 'elsemesh.tidewater-shore-query-parity/4' ) throw new Error( 'Invalid Tidewater shoreline parity reference protocol' );
 	const source = await fetch( '../world-source.json', { cache: 'no-store' } ).then( response => response.json() );
 	const terrainComponent = source.components.find( component => component.type === 'elsemesh.terrain-surface/1' );
 	const assetResponse = await fetch( `../assets/${terrainComponent.data.dataAssetId.slice( 'sha256:'.length )}`, { cache: 'no-store' } );
