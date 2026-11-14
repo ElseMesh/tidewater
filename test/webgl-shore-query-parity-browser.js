@@ -12,7 +12,7 @@ import { tidewaterPierColliders } from './tidewater-pier-colliders.js';
 
 const result = document.querySelector( '#result' );
 const WAKE_TRACE_SECONDS = 18;
-let renderer, query, wakeQuery, wake;
+let renderer, query, wakeQuery, wake, diagnostics = null;
 try {
 	const referenceResponse = await fetch( './webgpu-shore-query-reference.json', { cache: 'no-store' } );
 	if ( ! referenceResponse.ok ) throw new Error( 'Generate webgpu-shore-query-reference.json with the Tidewater WebGPU reference writer first' );
@@ -81,6 +81,10 @@ try {
 	normalError /= samples.length * 2;
 	floorError /= samples.length;
 	floorCpuError /= samples.length;
+	diagnostics = {
+		query: { heightError, maxHeightError, normalError, floorError, floorCpuError },
+		shoreOnly: { heightError: shoreHeightError, maxHeightError: maxShoreHeightError, normalError: shoreNormalError, floorError: shoreFloorError, floorCpuError: shoreFloorCpuError },
+	};
 	const berthObject = source.objects.find( object => object.id === 'elsemesh-object:moored-lobster-boat' );
 	if ( ! Array.isArray( berthObject?.transform?.position ) || ! Number.isFinite( berthObject?.transform?.yaw ) ) throw new Error( 'Tidewater package has no authored boat berth and heading' );
 	query.latency = 1 / 60;
@@ -245,6 +249,8 @@ try {
 		return { second: i + 1, positionDelta, speedDelta, heightDelta, normalDelta, stepDelta, webgpu: expected, webgl: actual };
 	} );
 	if ( ! wakeBoatSamples.every( sample => [ sample.positionDelta, sample.speedDelta, sample.heightDelta, sample.normalDelta ].every( Number.isFinite ) ) ) throw new Error( 'WebGL wake-enabled boat or water trace contains non-finite values' );
+	diagnostics.boat = { maxPositionDelta: maxBoatPositionDelta, maxSpeedDelta: maxBoatSpeedDelta, traceWaterHeightError, maxTraceWaterHeightError, traceWaterNormalError, fftOnlyHeightError, maxFFTOnlyHeightError, fftOnlyNormalError };
+	diagnostics.wakeBoat = { maxPositionDelta: maxWakeBoatPositionDelta, maxSpeedDelta: maxWakeBoatSpeedDelta, maxWaterHeightDelta: maxWakeWaterHeightDelta, maxWaterNormalDelta: maxWakeWaterNormalDelta, maxWakeStepDelta };
 	async function traceFishingCast() {
 
 		const dt = 1 / 60, x = 12, z = - 44, ground = terrain.heightAt( 12, - 44 );
@@ -309,13 +315,22 @@ try {
 		if ( actual.state !== expected.state ) stateFrameMismatches ++;
 	}
 	const landingWaterDelta = Math.abs( fishingCast.trace[ webglLandingFrame ].waterY - expectedCast.trace[ webgpuLandingFrame ].waterY );
+	diagnostics.fishingCast = {
+		webgpuFrames: expectedCast.trace.length, webglFrames: fishingCast.trace.length, landingFrameDelta, stateFrameMismatches,
+		maxBobberDelta, landingWaterDelta, maxCastWaterDelta, maxCastWaterSample,
+		nearLanding: Array.from( { length: 8 }, ( _, offset ) => {
+			const frame = Math.max( 0, webgpuLandingFrame - 7 + offset );
+			const expected = expectedCast.trace[ frame ], actual = fishingCast.trace[ frame ];
+			return { frame, expected: { state: expected?.state, waterY: expected?.waterY, bobber: expected?.bobber }, actual: { state: actual?.state, waterY: actual?.waterY, bobber: actual?.bobber } };
+		} ),
+	};
 	if ( Math.abs( fishingCast.trace.length - expectedCast.trace.length ) > 2 || landingFrameDelta > 2 || stateFrameMismatches > 2 || maxBobberDelta > 0.25 || landingWaterDelta > 0.05 ) {
-		throw new Error( `Production WebGL cast differs from pre-split WebGPU: ${JSON.stringify( { webgpuFrames: expectedCast.trace.length, webglFrames: fishingCast.trace.length, landingFrameDelta, stateFrameMismatches, maxBobberDelta, landingWaterDelta, maxCastWaterSample } )}` );
+		throw new Error( `Production WebGL cast differs from pre-split WebGPU: ${JSON.stringify( diagnostics.fishingCast )}` );
 	}
 	result.textContent = JSON.stringify( { status: 'complete', count: samples.length, heightError, maxHeightError, normalError, floorError, floorCpuError, samples, shoreOnly: { heightError: shoreHeightError, maxHeightError: maxShoreHeightError, normalError: shoreNormalError, floorError: shoreFloorError, floorCpuError: shoreFloorCpuError, samples: shoreOnlySamples }, boat: { maxPositionDelta: maxBoatPositionDelta, maxSpeedDelta: maxBoatSpeedDelta, traceWaterHeightError, maxTraceWaterHeightError, traceWaterNormalError, fftOnlyHeightError, maxFFTOnlyHeightError, fftOnlyNormalError, samples: boatSamples, traceWaterSamples, fftOnlySamples }, wakeBoat: { maxPositionDelta: maxWakeBoatPositionDelta, maxSpeedDelta: maxWakeBoatSpeedDelta, maxWaterHeightDelta: maxWakeWaterHeightDelta, maxWaterNormalDelta: maxWakeWaterNormalDelta, maxWakeStepDelta, samples: wakeBoatSamples }, fishingCast: { webgpuFrames: expectedCast.trace.length, webglFrames: fishingCast.trace.length, landingFrameDelta, stateFrameMismatches, maxBobberDelta, landingWaterDelta, maxCastWaterDelta, maxCastWaterSample } } );
 	result.dataset.status = 'complete';
 } catch ( error ) {
-	result.textContent = JSON.stringify( { status: 'failed', error: error.stack || String( error ) } );
+	result.textContent = JSON.stringify( { status: 'failed', error: error.stack || String( error ), diagnostics } );
 	result.dataset.status = 'failed';
 } finally {
 	wake?.dispose();
