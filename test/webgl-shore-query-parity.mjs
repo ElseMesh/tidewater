@@ -151,6 +151,7 @@ try {
 			.sort( ( a, b ) => Math.hypot( ...b.error ) - Math.hypot( ...a.error ) )
 			.slice( 0, 3 );
 		console.log( `shoreline query normals: component MAE ${metrics.normalError.toFixed( 5 )}; largest vector deltas ${JSON.stringify( largestNormalSamples )}` );
+		console.log( `shoreline/boat parity summary: ${JSON.stringify( { heightMAE: metrics.heightError, maxHeight: metrics.maxHeightError, floorMAE: metrics.floorError, shoreOffsetMAE: metrics.shoreProfile.shoreOffsetError, shoreOffsetMax: metrics.shoreProfile.maxShoreOffsetError, shorePointMAE: metrics.shoreProfile.shorePointError, shorePointMax: metrics.shoreProfile.maxShorePointError, boatPositionMax: metrics.boat.maxPositionDelta, boatSpeedMax: metrics.boat.maxSpeedDelta, boatWaterHeightMax: metrics.boat.maxTraceWaterHeightError, wakePositionMax: metrics.wakeBoat.maxPositionDelta, wakeSpeedMax: metrics.wakeBoat.maxSpeedDelta, wakeHeightMax: metrics.wakeBoat.maxWaterHeightDelta, wakeNormalMax: metrics.wakeBoat.maxWaterNormalDelta, wakeStepMax: metrics.wakeBoat.maxWakeStepDelta, fishingCast: metrics.fishingCast } )}` );
 		assert( metrics.heightError <= 0.04, `Tidewater WebGL shoreline height MAE ${metrics.heightError} m <= 0.04 m` );
 		assert( metrics.maxHeightError <= 0.11, `Tidewater WebGL shoreline max height error ${metrics.maxHeightError} m <= 0.11 m` );
 		assert( metrics.normalError <= 0.01, `Tidewater WebGL shoreline normal MAE ${metrics.normalError} <= 0.01` );
