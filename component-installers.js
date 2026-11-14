@@ -117,7 +117,7 @@ async function installIslandOcean( { app, root, installed } ) {
 	mesh.receiveShadow = true;
 	mesh.layers.set( LAYERS.WATER );
 	root.add( mesh );
-	installed.push( { islandOcean: true, isWorldOcean: true, surface: app.surface, update: ( _dt, camera ) => lod.update( camera ), dispose: () => { root.remove( mesh ); lod.geometry.dispose(); } } );
+	installed.push( { isWorldOcean: true, surface: app.surface, update: ( _dt, camera ) => lod.update( camera ), dispose: () => { root.remove( mesh ); lod.geometry.dispose(); } } );
 	return true;
 }
 
