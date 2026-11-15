@@ -306,6 +306,13 @@ const source = {
 		avatarComplexity: 20000,
 		physicsProfile: 'elsemesh-default',
 		vehiclePolicy: { enabled: true, maxSpeed: 8, maxCombinedComplexity: 100000 },
+		movementProfiles: {
+			avatars: {
+				'elsemesh.avatar.stock-male/1': { stepHeightMeters: 0.6 },
+				'elsemesh.avatar.stock-female/1': { stepHeightMeters: 0.6 },
+			},
+			vehicles: { 'elsemesh.downeast-boat/1': { stepHeightMeters: 0.36 } },
+		},
 		requiredFeatures: [ 'elsemesh.static-glb/1', 'elsemesh.static-glb-quaternion/1', 'elsemesh.terrain-surface/1', 'elsemesh.ground-detail-field/1', 'elsemesh.static-vegetation/1', 'elsemesh.static-grass/1', 'elsemesh.static-reef/1', 'elsemesh.static-fish-props/1', 'elsemesh.example-island-wildlife/1', 'elsemesh.humpback-whale/1', 'elsemesh.island-ocean/1', 'elsemesh.downeast-boat/1', 'elsemesh.ambient-audio/1', 'elsemesh.portal-handoff/1', 'elsemesh.portal-preview-static/1' ],
 		maxPackageBytes: canonicalSource.rules.maxPackageBytes ?? 128 * 1024 * 1024,
 	},

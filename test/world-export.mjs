@@ -287,6 +287,13 @@ try {
 	assert.deepEqual( componentData( boat ), { objectId: 'elsemesh-object:moored-lobster-boat', complexityTriangles: 46845 }, 'portable island binds the trusted boat runtime and its world-owned complexity to the signed berth' );
 	assert.equal( source.rules.seaLevel, 0, 'the boat has a declared world-space sea level' );
 	assert.deepEqual( source.rules.vehiclePolicy, { enabled: true, maxSpeed: 8, maxCombinedComplexity: 100000 }, 'example island accepts transported boats with signed speed and combined-complexity limits' );
+	assert.deepEqual( source.rules.movementProfiles, {
+		avatars: {
+			'elsemesh.avatar.stock-male/1': { stepHeightMeters: 0.6 },
+			'elsemesh.avatar.stock-female/1': { stepHeightMeters: 0.6 },
+		},
+		vehicles: { 'elsemesh.downeast-boat/1': { stepHeightMeters: 0.36 } },
+	}, 'built-in island export preserves its authored avatar and boat step capabilities' );
 	const ambience = source.components.find( ( component ) => component.type === 'elsemesh.ambient-audio/1' );
 	assert.equal( componentData( ambience ).beds.length, 8, 'portable island exports its eight original ambient loop beds' );
 	assert.ok( componentData( ambience ).beds.every( ( bed ) => firstAssets.has( bed.assetId ) && firstAssets.get( bed.assetId ).length <= 16 * 1024 * 1024 ), 'each ambience bed is bundled as a bounded content-addressed asset' );
