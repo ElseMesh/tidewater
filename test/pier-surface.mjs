@@ -1,10 +1,15 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { Colliders } from '../../../src/world/Colliders.js';
 import { installPierGameplayColliders } from '../PierColliders.js';
 import { pierWalkableHeightAt } from '../PierSurface.js';
 import { TIDEWATER_LAYOUT } from '../layout.js';
 
 const terrainHeightAt = () => 0;
+assert.equal( TIDEWATER_LAYOUT.start.position.x, TIDEWATER_LAYOUT.pier.x, 'the starting walk line meets the center of the pier steps' );
+const authoredSource = JSON.parse( await readFile( new URL( '../world-source.json', import.meta.url ), 'utf8' ) );
+assert.equal( authoredSource.spawn.position[ 0 ], TIDEWATER_LAYOUT.start.position.x, 'the signed world spawn matches the built-in pier approach x' );
+assert.equal( authoredSource.spawn.position[ 2 ], TIDEWATER_LAYOUT.start.position.z, 'the signed world spawn matches the built-in pier approach z' );
 assert.equal( pierWalkableHeightAt( 40, - 70, terrainHeightAt, TIDEWATER_LAYOUT ), 0, 'outside pier remains terrain height' );
 assert.equal( pierWalkableHeightAt( 55, 0, terrainHeightAt, TIDEWATER_LAYOUT ), 2.3, 'pier walkway uses deck height' );
 assert.equal( pierWalkableHeightAt( 60, 36, terrainHeightAt, TIDEWATER_LAYOUT ), 2.3, 'pier head uses deck height' );
@@ -20,6 +25,7 @@ assert.equal( steps.length, 10, 'WebGL built-in keeps the complete stair collisi
 assert.equal( deck.length, 2, 'WebGL built-in keeps the walkway and T-head walkable' );
 assert( deck.every( box => box.walkable && box.solid ), 'pier deck collision is walkable and blocks movement' );
 assert.equal( colliders.groundHeightAt( 55, 0, 3 ), 2.3, 'the WebGL built-in player stands on the dock deck' );
+assert.equal( colliders.groundHeightAt( TIDEWATER_LAYOUT.start.position.x, TIDEWATER_LAYOUT.pier.zStart, 3 ), 2.3, 'the straight start approach meets the raised pier deck' );
 assert.equal( ladder.length, 9, 'the ladder contains the authored rung sequence' );
 assert( ladder.every( box => box.walkable && ! box.solid ), 'ladder rungs are walkable without blocking swimming' );
 assert.equal( rails.length, 5, 'the pier has five rail segments around the ladder opening' );

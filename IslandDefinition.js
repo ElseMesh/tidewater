@@ -11,7 +11,8 @@ export const ISLAND_DEFINITION = Object.freeze( {
 	village: Object.freeze( { center: Object.freeze( [ 40, 0, - 118 ] ), radius: 95 } ),
 	reef: Object.freeze( { center: Object.freeze( [ - 78, 0, 58 ] ), radius: 58 } ),
 	spawn: Object.freeze( { position: Object.freeze( [ 18, 0, - 60 ] ), yaw: Math.PI } ),
-	start: Object.freeze( { position: Object.freeze( [ 53.6, 0, - 77 ] ), yaw: Math.PI } ),
+	// Align the straight beach-to-pier approach with the narrow authored steps.
+	start: Object.freeze( { position: Object.freeze( [ 55, 0, - 77 ] ), yaw: Math.PI } ),
 	// Incoming swell direction (unit, travel direction).
 	swellDir: Object.freeze( [ - 0.12, - 1 ] ),
 	vegetation: Object.freeze( {
