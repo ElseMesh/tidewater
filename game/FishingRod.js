@@ -379,8 +379,16 @@ export class FishingRod {
 		}
 
 		const K = 250, C = 8; // ~2.5 Hz, lightly damped
-		this.bendVel += ( ( bendT - this.bend ) * K - this.bendVel * C ) * dt;
-		this.bend += this.bendVel * dt;
+		// The browser may deliver a 0.1 s frame at the engine's dt cap. Semi-implicit
+		// Euler is unstable for this spring at that step size, so keep the bend
+		// integration close to 120 Hz independent of renderer frame rate.
+		const bendSteps = Math.max( 1, Math.ceil( dt * 120 ) ), bendDt = dt / bendSteps;
+		for ( let i = 0; i < bendSteps; i ++ ) {
+
+			this.bendVel += ( ( bendT - this.bend ) * K - this.bendVel * C ) * bendDt;
+			this.bend += this.bendVel * bendDt;
+
+		}
 		this.load += ( loadT - this.load ) * ( 1 - Math.exp( - dt * 6 ) );
 		// bend direction: toward the bobber (rod space, across the blank) when the line is out,
 		// otherwise down toward the reel side (negative bend = loaded back up)

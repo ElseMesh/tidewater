@@ -26,4 +26,14 @@ assert.equal( rod.state, 'floating' );
 assert.ok( rod.lineOut > 0 );
 assert.ok( [ ...rod.tip.toArray(), ...rod.bobber.toArray() ].every( Number.isFinite ) );
 
-console.log( 'headless fishing rod simulation: ok' );
+rod.hook();
+const fight = { distance: rod.lineOut, tension: 0.3, surge: 0 };
+for ( let i = 0; i < 180; i ++ ) {
+	query.update( 0.1 );
+	rod.update( 0.1, { visible: false, fight } );
+	assert.ok( Number.isFinite( rod.bend ) && Math.abs( rod.bend ) < 1, 'rod bend stays bounded at the engine dt cap' );
+	assert.ok( Number.isFinite( rod.lineOut ), 'line length stays finite at low frame rates' );
+	assert.ok( [ ...rod.tip.toArray(), ...rod.bobber.toArray() ].every( Number.isFinite ), 'rod and bobber coordinates stay finite at low frame rates' );
+}
+
+console.log( 'headless fishing rod simulation and low-frame-rate bend stability: ok' );
