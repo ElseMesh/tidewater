@@ -41,6 +41,7 @@ import { writeWorldAssetIndex } from '../../../tools/world-asset-index.mjs';
 import { generateTidewaterReefURLs } from './generate-reef-asset-urls.mjs';
 import { fishPropGeometry } from '../../../src/world/fish/FishProps.js';
 import { buildPalmFar, buildPalmNear } from '../renderers/webgpu-vegetation/PlantGeometry.js';
+import { TIDEWATER_PALM_MATERIAL_GRAPH } from '../vegetation/VegetationMaterialGraph.js';
 
 const REPO = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '../../..' );
 const WORLD_ROOT = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..' );
@@ -790,7 +791,12 @@ function exportVegetationGLB( name, geometry ) {
 		asset: { version: '2.0', generator: 'Tidewater vegetation migration exporter/1' },
 		scene: 0, scenes: [ { nodes: [ 0 ] } ], nodes: [ { name } ],
 		meshes: [ { name, primitives: [ { attributes, indices: indexAccessor, material: 0, mode: 4 } ] } ],
-		materials: [ { name: 'portable vegetation material input', pbrMetallicRoughness: { baseColorFactor: [ 1, 1, 1, 1 ], metallicFactor: 0, roughnessFactor: 0.8 }, doubleSided: true } ],
+		materials: [ {
+			name: 'Tidewater coconut palm',
+			pbrMetallicRoughness: { baseColorFactor: [ 1, 1, 1, 1 ], metallicFactor: 0, roughnessFactor: 0.8 },
+			doubleSided: true,
+			extras: { elsemeshMaterial: { profile: 'elsemesh.material-graph/1', role: 'graph', graph: TIDEWATER_PALM_MATERIAL_GRAPH } },
+		} ],
 		accessors, bufferViews, buffers: [ { byteLength: binary.length } ],
 	};
 	const json = Buffer.from( JSON.stringify( gltf ) );

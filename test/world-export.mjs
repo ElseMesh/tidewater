@@ -25,6 +25,7 @@ import { BANK } from '../../../src/audio/soundBank.js';
 import { transformBoundsCenter } from '../../../src/network/WorldStreaming.js';
 import { Vector3 } from '../../../src/engine/math/Vector3.js';
 import { validateStaticModelInstanceSet } from '../../../src/network/StaticModelInstanceSet.js';
+import { TIDEWATER_PALM_MATERIAL_GRAPH } from '../vegetation/VegetationMaterialGraph.js';
 
 const temporaryRoot = process.env.PREFIX ? path.join( process.env.PREFIX, 'tmp' ) : '/var/tmp';
 const output = await mkdtemp( path.join( temporaryRoot, 'elsemesh-island-export-' ) );
@@ -110,6 +111,7 @@ try {
 	assert.equal( vegetationSet.models[ 0 ].lods.length, 2, 'palm migration artifact preserves near and far source meshes' );
 	assert.deepEqual( vegetationSet.models[ 0 ].lodThresholds, [ 112.8 ], 'palm artifact starts the LOD cross-fade at the source WebGPU handoff-band start' );
 	assert.equal( vegetationSet.models[ 0 ].lodMetric, 'world-distance', 'palm artifact uses scale-independent world-space distance' );
+	assert.deepEqual( vegetationSet.models[ 0 ].bounds.center, [ 0, 0, 0 ], 'palm culling and draw-distance origin matches the authored placement origin' );
 	assert.equal( vegetationSet.models[ 0 ].drawMaxDistance, 2800, 'palm artifact preserves the authored far fade end' );
 	const generatedVegetationComponent = firstDocument.components.find( component => component.type === 'elsemesh.static-vegetation/1' );
 	const vegetationPlacement = decodeVegetationPlacements( await readFile( path.join( output, 'assets', componentData( generatedVegetationComponent ).placementAssetId.slice( 'sha256:'.length ) ) ) );
@@ -125,7 +127,11 @@ try {
 	for ( const { assetId } of vegetationSet.models[ 0 ].lods ) {
 		const bytes = await readFile( path.join( output, 'vegetation-static-models', `${assetId.slice( 'sha256:'.length )}.glb` ) );
 		assert.equal( `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`, assetId, 'palm GLB filename and bytes match its content address' );
-		const primitive = parseGLB( bytes ).meshes[ 0 ][ 0 ];
+		const parsed = parseGLB( bytes );
+		const primitive = parsed.meshes[ 0 ][ 0 ];
+		const graphMaterial = parsed.materials[ 0 ].extras?.elsemeshMaterial;
+		assert.equal( graphMaterial?.profile, 'elsemesh.material-graph/1', 'palm GLB carries the world-authored renderer-neutral material graph' );
+		assert.deepEqual( graphMaterial.graph, TIDEWATER_PALM_MATERIAL_GRAPH, 'palm GLB signs the same material graph tested by the world source' );
 		assert.ok( primitive.indices?.length > 0 && primitive.attributes.POSITION && primitive.attributes.NORMAL && primitive.attributes.TEXCOORD_0, 'palm GLB contains portable indexed geometry, normals, and UVs' );
 		for ( const name of [ '_ELSEMESH_VDATA', '_ELSEMESH_VDATA1', '_ELSEMESH_VDATA2' ] ) assert.equal( primitive.attributes[ name ]?.itemSize, 4, `palm GLB preserves ${name} as a VEC4 renderer-neutral input` );
 	}
