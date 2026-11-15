@@ -382,7 +382,7 @@ export class FishingRod {
 		// The browser may deliver a 0.1 s frame at the engine's dt cap. Semi-implicit
 		// Euler is unstable for this spring at that step size, so keep the bend
 		// integration close to 120 Hz independent of renderer frame rate.
-		const bendSteps = Math.max( 1, Math.ceil( dt * 120 ) ), bendDt = dt / bendSteps;
+		const bendSteps = dt > 1 / 60 ? Math.max( 1, Math.ceil( dt * 120 ) ) : 1, bendDt = dt / bendSteps;
 		for ( let i = 0; i < bendSteps; i ++ ) {
 
 			this.bendVel += ( ( bendT - this.bend ) * K - this.bendVel * C ) * bendDt;
