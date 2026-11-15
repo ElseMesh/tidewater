@@ -47,12 +47,13 @@ assert.match( netGraphWebGL.glsl.fragment, /vEmg_colorRGB \* emg_albedo/, 'WebGL
 const netGraphTexture = new THREE.DataTexture( new Uint8Array( [ 128, 128, 128, 255 ] ), 1, 1, THREE.RGBAFormat, THREE.UnsignedByteType );
 const netSourceMaterial = new THREE.MeshStandardMaterial( { side: THREE.DoubleSide, transparent: true, depthWrite: false, metalnessMap: netGraphTexture } );
 const webglNet = createWebGLMaterialGraph( THREE, netSourceMaterial, TIDEWATER_NET_MATERIAL_GRAPH );
-const netGraphShader = { vertexShader: '#include <common>\n#include <begin_vertex>\n#include <defaultnormal_vertex>\n#include <worldpos_vertex>', fragmentShader: '#include <common>\n#include <alphatest_fragment>\n#include <lights_physical_fragment>', uniforms: {} };
+const netGraphShader = { vertexShader: '#include <common>\n#include <begin_vertex>\n#include <defaultnormal_vertex>\n#include <worldpos_vertex>', fragmentShader: '#include <common>\n#include <color_fragment>\n#include <alphatest_fragment>\n#include <lights_physical_fragment>', uniforms: {} };
 webglNet.material.onBeforeCompile( netGraphShader );
 assert.match( netGraphShader.vertexShader, /emgWindDirection/ );
 assert.match( netGraphShader.fragmentShader, /texture2D\( emgTexture_metallicRoughness/ );
 assert.match( netGraphShader.fragmentShader, /gl_FrontFacing \? 1\.0 : -1\.0/ );
 assert.match( netGraphShader.fragmentShader, /vEmg_colorRGB \* emg_albedo/ );
+assert.doesNotMatch( netGraphShader.fragmentShader, /diffuseColor\.rgb \*= vColor/, 'WebGL lets the graph apply COLOR_0 once' );
 webglNet.material.dispose();
 netSourceMaterial.dispose();
 netGraphTexture.dispose();
