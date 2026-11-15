@@ -524,6 +524,15 @@
       "maxSpeed": 8,
       "maxCombinedComplexity": 100000
     },
+    "movementProfiles": {
+      "avatars": {
+        "elsemesh.avatar.stock-male/1": { "stepHeightMeters": 0.6 },
+        "elsemesh.avatar.stock-female/1": { "stepHeightMeters": 0.6 }
+      },
+      "vehicles": {
+        "elsemesh.downeast-boat/1": { "stepHeightMeters": 0.36 }
+      }
+    },
     "requiredFeatures": [
       "elsemesh.static-glb/1",
       "elsemesh.static-glb-quaternion/1",
