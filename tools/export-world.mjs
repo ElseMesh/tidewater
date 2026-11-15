@@ -341,7 +341,7 @@ const source = {
 		streamingBounds: villageBounds,
 		transform: { position: [ 0, 0, 0 ], yaw: 0 },
 		scale: [ 1, 1, 1 ],
-		collision: { shape: 'compound', enabled: true, boxes: generated.villageColliders },
+		collision: { shape: 'compound', enabled: true, boxes: generated.villageColliders, cylinders: generated.villageCylinders },
 	}, {
 		id: 'elsemesh-object:moored-lobster-boat',
 		kind: 'asset-instance',
@@ -496,16 +496,22 @@ function buildIslandProceduralContent( terrainData ) {
 	const village = new PackageVillage( { scene, terrain: terrainData, colliders, worldLayout: TIDEWATER_LAYOUT, fishPresentation } );
 	const vegetation = createVegetationPlacement( terrainData, village, TIDEWATER_LAYOUT );
 	const rocks = new Rocks( { scene, terrain: terrainData, worldLayout: TIDEWATER_LAYOUT, village, colliders, castShadow: false, sunShadow: false } );
-	const villageColliders = colliders.boxes.map( ( box ) => ( {
+	const B = new Builder();
+	const placer = new DebrisPlacer( { B, inst: new InstancedProps( B ), terrain: terrainData, village, vegetation, rocks, colliders, worldLayout: TIDEWATER_LAYOUT } ).run();
+	const villageColliders = colliders.boxes.map( box => ( {
 		center: box.center.toArray(),
 		halfExtents: box.half.toArray(),
 		yaw: box.rotY,
 		walkable: box.walkable,
 		solid: box.solid,
-		tag: box.tag === 'pierRail' ? 'pierRail' : undefined,
+		tag: box.tag || undefined,
 	} ) );
-	const B = new Builder();
-	const placer = new DebrisPlacer( { B, inst: new InstancedProps( B ), terrain: terrainData, village, vegetation, rocks, colliders, worldLayout: TIDEWATER_LAYOUT } ).run();
+	const villageCylinders = colliders.cylinders.map( cylinder => ( {
+		center: [ cylinder.x, ( cylinder.yMin + cylinder.yMax ) * 0.5, cylinder.z ],
+		radius: cylinder.radius,
+		halfHeight: ( cylinder.yMax - cylinder.yMin ) * 0.5,
+		tag: cylinder.tag || undefined,
+	} ) );
 	foldVillageMaterialBatches( village.B );
 	const batches = Object.entries( village.B.batches )
 		.filter( ( [ , batch ] ) => batch.vcount > 0 )
@@ -529,6 +535,7 @@ function buildIslandProceduralContent( terrainData ) {
 		villageBatches: batches,
 		villageTriangles: batches.reduce( ( total, { batch } ) => total + batch.triangles, 0 ),
 		villageColliders,
+		villageCylinders,
 		roofPerches: village.buildings.filter( building => building.stilts && building.roofTop ).map( building => [ building.x, building.roofTop - 0.13, building.z ] ),
 		villageFootprints: village.getFootprints().map( ( { x, z, r } ) => ( { x, z, r } ) ),
 		fishProps: village.B.fishProps?.items || [],

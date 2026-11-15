@@ -11,7 +11,7 @@ import '../../../test/smaa-shim.mjs';
 import { GPU } from '../../../src/engine/gpu/GPU.js';
 import { parseGLB } from '../../../src/engine/loaders/GLTF.js';
 import { getDetailImage } from '../../../src/world/terrain/DetailTextureData.js';
-import { appendWorldPackageAssets, disposeWorldPackage, loadWorldPackage, registerWorldPackageCollisions, unregisterWorldPackageCollisions } from '../../../src/network/WorldPackage.js';
+import { appendWorldPackageAssets, disposeWorldPackage, loadWorldPackage, registerWorldPackageCollisions, replaceWorldSourceCollisions, unregisterWorldPackageCollisions } from '../../../src/network/WorldPackage.js';
 import { VILLAGE_MATERIAL_PROFILE, VILLAGE_MATERIAL_ROLES } from '../VillageMaterialProfile.js';
 import { validateWorldSource } from '../../../src/network/WorldSource.js';
 import { Colliders } from '../../../src/world/Colliders.js';
@@ -408,7 +408,8 @@ try {
 	assert.equal( lanternPrimitives.length, 2, 'export includes separate lantern glass and hard geometry batches' );
 	assert.ok( lanternPrimitives.every( primitive => primitive.indices?.length > 0 && primitive.attributes._ELSEMESH_VDATA?.itemSize === 4 ), 'exported lantern geometry retains indexed meshes and renderer material data' );
 	assert.equal( villageObject.collision.shape, 'compound', 'village source includes the runtime builder collision layout' );
-	assert.equal( villageObject.collision.boxes.length, 394, 'village collision layout matches its deterministic walkable and solid boxes' );
+	assert.equal( villageObject.collision.boxes.length, 480, 'world source contains every deterministic static box collider' );
+	assert.equal( villageObject.collision.cylinders.length, 601, 'world source contains every deterministic static cylinder collider' );
 	assert.equal( villageObject.lods.length, 1, 'village has a separate distance LOD while retaining its full-detail base asset' );
 	const villageLODBytes = firstAssets.get( villageObject.lods[ 0 ].assetId );
 	assert.ok( villageLODBytes?.length > 0 && villageLODBytes.length < villageBytes.length, 'village distance LOD is a smaller content-addressed GLB' );
@@ -534,9 +535,25 @@ try {
 	const villageColliders = new Colliders();
 	registerWorldPackageCollisions( villageRoot, villageColliders );
 	assert.equal( villageColliders.boxes.length, villageObject.collision.boxes.length, 'hosted village registers every authored collider' );
+	assert.equal( villageColliders.cylinders.length, villageObject.collision.cylinders.length, 'hosted village registers every authored cylinder collider' );
 	assert.ok( villageColliders.boxes.some( ( box ) => box.walkable ) && villageColliders.boxes.some( ( box ) => ! box.walkable && box.solid ), 'hosted village retains both walkable surfaces and solid obstacles' );
 	unregisterWorldPackageCollisions( villageRoot, villageColliders );
 	assert.equal( villageColliders.boxes.length, 0, 'hosted village removes all colliders on world handoff' );
+	assert.equal( villageColliders.cylinders.length, 0, 'hosted village removes all cylinder colliders on world handoff' );
+	const builtinColliders = new Colliders();
+	builtinColliders.addBox( new Vector3( 1, 2, 3 ), new Vector3( 1, 1, 1 ) );
+	replaceWorldSourceCollisions( source, builtinColliders );
+	assert.equal( builtinColliders.boxes.length, villageObject.collision.boxes.length, 'built-in collision replacement installs the same authored boxes' );
+	assert.equal( builtinColliders.cylinders.length, villageObject.collision.cylinders.length, 'built-in collision replacement installs the same authored cylinders' );
+	const transformedCylinderColliders = new Colliders();
+	replaceWorldSourceCollisions( { objects: [ {
+		id: 'elsemesh-object:scaled-cylinder',
+		transform: { position: [ 10, 2, 20 ], yaw: Math.PI / 2 },
+		scale: [ 2, 3, 2 ],
+		collision: { shape: 'compound', enabled: true, cylinders: [ { center: [ 1, 0.5, 0 ], radius: 0.5, halfHeight: 0.25 } ] },
+	} ] }, transformedCylinderColliders );
+	const transformedCylinder = transformedCylinderColliders.cylinders[ 0 ];
+	assert.deepEqual( [ transformedCylinder.x, transformedCylinder.z, transformedCylinder.radius, transformedCylinder.yMin, transformedCylinder.yMax ], [ 10, 18, 1, 2.75, 4.25 ], 'compound cylinders apply the authored translation, yaw, and uniform horizontal scale' );
 	const deferredObject = { ...source.objects[ 0 ], id: 'elsemesh-object:deferred-copy', label: 'Deferred copy', transform: { position: [ 20, 0, 20 ], yaw: 0 }, collision: { shape: 'none', enabled: false } };
 	const filteredConnector = { worldId: source.worldId, manifest: { assets: [ { id: source.objects[ 0 ].assetId, priority: 'visible' } ], objects: [ source.objects[ 0 ], deferredObject ] } };
 	const filteredRoot = await loadWorldPackage( filteredConnector, { assets: new Map( [ [ source.objects[ 0 ].assetId, payload ] ] ), objectIDs: new Set( [ source.objects[ 0 ].id ] ) } );
