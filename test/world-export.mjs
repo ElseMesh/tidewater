@@ -108,7 +108,8 @@ try {
 	assert.equal( vegetationSet.models.length, 1, 'vegetation migration artifact exports the coconut-palm model' );
 	assert.equal( vegetationSet.models[ 0 ].id, 'coconut-palm', 'vegetation migration artifact identifies its first supported category' );
 	assert.equal( vegetationSet.models[ 0 ].lods.length, 2, 'palm migration artifact preserves near and far source meshes' );
-	assert.deepEqual( vegetationSet.models[ 0 ].lodThresholds, [ 120 ], 'palm artifact records the source near/far distance' );
+	assert.deepEqual( vegetationSet.models[ 0 ].lodThresholds, [ 112.8 ], 'palm artifact starts the LOD cross-fade at the source WebGPU handoff-band start' );
+	assert.equal( vegetationSet.models[ 0 ].lodMetric, 'world-distance', 'palm artifact uses scale-independent world-space distance' );
 	assert.equal( vegetationSet.models[ 0 ].drawMaxDistance, 2800, 'palm artifact preserves the authored far fade end' );
 	const generatedVegetationComponent = firstDocument.components.find( component => component.type === 'elsemesh.static-vegetation/1' );
 	const vegetationPlacement = decodeVegetationPlacements( await readFile( path.join( output, 'assets', componentData( generatedVegetationComponent ).placementAssetId.slice( 'sha256:'.length ) ) ) );

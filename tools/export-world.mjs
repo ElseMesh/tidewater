@@ -728,7 +728,7 @@ function exportPalmStaticModelSet( records ) {
 		const assetId = `sha256:${createHash( 'sha256' ).update( glb ).digest( 'hex' )}`;
 		assets.set( assetId.slice( 'sha256:'.length ), glb );
 		lods.push( { assetId } );
-		if ( ! bounds ) bounds = { center: geometry.boundingSphere.center.toArray(), radius: geometry.boundingSphere.radius };
+		if ( ! bounds ) bounds = { center: [ 0, 0, 0 ], radius: 24 };
 		geometry.dispose();
 	}
 	return {
@@ -736,7 +736,7 @@ function exportPalmStaticModelSet( records ) {
 			format: 'elsemesh.static-model-instance-set/1',
 			models: [ {
 				id: 'coconut-palm', bounds, geometryMirrorX: false, lods,
-				lodThresholds: [ 120 ], lodMetric: 'scaled-distance', lodFadeFraction: 0.12,
+				lodThresholds: [ 112.8 ], lodMetric: 'world-distance', lodFadeFraction: 0.11320754716981132,
 				shadowLod: 0, shadowMaxDistance: 0, drawMaxDistance: 2800, drawFadeStartDistance: 2600,
 			} ],
 			instances: placements.map( record => ( {

@@ -12,10 +12,12 @@ and `aLobe`) and each instance retains the existing `iPos`/`iDat` values in the
 generic eight-float `materialData` field. Placements are copied after scatter
 has applied the palm group-lean adjustment.
 
-This artifact is not yet a parity implementation. In particular, the generic
-static-model LOD uses scaled distance, while Tidewater's palm handoff is based
-on camera distance; its shadow selection and vegetation material graph also
-do not yet reproduce the source path. Do not install it into the signed world
+The generic engine now supports a scale-independent world-distance LOD metric.
+The exported palm transition band is set to the source WebGPU band's 112.8 m
+to 127.2 m limits around its 120 m handoff. This uses the generic screen-door
+transition curve, so it is still an approximation of the source smoothstep
+curve. Shadow selection and the vegetation material graph also do not yet
+reproduce the source path. Do not install this artifact into the signed world
 package or remove either existing renderer path until both engine backends have
 the complete renderer-neutral contract and matched AMD WebGPU/WebGL review
 against the pre-split WebGPU reference.
