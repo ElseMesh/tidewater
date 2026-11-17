@@ -42,6 +42,7 @@ import { generateTidewaterReefURLs } from './generate-reef-asset-urls.mjs';
 import { fishPropGeometry } from '../../../src/world/fish/FishProps.js';
 import { buildPalmFar, buildPalmNear } from '../renderers/webgpu-vegetation/PlantGeometry.js';
 import { TIDEWATER_PALM_MATERIAL_GRAPH } from '../vegetation/VegetationMaterialGraph.js';
+import { tidewaterLocalLightSet } from '../WorldLights.js';
 
 const REPO = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '../../..' );
 const WORLD_ROOT = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..' );
@@ -237,7 +238,7 @@ for ( const tile of reefTiles ) {
 		data: { placementAssetId: id },
 	} );
 }
-if ( reefComponents.length + 8 > 128 ) throw new Error( 'Island world exceeds the 128 component limit after adding reef tiles and seven fixed components' );
+if ( reefComponents.length + 9 > 128 ) throw new Error( 'Island world exceeds the 128 component limit after adding reef tiles and the fixed component set' );
 const debrisAssetIDs = new Map();
 const debrisLODAssetIDs = new Map();
 const debrisAssetBounds = new Map();
@@ -282,7 +283,7 @@ for ( const spec of ambientBedSpecs ) {
 		...( spec.position ? { position: spec.position, refDistance: spec.refDistance, rolloff: spec.rolloff } : {} ),
 	} );
 }
-if ( reefComponents.length + 8 > 128 ) throw new Error( 'Island world exceeds the 128 component limit after adding whale, fish props, and other fixed components' );
+if ( reefComponents.length + 9 > 128 ) throw new Error( 'Island world exceeds the 128 component limit after adding whale, fish props, local lights, and other fixed components' );
 const assetsPath = path.join( output, 'assets' );
 await mkdir( assetsPath, { recursive: true } );
 for ( const entry of await readdir( assetsPath, { withFileTypes: true } ) ) {
@@ -313,7 +314,7 @@ const source = {
 			},
 			vehicles: { 'elsemesh.downeast-boat/1': { stepHeightMeters: 0.36 } },
 		},
-		requiredFeatures: [ 'elsemesh.static-glb/1', 'elsemesh.static-glb-quaternion/1', 'elsemesh.terrain-surface/1', 'elsemesh.ground-detail-field/1', 'elsemesh.static-vegetation/1', 'elsemesh.static-grass/1', 'elsemesh.static-reef/1', 'elsemesh.static-fish-props/1', 'elsemesh.example-island-wildlife/1', 'elsemesh.humpback-whale/1', 'elsemesh.island-ocean/1', 'elsemesh.downeast-boat/1', 'elsemesh.ambient-audio/1', 'elsemesh.portal-handoff/1', 'elsemesh.portal-preview-static/1' ],
+		requiredFeatures: [ 'elsemesh.static-glb/1', 'elsemesh.static-glb-quaternion/1', 'elsemesh.terrain-surface/1', 'elsemesh.ground-detail-field/1', 'elsemesh.static-vegetation/1', 'elsemesh.static-grass/1', 'elsemesh.static-reef/1', 'elsemesh.static-fish-props/1', 'elsemesh.example-island-wildlife/1', 'elsemesh.humpback-whale/1', 'elsemesh.island-ocean/1', 'elsemesh.downeast-boat/1', 'elsemesh.local-light-set/1', 'elsemesh.ambient-audio/1', 'elsemesh.portal-handoff/1', 'elsemesh.portal-preview-static/1' ],
 		maxPackageBytes: canonicalSource.rules.maxPackageBytes ?? 128 * 1024 * 1024,
 	},
 	hosts: [],
@@ -388,6 +389,7 @@ const source = {
 		};
 	} ) ],
 	components: [
+		{ id: 'elsemesh-component:island-lights', type: 'elsemesh.local-light-set/1', priority: 'visible', assets: [], data: { lights: generated.localLights } },
 		{ id: 'elsemesh-component:island-vegetation', type: 'elsemesh.static-vegetation/1', priority: 'portal-preview', assets: [ { assetId: vegetationAssetId, kind: 'vegetation-placement/1' }, { assetId: grassDensityAssetId, kind: 'grass-density/1' } ], data: { placementAssetId: vegetationAssetId, grassMaskAssetId: grassDensityAssetId, seed: 7 } },
 		...( generated.fishProps.length ? [ { id: 'elsemesh-component:island-fish-props', type: 'elsemesh.static-fish-props/1', priority: 'visible', streamingBounds: fishPropsBounds, assets: [ { assetId: fishPropsAssetId, kind: 'fish-props-placement/1' } ], data: { placementAssetId: fishPropsAssetId } } ] : [] ),
 		{ id: 'elsemesh-component:island-terrain', type: 'elsemesh.terrain-surface/1', priority: 'visible', assets: [ { assetId: terrainSurfaceAssetId, kind: 'terrain-surface/1' } ], data: { ...terrainSurfaceSource.data, profile: 'example-island-v1', objectId: 'elsemesh-object:island-terrain', dataAssetId: terrainSurfaceAssetId } },
@@ -540,6 +542,7 @@ function buildIslandProceduralContent( terrainData ) {
 	return {
 		spawn: { position: [ TIDEWATER_LAYOUT.start.position.x, Math.max( terrainData.heightAt( TIDEWATER_LAYOUT.start.position.x, TIDEWATER_LAYOUT.start.position.z ), colliders.groundHeightAt( TIDEWATER_LAYOUT.start.position.x, TIDEWATER_LAYOUT.start.position.z, 50 ) ) + 1.62, TIDEWATER_LAYOUT.start.position.z ], yaw: TIDEWATER_LAYOUT.start.yaw, pitch: - 0.05 },
 		villageBatches: batches,
+		localLights: tidewaterLocalLightSet( village ),
 		villageTriangles: batches.reduce( ( total, { batch } ) => total + batch.triangles, 0 ),
 		villageColliders,
 		villageCylinders,

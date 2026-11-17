@@ -25,6 +25,7 @@ import { BANK } from '../../../src/audio/soundBank.js';
 import { transformBoundsCenter } from '../../../src/network/WorldStreaming.js';
 import { Vector3 } from '../../../src/engine/math/Vector3.js';
 import { validateStaticModelInstanceSet } from '../../../src/network/StaticModelInstanceSet.js';
+import { validateWorldLocalLightSet } from '../../../src/network/WorldLocalLightSet.js';
 import { TIDEWATER_PALM_MATERIAL_GRAPH } from '../vegetation/VegetationMaterialGraph.js';
 
 const temporaryRoot = process.env.PREFIX ? path.join( process.env.PREFIX, 'tmp' ) : '/var/tmp';
@@ -231,12 +232,16 @@ try {
 	assert.deepEqual( naturalDebrisLODGLB.materials.map( material => material.name ), naturalDebrisGLB.materials.map( material => material.name ), 'natural-debris LOD keeps separate coconut, husk, and frond materials' );
 	assert.ok( naturalDebrisLODGLB.meshes[ 0 ].every( primitive => primitive.indices?.length > 0 && primitive.attributes.COLOR_0 ), 'natural-debris LOD preserves indexed, vertex-colored debris pieces' );
 	assert.ok( naturalDebrisLODGLB.meshes[ 0 ].reduce( ( total, primitive ) => total + primitive.indices.length / 3, 0 ) < naturalDebrisGLB.meshes[ 0 ].reduce( ( total, primitive ) => total + primitive.indices.length / 3, 0 ) * 0.7, 'natural-debris LOD reduces geometry by keeping whole authored pieces' );
-	assert.deepEqual( source.rules.requiredFeatures, [ 'elsemesh.static-glb/1', 'elsemesh.static-glb-quaternion/1', 'elsemesh.terrain-surface/1', 'elsemesh.ground-detail-field/1', 'elsemesh.static-vegetation/1', 'elsemesh.static-grass/1', 'elsemesh.static-reef/1', 'elsemesh.static-fish-props/1', 'elsemesh.example-island-wildlife/1', 'elsemesh.humpback-whale/1', 'elsemesh.island-ocean/1', 'elsemesh.downeast-boat/1', 'elsemesh.ambient-audio/1', 'elsemesh.portal-handoff/1', 'elsemesh.portal-preview-static/1' ], 'portable content declares the renderer capabilities it requires' );
+	assert.deepEqual( source.rules.requiredFeatures, [ 'elsemesh.static-glb/1', 'elsemesh.static-glb-quaternion/1', 'elsemesh.terrain-surface/1', 'elsemesh.ground-detail-field/1', 'elsemesh.static-vegetation/1', 'elsemesh.static-grass/1', 'elsemesh.static-reef/1', 'elsemesh.static-fish-props/1', 'elsemesh.example-island-wildlife/1', 'elsemesh.humpback-whale/1', 'elsemesh.island-ocean/1', 'elsemesh.downeast-boat/1', 'elsemesh.local-light-set/1', 'elsemesh.ambient-audio/1', 'elsemesh.portal-handoff/1', 'elsemesh.portal-preview-static/1' ], 'portable content declares the renderer capabilities it requires' );
 	assert.deepEqual( source.portals, [], 'the island package contains no undeclared external world links' );
 	assert.equal( source.components.some( component => component.type === 'elsemesh.procedural-island-terrain/1' ), false, 'the package uses the generic terrain-surface component instead of the legacy world-owned terrain installer' );
 	assert.ok( source.components.some( component => component.type === 'elsemesh.terrain-surface/1' ), 'the package declares the renderer-neutral terrain surface contract' );
 	assert.equal( source.components.some( component => component.type.startsWith( 'elsemesh.village-materials/' ) ), false, 'village materials travel with the signed GLB instead of a Tidewater renderer component' );
-	assert.equal( source.components.length, 9 + source.components.filter( ( component ) => component.type === 'elsemesh.static-reef/1' ).length, 'portable island declares vegetation, reef tiles, fish props, ground detail, terrain surface, wildlife, humpback, ocean, boat, and ambient components' );
+	assert.equal( source.components.length, 10 + source.components.filter( ( component ) => component.type === 'elsemesh.static-reef/1' ).length, 'portable island declares vegetation, light sources, reef tiles, fish props, ground detail, terrain surface, wildlife, humpback, ocean, boat, and ambient components' );
+	const localLightComponent = source.components.find( component => component.type === 'elsemesh.local-light-set/1' );
+	const localLights = validateWorldLocalLightSet( localLightComponent );
+	assert.ok( localLights.length > 0, 'Tidewater exports its static lantern, path, and window lights as renderer-neutral data' );
+	assert.ok( localLights.some( light => light.type === 'point' ) && localLights.some( light => light.type === 'spot' ), 'Tidewater exports both point lights and outward-facing window spots' );
 	assert.equal( vegetationComponent.type, 'elsemesh.static-vegetation/1', 'portable island uses terrain-independent, authored world-space vegetation placements' );
 	assert.match( componentData( vegetationComponent ).placementAssetId, /^sha256:[0-9a-f]{64}$/, 'vegetation placement data is content addressed' );
 	assert.match( componentData( vegetationComponent ).grassMaskAssetId, /^sha256:[0-9a-f]{64}$/, 'grass density data is content addressed' );
