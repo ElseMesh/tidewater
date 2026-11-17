@@ -1,16 +1,6 @@
 import { decodeGrassDensityAsset } from '../../../src/network/GrassDensityAsset.js';
+import { loadWorldComponentAssets } from '../../../src/network/WorldComponentAssets.js';
 import { decodeVegetationPlacements } from '../VegetationPlacements.js';
-
-async function readAsset( assetURL, fetchAsset ) {
-
-	if ( typeof assetURL !== 'string' || ! assetURL ) throw new Error( 'Tidewater vegetation component is missing a runtime asset URL' );
-	const response = await fetchAsset( assetURL );
-	if ( response instanceof Uint8Array ) return response;
-	if ( response instanceof ArrayBuffer ) return new Uint8Array( response );
-	if ( ! response?.ok ) throw new Error( `Tidewater vegetation asset request failed: ${response?.status ?? 'no response'}` );
-	return new Uint8Array( await response.arrayBuffer() );
-
-}
 
 export async function loadTidewaterVegetationRuntimeAssets( component, assetURLs, fetchAsset = url => fetch( url ) ) {
 
@@ -20,13 +10,10 @@ export async function loadTidewaterVegetationRuntimeAssets( component, assetURLs
 	const grassMaskAssetId = data.grassMaskAssetId;
 	if ( references.get( placementAssetId ) !== 'vegetation-placement/1' ) throw new Error( `Tidewater vegetation component ${component?.id || '(unknown)'} has no declared placement asset` );
 	if ( references.get( grassMaskAssetId ) !== 'grass-density/1' ) throw new Error( `Tidewater vegetation component ${component?.id || '(unknown)'} has no declared grass-density asset` );
-	const [ placementBytes, grassMaskBytes ] = await Promise.all( [
-		readAsset( assetURLs?.[ placementAssetId ], fetchAsset ),
-		readAsset( assetURLs?.[ grassMaskAssetId ], fetchAsset ),
-	] );
+	const assets = await loadWorldComponentAssets( [ component ], assetURLs, fetchAsset );
 	return {
-		placementRecords: decodeVegetationPlacements( placementBytes, data.seed ),
-		grassMask: decodeGrassDensityAsset( grassMaskBytes ),
+		placementRecords: decodeVegetationPlacements( assets.get( placementAssetId ), data.seed ),
+		grassMask: decodeGrassDensityAsset( assets.get( grassMaskAssetId ) ),
 	};
 
 }
