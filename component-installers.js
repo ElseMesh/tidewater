@@ -1,4 +1,3 @@
-import { Terrain } from '../../src/world/Terrain.js';
 import { Vegetation } from './renderers/WebGPUVegetation.js';
 import { Reef } from './Reef.js';
 import { TIDEWATER_LAYOUT } from './layout.js';
@@ -14,7 +13,6 @@ const INSTALLERS = new Map( [
 	[ 'elsemesh.procedural-island-vegetation/1', installVegetation ],
 	[ 'elsemesh.static-vegetation/1', installVegetation ],
 	[ 'elsemesh.example-island-wildlife/1', installWildlife ],
-	[ 'elsemesh.procedural-island-terrain/1', installProceduralTerrain ],
 	[ 'elsemesh.static-reef/1', installReef ],
 	[ 'elsemesh.humpback-whale/1', installWhale ],
 	[ 'elsemesh.downeast-boat/1', installBoat ],
@@ -52,20 +50,6 @@ async function installWildlife( { app, root, installed }, component ) {
 		wildlife: true, wildlifeRuntime: wildlife,
 		update: ( dt, camera, player ) => wildlife.update( dt, camera, player ),
 		dispose: () => wildlife.dispose(),
-	} );
-	return true;
-}
-
-async function installProceduralTerrain( { app, root, installed }, component ) {
-	const fallback = root.children.find( child => child.userData.worldObjectId === component.objectId );
-	const replacedObjects = root.userData.worldPackage?.replacedByComponents || ( root.userData.worldPackage.replacedByComponents = new Set() );
-	replacedObjects.add( component.objectId );
-	const terrain = new Terrain( { scene: root, terrainData: app.terrainData, terrainGPU: app.terrainGPU, surfaceProfile: component.surfaceProfile } );
-	if ( fallback ) fallback.visible = false;
-	installed.push( {
-		terrainSurface: true,
-		update: ( _dt, camera ) => terrain.update( camera, false ),
-		dispose: () => { replacedObjects.delete( component.objectId ); root.remove( terrain.mesh ); terrain.mesh.geometry.dispose(); terrain.mesh.material.dispose(); if ( fallback ) fallback.visible = true; },
 	} );
 	return true;
 }
