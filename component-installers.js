@@ -1,6 +1,3 @@
-import { Mesh } from '../../src/engine/scene/Mesh.js';
-import { CDLOD } from '../../src/core/CDLOD.js';
-import { LAYERS } from '../../src/core/SceneRenderer.js';
 import { Terrain } from '../../src/world/Terrain.js';
 import { Vegetation } from './renderers/WebGPUVegetation.js';
 import { Reef } from './Reef.js';
@@ -20,7 +17,6 @@ const INSTALLERS = new Map( [
 	[ 'elsemesh.procedural-island-terrain/1', installProceduralTerrain ],
 	[ 'elsemesh.static-reef/1', installReef ],
 	[ 'elsemesh.humpback-whale/1', installWhale ],
-	[ 'elsemesh.island-ocean/1', installIslandOcean ],
 	[ 'elsemesh.downeast-boat/1', installBoat ],
 ] );
 
@@ -107,17 +103,6 @@ async function installWhale( { app, root, connector, installed }, component ) {
 		} );
 	} catch ( error ) { whale.dispose(); throw error; }
 	installed.push( { whale: true, whaleInstance: whale, update: ( dt, camera ) => whale.update( dt, camera ), dispose: () => whale.dispose() } );
-	return true;
-}
-
-async function installIslandOcean( { app, root, installed } ) {
-	const lod = new CDLOD( { gridSize: Number( app.qs.get( 'G' ) || 32 ), leafSize: 8, levels: 12, minY: -25, maxY: 25 } );
-	const mesh = new Mesh( lod.geometry, app.waterMaterial );
-	mesh.frustumCulled = false;
-	mesh.receiveShadow = true;
-	mesh.layers.set( LAYERS.WATER );
-	root.add( mesh );
-	installed.push( { isWorldOcean: true, surface: app.surface, update: ( _dt, camera ) => lod.update( camera ), dispose: () => { root.remove( mesh ); lod.geometry.dispose(); } } );
 	return true;
 }
 
