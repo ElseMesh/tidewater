@@ -10,7 +10,6 @@ import { decodeGrassDensityAsset } from '../../src/network/GrassDensityAsset.js'
 import { decodeReefPlacements, MAX_REEF_PLACEMENTS, REEF_PLACEMENT_HEADER_BYTES, REEF_PLACEMENT_RECORD_BYTES } from './ReefPlacements.js';
 
 const INSTALLERS = new Map( [
-	[ 'elsemesh.procedural-island-vegetation/1', installVegetation ],
 	[ 'elsemesh.static-vegetation/1', installVegetation ],
 	[ 'elsemesh.example-island-wildlife/1', installWildlife ],
 	[ 'elsemesh.static-reef/1', installReef ],
@@ -22,19 +21,13 @@ export function tidewaterComponentInstaller( type ) {
 	return INSTALLERS.get( type ) || null;
 }
 
-async function installVegetation( { app, root, connector, installed }, component ) {
+async function installVegetation( { root, connector, installed }, component ) {
 	const placementRecords = component.placementAssetId ? readVegetationPlacements( connector, component ) : null;
-	const staticVegetation = component.type === 'elsemesh.static-vegetation/1';
 	const grassMask = component.grassMaskAssetId ? decodeGrassDensityAsset( connector.assets.get( component.grassMaskAssetId ) ) : null;
-	const grassTerrain = staticVegetation ? root.userData.terrainData : app.terrainData;
-	if ( grassMask && ! grassTerrain ) return false;
-	if ( grassMask && ( grassMask.size !== grassTerrain.size || grassMask.origin !== grassTerrain.origin ) ) throw new Error( `Static vegetation component ${component.id} grass mask does not match its terrain surface` );
-	if ( ! staticVegetation && ! app.remoteWorldActive && app.vegetation && app.vegetation.group.parent !== root && ( ! placementRecords || sameVegetationPlacements( app.vegetation.records, placementRecords ) ) ) {
-		root.add( app.vegetation.group );
-		installed.push( app.vegetation );
-	} else {
-		installed.push( new Vegetation( { scene: root, terrain: staticVegetation ? grassTerrain : app.terrainData, village: staticVegetation ? null : app.village, worldLayout: TIDEWATER_LAYOUT, includeGrass: staticVegetation ? !! grassMask : true, grassMask, placementRecords } ) );
-	}
+	const terrain = root.userData.terrainData;
+	if ( grassMask && ! terrain ) return false;
+	if ( grassMask && ( grassMask.size !== terrain.size || grassMask.origin !== terrain.origin ) ) throw new Error( `Static vegetation component ${component.id} grass mask does not match its terrain surface` );
+	installed.push( new Vegetation( { scene: root, terrain, village: null, worldLayout: TIDEWATER_LAYOUT, includeGrass: !! grassMask, grassMask, placementRecords } ) );
 	return true;
 }
 
@@ -127,18 +120,4 @@ function reefPlacementCapacity( connector ) {
 		if ( capacity > MAX_REEF_PLACEMENTS ) throw new Error( 'World reef placements exceed the supported instance capacity' );
 	}
 	return Math.max( 1, capacity );
-}
-
-function sameVegetationPlacements( left, right ) {
-	for ( const key of Object.keys( left ) ) {
-		const a = left[ key ], b = right[ key ];
-		if ( Array.isArray( a ) ) {
-			if ( ! Array.isArray( b ) || a.length !== b.length ) return false;
-			for ( let index = 0; index < a.length; index ++ ) {
-				const aRecord = a[ index ], bRecord = b[ index ], keys = Object.keys( aRecord );
-				if ( ! bRecord || keys.length !== Object.keys( bRecord ).length || keys.some( field => ! Object.hasOwn( bRecord, field ) || Math.fround( aRecord[ field ] ) !== Math.fround( bRecord[ field ] ) ) ) return false;
-			}
-		} else if ( a !== b ) return false;
-	}
-	return true;
 }
