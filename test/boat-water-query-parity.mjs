@@ -8,7 +8,6 @@ import { Vector3 } from '../../../src/engine/math/Vector3.js';
 import { Group } from '../../../src/engine/scene/Group.js';
 import { HostedBoat } from '../../../src/network/HostedBoat.js';
 import { worldWaterSurfaceFor } from '../../../src/network/WorldWaterSurface.js';
-import { tidewaterComponentInstaller } from '../component-installers.js';
 
 // The pre-split BoatController and boat design are the physics baseline. Their
 // source is intentionally pinned here: the hosted boat must retain the same
@@ -42,19 +41,14 @@ assert.equal( berth?.transform.yaw, ISLAND_DEFINITION.boatDock.heading, 'the pac
 // hosted boat keeps the query selected from that surface. App activation adds
 // this world's terrain, shore, and wake to the surface before constructing it.
 const worldSurface = { fft: {}, terrain: {}, shore: {}, wake: {}, shoreSim: {} };
-const oceanRoot = new Group(), oceanComponents = [];
-await tidewaterComponentInstaller( 'elsemesh.island-ocean/1' )( {
-	app: { qs: new URLSearchParams(), surface: worldSurface, waterMaterial: {} },
-	root: oceanRoot, installed: oceanComponents,
-} );
-const activeSurface = worldWaterSurfaceFor( oceanComponents, berth.transform.position, {} );
+const oceanComponent = { surface: worldSurface, isWorldOcean: true };
+const activeSurface = worldWaterSurfaceFor( [ oceanComponent ], berth.transform.position, {} );
 assert.equal( activeSurface, worldSurface, 'the active Tidewater ocean is selected for boat water queries' );
 for ( const feature of [ 'fft', 'terrain', 'shore', 'wake', 'shoreSim' ] ) assert( activeSurface[ feature ], `the active water surface includes ${feature}` );
 const boatQuery = { surface: activeSurface, allocate: () => 1 };
 const boatRuntime = new HostedBoat( { root: new Group(), component: { id: 'elsemesh-component:boat' }, object: berth } );
 assert.equal( boatRuntime.activate( { query: boatQuery, colliders: {} } ).query, boatQuery, 'the hosted boat controller receives the active world query' );
 boatRuntime.dispose();
-for ( const component of oceanComponents ) component.dispose?.();
 
 class DeterministicQuery {
 
