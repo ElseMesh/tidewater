@@ -215,6 +215,12 @@ try {
 	const fullWebGPU = await playThroughSale( 'webgpu' );
 	const fullWebGL = await playThroughSale( 'webgl' );
 	assert.deepEqual( fullWebGL, fullWebGPU, 'full cast, fishing-rule bite, fight, catch and sale traces match across renderers' );
+	// Pre-split GameState/FishTable at 23c30bf: a fresh wallet catching a
+	// 0.30 kg grunt records a $2 fish, then the sale credits exactly $2.
+	assert.deepEqual( fullWebGPU.caught.inventory, [ { id: 1, species: 'grunt', kg: 0.3, cm: 26, value: 2, caughtAt: 12, record: false } ], 'fresh-wallet catch matches pre-split GameState' );
+	assert.deepEqual( fullWebGPU.sale, { total: 2, count: 1 }, 'fresh-wallet sale matches pre-split GameState' );
+	assert.deepEqual( fullWebGPU.final.inventory, [], 'sale leaves the same empty inventory as pre-split GameState' );
+	assert.equal( fullWebGPU.final.money, 2, 'sale leaves the same fresh-wallet balance as pre-split GameState' );
 	console.log( `Full WebGPU/WebGL cast-to-sale parity passed (${fullWebGPU.snapshots.bite.frames} bite frames, ${fullWebGPU.snapshots.fight.frames - 1} fight frames)` );
 } finally {
 	Math.random = previousRandom;

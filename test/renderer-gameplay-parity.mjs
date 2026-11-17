@@ -98,7 +98,11 @@ for ( const game of [ webgpu, webgl ] ) {
 	game.state.money = 1000;
 	game.runtime.refuel = () => 12;
 }
-assert.deepEqual( webgl.buy( 'engine' ), webgpu.buy( 'engine' ), 'both renderers apply the same shop upgrade' );
+const webgpuEngineUpgrade = webgpu.buy( 'engine' ), webglEngineUpgrade = webgl.buy( 'engine' );
+assert.deepEqual( webglEngineUpgrade, webgpuEngineUpgrade, 'both renderers apply the same shop upgrade' );
+assert.equal( webgpuEngineUpgrade?.cost, 300, 'the engine upgrade retains its pre-split price' );
+assert.equal( webgpu.state.money, 700, 'the engine upgrade leaves the same fresh-wallet balance as pre-split GameState' );
+assert.equal( webgpu.state.upgrades.engine, 1, 'the engine upgrade records the pre-split next level' );
 assert.equal( webgl.refuel(), webgpu.refuel(), 'both renderers buy the same amount of fuel' );
 assert.deepEqual( webglToasts, webgpuToasts, 'both renderers show matching upgrade and refuel feedback' );
 
