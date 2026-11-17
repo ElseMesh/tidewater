@@ -14,6 +14,7 @@
 		"test:coconut-preservation": "node test/debris-material-boundary.mjs && node test/coconut-preservation.mjs",
 		"test:pier-colliders": "node --preserve-symlinks test/pier-surface.mjs",
 		"test:webgl-beach-debris": "node --preserve-symlinks test/webgl-beach-debris.mjs",
+		"test:webgl-builtin-material-route": "node --preserve-symlinks test/webgl-builtin-material-route.mjs",
 		"test:webgl-shore-query-parity": "node test/webgl-shore-query-parity.mjs",
 		"test:live-fishing-extension-browser": "node --preserve-symlinks test/live-fishing-extension-browser.mjs"
   }
