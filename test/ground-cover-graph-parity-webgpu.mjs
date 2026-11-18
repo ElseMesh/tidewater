@@ -6,8 +6,6 @@ import { fileURLToPath } from 'node:url';
 import { GPU } from '../../../src/engine/gpu/GPU.js';
 import { Texture } from '../../../src/engine/gpu/Texture.js';
 import { Group } from '../../../src/engine/scene/Group.js';
-import { Material } from '../../../src/engine/render/Material.js';
-import { ShaderModule } from '../../../src/engine/gpu/Shader.js';
 import { TerrainGPU } from '../../../src/world/TerrainGPU.js';
 import { Terrain } from '../../../src/world/Terrain.js';
 import { HeightfieldTerrainData } from '../../../src/world/HeightfieldTerrainData.js';
@@ -70,17 +68,11 @@ try {
 	original = null;
 
 	// Render the exported GLBs and the renderer-neutral graph in the same scene.
-	const graphTerrainHeightModule = process.env.ELSEMESH_GROUND_COVER_FLAT_HEIGHT === '1'
-		? new ShaderModule( { name: 'groundCoverParityFlatTerrainHeight', code: 'fn terrainHeightAt( xz: vec2f ) -> f32 { return 8.0; }' } )
-		: terrainGPU.heightModule;
 	const fixture = await groundCoverFieldRenderFixture( {
 		density,
 		terrain,
-		terrainHeightModule: graphTerrainHeightModule,
+		terrainHeightModule: terrainGPU.heightModule,
 		terrainDetail: { width: terrainMaps.detailWidth, height: terrainMaps.detailHeight, data: terrainMaps.detail },
-		graphPositionOnly: process.env.ELSEMESH_GROUND_COVER_POSITION_ONLY === '1',
-		graphPositionMode: process.env.ELSEMESH_GROUND_COVER_VERTEX_MODE || ( process.env.ELSEMESH_GROUND_COVER_UNSCALED === '1' ? 'unscaled' : 'authored' ),
-		graphForcePresence: process.env.ELSEMESH_GROUND_COVER_FORCE_PRESENCE === '1',
 	} );
 	detailTexture = new Texture( { label: 'tidewater-ground-cover-parity-detail', width: fixture.terrainDetail.width, height: fixture.terrainDetail.height, format: 'rgba8unorm', data: fixture.terrainDetail.data, sampler: 'aniso4Repeat' } );
 	const root = new Group();
@@ -93,11 +85,6 @@ try {
 	};
 	const installed = await worldComponentBackendAdapter( 'webgpu', component.type )( { app: {}, root, connector: fixture.connector }, component );
 	assert.equal( installed?.installed, true, 'Tidewater patch GLBs install through the generic WebGPU ground-cover adapter' );
-	if ( process.env.ELSEMESH_GROUND_COVER_FORCE_DENSITY === '1' ) {
-		const texture = root.userData.worldPackage.textureAssets.get( `component:${component.id}:densityField` )?.texture;
-		assert.ok( texture, 'the signed density graph binding is available for the occupancy diagnostic' );
-		texture.upload( new Uint8Array( fixture.density.res * fixture.density.res * 4 ).fill( 255 ) );
-	}
 	runtime = installed.runtime;
 	L.scene.add( root );
 	const deadline = Date.now() + 10000;
@@ -118,34 +105,6 @@ try {
 	const graphCounts = graphMeshes.map( mesh => mesh.count );
 	const graphCells = graphMeshes.flatMap( mesh => Array.from( { length: mesh.count }, ( _, index ) => `${mesh.instanceMatrix.array[ index * 16 + 12 ]},${mesh.instanceMatrix.array[ index * 16 + 14 ]}` ) ).sort();
 	assert.ok( graphCells.length > 0, 'the generic Tidewater graph renders visible ground-cover instances from the signed density field' );
-	const originalMaterials = graphMeshes.map( mesh => mesh.material );
-	const geometryDiagnosticMaterial = new Material( { name: 'ground-cover-geometry-diagnostic', lit: false, side: 'double', output: 'r.color = vec4f( 0.0, 1.0, 0.0, 1.0 );' } );
-	for ( const mesh of graphMeshes ) mesh.material = geometryDiagnosticMaterial;
-	await L.run( 2, () => { terrainSurface.update( L.camera, true ); runtime.update( 0, L.camera ); }, 0 );
-	await GPU.pipelinesReady();
-	await L.run( 2, () => { terrainSurface.update( L.camera, true ); runtime.update( 0, L.camera ); }, 0 );
-	const geometryDiagnostic = new Uint8Array( ( await readFrame() ).data );
-	const graphGeometryPixels = changedPixelsFrom( geometryDiagnostic, emptyFrame );
-	if ( captureDir ) await L.save( path.join( captureDir, 'graph-geometry-only.png' ) );
-	for ( let index = 0; index < graphMeshes.length; index ++ ) graphMeshes[ index ].material = originalMaterials[ index ];
-	const vertexMaterials = graphMeshes.map( mesh => mesh.material.clone() );
-	for ( let index = 0; index < graphMeshes.length; index ++ ) {
-		vertexMaterials[ index ].lit = false;
-		vertexMaterials[ index ].surface = '';
-		vertexMaterials[ index ].output = 'r.color = vec4f( 0.0, 1.0, 0.0, 1.0 );';
-		graphMeshes[ index ].material = vertexMaterials[ index ];
-	}
-	await L.run( 2, () => { terrainSurface.update( L.camera, true ); runtime.update( 0, L.camera ); }, 0 );
-	await GPU.pipelinesReady();
-	await L.run( 2, () => { terrainSurface.update( L.camera, true ); runtime.update( 0, L.camera ); }, 0 );
-	const vertexDiagnostic = new Uint8Array( ( await readFrame() ).data );
-	const graphVertexPixels = changedPixelsFrom( vertexDiagnostic, emptyFrame );
-	if ( captureDir ) await L.save( path.join( captureDir, 'graph-vertex-only.png' ) );
-	for ( let index = 0; index < graphMeshes.length; index ++ ) {
-		graphMeshes[ index ].material = originalMaterials[ index ];
-		vertexMaterials[ index ].dispose();
-	}
-	geometryDiagnosticMaterial.dispose();
 	let totalError = 0, changedPixels = 0;
 	for ( let offset = 0; offset < reference.length; offset += 4 ) {
 		const difference = Math.abs( reference[ offset ] - graphFrame[ offset ] ) + Math.abs( reference[ offset + 1 ] - graphFrame[ offset + 1 ] ) + Math.abs( reference[ offset + 2 ] - graphFrame[ offset + 2 ] );
@@ -153,7 +112,7 @@ try {
 		if ( difference > 24 ) changedPixels ++;
 	}
 	const meanAbsoluteError = totalError / ( reference.length / 4 * 3 );
-	console.log( `Tidewater signed ground-cover diagnostic: source/graph MAE ${ meanAbsoluteError.toFixed( 3 )}/255; changed pixels ${changedPixels}; foliage pixels beyond empty background ${sourceChangedPixels}/${graphChangedPixels}; geometry-only/vertex-only graph pixels ${graphGeometryPixels}/${graphVertexPixels}; foreground pixels ${sourceForegroundPixels}/${graphForegroundPixels}; visible instance counts ${sourceCounts.join( '/' )}/${graphCounts.join( '/' )}` );
+	console.log( `Tidewater signed ground-cover parity: source/graph MAE ${ meanAbsoluteError.toFixed( 3 )}/255; changed pixels ${changedPixels}; foliage pixels ${sourceChangedPixels}/${graphChangedPixels}; foreground pixels ${sourceForegroundPixels}/${graphForegroundPixels}; visible instance counts ${sourceCounts.join( '/' )}/${graphCounts.join( '/' )}` );
 	assert.ok( meanAbsoluteError <= 10, `the Tidewater material graph stays close to the source WebGPU presenter with signed density and terrain assets (MAE ${ meanAbsoluteError.toFixed( 3 )}/255)` );
 	console.log( `Tidewater WebGPU ground-cover source/graph selected cells: ${ sourceCells.length }/${ graphCells.length }; source LOD ${ sourceCounts.join( '/' ) }; graph LOD ${ graphCounts.join( '/' ) }` );
 } finally {

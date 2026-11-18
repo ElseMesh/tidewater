@@ -31,10 +31,8 @@ function linearColor( hex ) {
 }
 
 /** Build the authored Tidewater patch graph using the signed density grid's world mapping. */
-export function createTidewaterGroundCoverMaterialGraph( { densityOrigin, densitySize, vertexPositionMode = 'authored', forcePresence = false } ) {
+export function createTidewaterGroundCoverMaterialGraph( { densityOrigin, densitySize } ) {
 	if ( ! Number.isFinite( densityOrigin ) || ! Number.isFinite( densitySize ) || densitySize <= 0 ) throw new Error( 'Tidewater ground-cover material requires valid density-grid world bounds' );
-	if ( ! [ 'authored', 'unscaled', 'rest', 'sized', 'noLod', 'lodNear' ].includes( vertexPositionMode ) ) throw new Error( 'Tidewater ground-cover material has an unknown vertex position mode' );
-	if ( typeof forcePresence !== 'boolean' ) throw new Error( 'Tidewater ground-cover material presence mode must be boolean' );
 	const b = new GraphBuilder(), c = value => b.constant( value ), op = ( name, ...args ) => b.call( name, ...args );
 	const zero = c( 0 ), one = c( 1 ), half = c( 0.5 ), two = c( 2 );
 	const add = ( a, d ) => op( 'add', a, d ), sub = ( a, d ) => op( 'subtract', a, d ), mul = ( a, d ) => op( 'multiply', a, d ), div = ( a, d ) => op( 'divide', a, d );
@@ -91,7 +89,7 @@ export function createTidewaterGroundCoverMaterialGraph( { densityOrigin, densit
 	const hashPosition2 = add( mul( xz, c( 2.11 ) ), constantVec2( 7.3, 7.3 ) );
 	const densityHash = hash12( hashPosition1 ), flowerHash = hash12( hashPosition2 );
 	const flowerAllowed = select( greater( kind, c( 3.5 ) ), select( less( flowerHash, c( 0.35 ) ), one, zero ), one );
-	const present = forcePresence ? one : mul( select( less( densityHash, slotDensity ), one, zero ), flowerAllowed );
+	const present = mul( select( less( densityHash, slotDensity ), one, zero ), flowerAllowed );
 
 	// The same two terrain-detail samples drive meadow color and gust response.
 	const rotateDetail = ( angle, point ) => {
@@ -132,7 +130,7 @@ export function createTidewaterGroundCoverMaterialGraph( { densityOrigin, densit
 
 	// Source tier fade: category identity and tier metadata are in the signed patch.
 	const distanceDelta = sub( xz, vec2( x( cameraPosition ), z( cameraPosition ) ) );
-	const distance = vertexPositionMode === 'lodNear' ? zero : op( 'length', distanceDelta );
+	const distance = op( 'length', distanceDelta );
 	const tierFromBlade = select( less( kind, c( 2.5 ) ), w( blade ), zero );
 	const tier = op( 'max', tierFromBlade, w( slots ) );
 	const cutPhase = add( mul( random, c( 7.13 ) ), flowerHash );
@@ -235,13 +233,7 @@ export function createTidewaterGroundCoverMaterialGraph( { densityOrigin, densit
 	const backLight = op( 'pow', clamp( op( 'dot', mul( viewDirection, c( -1 ) ), sunDirection ), zero, one ), c( 4 ) );
 	const translucency = mul( mul( mul( colorBeforeGrass, constantVec3( 1.1, 1.3, 0.6 ) ), mul( backLight, c( 0.3 ) ) ), mul( smooth( 0.2, 1, hf ), sub( one, night ) ) );
 	const specularIntensity = c( 0.4 );
-	const restPosition = sub( add( add( base, o0 ), mul( sideRotated, wideScale ) ), cellOrigin );
-	const sizedO0 = mul( localRotated, heightScale );
-	const sizedWidth = mul( sideRotated, mul( widthScale, op( 'min', mul( heightScale, two ), op( 'max', heightScale, c( 0.5 ) ) ) ) );
-	const sizedPosition = sub( add( add( base, sizedO0 ), sizedWidth ), cellOrigin );
-	const noLodScale = mul( heightScale, present );
-	const noLodPosition = sub( add( add( base, mul( localRotated, noLodScale ) ), mul( sideRotated, mul( widthScale, op( 'min', mul( noLodScale, two ), op( 'max', noLodScale, c( 0.5 ) ) ) ) ) ), cellOrigin );
-	const vertexPosition = vertexPositionMode === 'unscaled' ? sub( add( base, position ), cellOrigin ) : vertexPositionMode === 'rest' ? restPosition : vertexPositionMode === 'sized' ? sizedPosition : vertexPositionMode === 'noLod' ? noLodPosition : worldBentPosition;
+	const vertexPosition = worldBentPosition;
 
 	return Object.freeze( {
 		format: 'elsemesh.material-graph/1',
