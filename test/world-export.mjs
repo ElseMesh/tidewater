@@ -31,6 +31,7 @@ import { compileWorldMaterialGraph } from '../../../src/materials/WorldMaterialG
 import { validateWorldLocalLightSet } from '../../../src/network/WorldLocalLightSet.js';
 import { TIDEWATER_PALM_MATERIAL_GRAPH } from '../vegetation/VegetationMaterialGraph.js';
 import { TIDEWATER_SCANNED_DEBRIS_MATERIAL_GRAPH } from '../debris/ScannedMaterialGraph.js';
+import { buildGroundCoverPatch } from '../vegetation/GroundCoverPatch.js';
 import { SCANNED_DEBRIS_ASSETS } from '../debris/ScannedAssets.js';
 
 const temporaryRoot = process.env.PREFIX ? path.join( process.env.PREFIX, 'tmp' ) : '/var/tmp';
@@ -99,6 +100,7 @@ try {
 	const firstExportOutput = execFileSync( process.execPath, [ 'worlds/tidewater/tools/export-world.mjs', '--out', output ], { cwd: repositoryRoot, encoding: 'utf8' } );
 	const fishSetBytesFirst = await readFile( path.join( output, 'fish-static-model-instance-set.json' ) );
 	const vegetationSetBytesFirst = await readFile( path.join( output, 'vegetation-static-model-instance-set.json' ) );
+	const groundCoverPatchSetBytesFirst = await readFile( path.join( output, 'ground-cover-patch-set.json' ) );
 	const scannedSetBytesFirst = await readFile( path.join( output, 'scanned-debris-static-model-instance-set.json' ) );
 	const sourceFirst = await readFile( sourcePath );
 	const terrainReportPath = path.join( output, 'terrain-validation.json' );
@@ -112,8 +114,24 @@ try {
 	const secondExportOutput = execFileSync( process.execPath, [ 'worlds/tidewater/tools/export-world.mjs', '--out', output ], { cwd: repositoryRoot, encoding: 'utf8' } );
 	const fishSetBytes = await readFile( path.join( output, 'fish-static-model-instance-set.json' ) );
 	const vegetationSetBytes = await readFile( path.join( output, 'vegetation-static-model-instance-set.json' ) );
+	const groundCoverPatchSetBytes = await readFile( path.join( output, 'ground-cover-patch-set.json' ) );
 	const scannedSetBytes = await readFile( path.join( output, 'scanned-debris-static-model-instance-set.json' ) );
 	const vegetationSet = validateStaticModelInstanceSet( JSON.parse( vegetationSetBytes ) );
+	const groundCoverPatchSet = JSON.parse( groundCoverPatchSetBytes );
+	assert.equal( groundCoverPatchSet.format, 'tidewater.ground-cover-patch-set/1', 'ground-cover sidecar identifies its authored portable format' );
+	assert.equal( groundCoverPatchSet.cellSize, 8, 'ground-cover patches use the source cell width' );
+	assert.deepEqual( groundCoverPatchSet.lods.map( lod => [ lod.level, lod.triangles ] ), [ [ 'near', 17560 ], [ 'mid', 4716 ], [ 'far', 768 ] ], 'ground-cover sidecar preserves the three authored source LODs' );
+	const groundCoverFiles = await readdir( path.join( output, 'ground-cover-patches' ) );
+	assert.equal( groundCoverFiles.length, 3, 'ground-cover sidecar writes one content-addressed GLB per authored LOD' );
+	for ( const [ level, lod ] of groundCoverPatchSet.lods.entries() ) {
+		const bytes = await readFile( path.join( output, 'ground-cover-patches', `${lod.assetId.slice( 'sha256:'.length )}.glb` ) );
+		assert.equal( `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`, lod.assetId, 'ground-cover GLB bytes match their content address' );
+		const primitive = parseGLB( bytes ).meshes[ 0 ][ 0 ];
+		const authored = buildGroundCoverPatch( level, groundCoverPatchSet.seed );
+		assert.deepEqual( primitive.attributes.POSITION.array, authored.positions, `${lod.level} sidecar geometry remains the authored source stream` );
+		assert.deepEqual( primitive.attributes._ELSEMESH_VDATA1.array, authored.slots, `${lod.level} sidecar retains the exact shared cell-slot arrangement` );
+		assert.deepEqual( primitive.attributes._ELSEMESH_VDATA2.array, authored.bladeData, `${lod.level} sidecar retains authored categories and LOD tiers` );
+	}
 	assert.equal( vegetationSet.models.length, 1, 'vegetation migration artifact exports the coconut-palm model' );
 	assert.equal( vegetationSet.models[ 0 ].id, 'coconut-palm', 'vegetation migration artifact identifies its first supported category' );
 	assert.equal( vegetationSet.models[ 0 ].lods.length, 2, 'palm migration artifact preserves near and far source meshes' );
@@ -144,6 +162,7 @@ try {
 		for ( const name of [ '_ELSEMESH_VDATA', '_ELSEMESH_VDATA1', '_ELSEMESH_VDATA2' ] ) assert.equal( primitive.attributes[ name ]?.itemSize, 4, `palm GLB preserves ${name} as a VEC4 renderer-neutral input` );
 	}
 	assert.deepEqual( vegetationSetBytes, vegetationSetBytesFirst, 'the generic palm model-set descriptor is deterministic' );
+	assert.deepEqual( groundCoverPatchSetBytes, groundCoverPatchSetBytesFirst, 'the renderer-neutral ground-cover patch sidecar is deterministic' );
 	const fishSet = validateStaticModelInstanceSet( JSON.parse( fishSetBytes ) );
 	assert.equal( fishSet.instances.length, 78, 'generic fish model set exports all 78 original placements' );
 	assert.equal( fishSet.models.length, 18, 'generic fish model set exports all 18 kind/species geometry classes' );

@@ -23,6 +23,8 @@ import { DebrisPlacer } from '../DebrisPlacement.js';
 import { SCANNED_DEBRIS_ASSETS } from '../debris/ScannedAssets.js';
 import { TIDEWATER_SCANNED_DEBRIS_MATERIAL_GRAPH } from '../debris/ScannedMaterialGraph.js';
 import { createVegetationPlacement, buildGrassMask } from '../vegetation/Scatter.js';
+import { buildGroundCoverPatch, CELL as GROUND_COVER_CELL } from '../vegetation/GroundCoverPatch.js';
+import { groundCoverPatchGLB } from '../vegetation/GroundCoverPatchGLB.js';
 import { encodeVegetationPlacements } from '../VegetationPlacements.js';
 import { encodeGrassDensityAsset } from '../../../src/network/GrassDensityAsset.js';
 import { Reef } from '../Reef.js';
@@ -213,6 +215,19 @@ const vegetationStaticModelsPath = path.join( output, 'vegetation-static-models'
 await mkdir( vegetationStaticModelsPath, { recursive: true } );
 for ( const entry of await readdir( vegetationStaticModelsPath, { withFileTypes: true } ) ) if ( entry.isFile() && /^[0-9a-f]{64}\.glb$/.test( entry.name ) && ! vegetationStaticModelSet.assets.has( entry.name.slice( 0, 64 ) ) ) await rm( path.join( vegetationStaticModelsPath, entry.name ) );
 for ( const [ hash, bytes ] of vegetationStaticModelSet.assets ) await writeFile( path.join( vegetationStaticModelsPath, `${hash}.glb` ), bytes );
+const groundCoverPatchSet = { format: 'tidewater.ground-cover-patch-set/1', cellSize: GROUND_COVER_CELL, seed: 7, lods: [] }, groundCoverPatchAssets = new Map();
+for ( const [ level, name ] of [ 'near', 'mid', 'far' ].entries() ) {
+	const patch = buildGroundCoverPatch( level, groundCoverPatchSet.seed );
+	const bytes = groundCoverPatchGLB( `Tidewater ground cover ${name}`, patch );
+	const assetId = `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`;
+	groundCoverPatchAssets.set( assetId.slice( 'sha256:'.length ), bytes );
+	groundCoverPatchSet.lods.push( { level: name, assetId, triangles: patch.triangles, bytes: bytes.byteLength } );
+}
+const groundCoverPatchPath = path.join( output, 'ground-cover-patches' );
+await mkdir( groundCoverPatchPath, { recursive: true } );
+for ( const entry of await readdir( groundCoverPatchPath, { withFileTypes: true } ) ) if ( entry.isFile() && /^[0-9a-f]{64}\.glb$/.test( entry.name ) && ! groundCoverPatchAssets.has( entry.name.slice( 0, 64 ) ) ) await rm( path.join( groundCoverPatchPath, entry.name ) );
+for ( const [ hash, bytes ] of groundCoverPatchAssets ) await writeFile( path.join( groundCoverPatchPath, `${hash}.glb` ), bytes );
+await writeFile( path.join( output, 'ground-cover-patch-set.json' ), JSON.stringify( groundCoverPatchSet, null, 2 ) + '\n' );
 const reefLayout = new Reef( { terrain, worldLayout: TIDEWATER_LAYOUT, layoutOnly: true } );
 const reefRecords = reefLayout.placements();
 const reefModelRadius = Math.max( ...[ ...reefLayout.kinds.hard, ...reefLayout.kinds.soft ].filter( ( kind ) => kind.lod === 0 ).map( ( kind ) => {
