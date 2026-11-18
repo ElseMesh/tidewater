@@ -21,9 +21,10 @@ import { GrassField } from '../renderers/webgpu-vegetation/GrassField.js';
 import { uCamPos } from '../renderers/webgpu-vegetation/VegNodes.js';
 
 const worldRoot = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..' );
+const assetRoot = process.env.ELSEMESH_TIDEWATER_ASSET_DIR || path.join( worldRoot, 'assets' );
 const worldSource = JSON.parse( await readFile( path.join( worldRoot, 'world-source.json' ), 'utf8' ) );
 const assetBytes = async assetId => {
-	const bytes = new Uint8Array( await readFile( path.join( worldRoot, 'assets', assetId.slice( 'sha256:'.length ) ) ) );
+	const bytes = new Uint8Array( await readFile( path.join( assetRoot, assetId.slice( 'sha256:'.length ) ) ) );
 	assert.equal( createHash( 'sha256' ).update( bytes ).digest( 'hex' ), assetId.slice( 'sha256:'.length ), `signed asset ${assetId} matches its content hash` );
 	return bytes;
 };
