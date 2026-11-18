@@ -38,10 +38,9 @@ let original, runtime, detailTexture, terrainGPU, terrainSurface;
 try {
 	terrainGPU = new TerrainGPU( terrain, terrainMaps.shoreField, { normal: terrainMaps.normal, splat: terrainMaps.splat, detailWidth: terrainMaps.detailWidth, detailHeight: terrainMaps.detailHeight, detail: terrainMaps.detail } );
 	terrainSurface = new Terrain( { scene: L.scene, terrainData: terrain, terrainGPU, surfaceProfile: terrainComponent.data.surfaceProfile } );
-	const spawn = worldSource.spawn.position;
-	const viewX = spawn[ 0 ], viewZ = - 140, viewY = terrain.heightAt( viewX, viewZ );
-	L.camera.position.set( viewX, viewY + 12, viewZ );
-	L.camera.lookAt( viewX, viewY, viewZ );
+	const viewX = - 52, viewZ = - 184, viewY = terrain.heightAt( viewX, viewZ );
+	L.camera.position.set( viewX, viewY + 1.7, viewZ );
+	L.camera.lookAt( viewX, terrain.heightAt( viewX, viewZ - 12 ) + 0.5, viewZ - 12 );
 	await L.run( 2, () => terrainSurface.update( L.camera, true ), 0 );
 	await GPU.pipelinesReady();
 	await L.run( 2, () => terrainSurface.update( L.camera, true ), 0 );
