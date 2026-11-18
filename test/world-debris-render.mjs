@@ -142,6 +142,7 @@ const debris = new Debris( { scene: H.scene, terrain: { data, gpu }, village: { 
 assert.equal( debris.stats().shadowTriangles, 15368, 'Tidewater world shadow policy preserves the existing caster geometry' );
 console.log( 'debris built', ( performance.now() - t0 ).toFixed( 0 ), 'ms' );
 await debris.scanned.promise;
+assert.deepEqual( debris.scanned.levels.map( level => level.mesh.castShadow ), [ true, true, true ], 'all scanned-debris LOD batches can cast shadows so the active color LOD also supplies the shadow' );
 console.log( 'stats', JSON.stringify( { ...debris.stats(), timings: undefined } ) );
 
 let baked = false;
@@ -182,6 +183,7 @@ if ( log ) {
 	views.wrack = sunSide( log.x, log.z, 12, 1.8 );
 	views.log = sunSide( log.x, log.z, 3.2, 1.3, 50, log.y );
 	views.logFar = sunSide( log.x, log.z, 28, 1.7, 14, log.y );
+	views.logDistant = sunSide( log.x, log.z, 120, 1.7, 14, log.y );
 
 }
 
@@ -207,6 +209,7 @@ if ( process.env.SCAN_DEBUG ) {
 if ( process.env.DEBRIS_OFF ) debris.group.visible = false;
 const only = process.env.VIEWS ? process.env.VIEWS.split( ',' ) : Object.keys( views );
 for ( const k of only ) await H.shot( OUT + k + '.png', views[ k ], 4 );
+if ( only.includes( 'logDistant' ) ) assert.ok( debris.scanned.levels[ 2 ].mesh.count > 0, 'the distant view assigns scanned models to LOD2, whose batch also casts shadows' );
 
 H.setView( views.beach );
 const t = await H.timeMain( 10 );
