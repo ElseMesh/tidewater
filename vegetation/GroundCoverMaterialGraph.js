@@ -106,7 +106,7 @@ export function createTidewaterGroundCoverMaterialGraph( { densityOrigin, densit
 	const olive = smooth( 0.52, 0.6, meadowMix );
 	const yellow = smooth( 0.6, 0.67, meadowMix );
 	const straw = smooth( 0.66, 0.73, add( meadowMix, mul( sub( meadowB, half ), c( 0.2 ) ) ) );
-	const lushFactor = smooth( 0.46, 0.37, add( mul( meadowB, c( 0.7 ) ), mul( meadowA, c( 0.3 ) ) ) );
+	const lushFactor = sub( one, smooth( 0.37, 0.46, add( mul( meadowB, c( 0.7 ) ), mul( meadowA, c( 0.3 ) ) ) ) );
 	const linearRGB = ( r, g, blue ) => c( [ r, g, blue ].map( value => value <= 0.04045 ? value / 12.92 : ( ( value + 0.055 ) / 1.055 ) ** 2.4 ) );
 	const meadowGreen = linearRGB( 0.25, 0.32, 0.1 );
 	const meadowOlive = linearRGB( 0.36, 0.37, 0.14 );
