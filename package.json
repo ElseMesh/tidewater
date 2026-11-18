@@ -5,6 +5,7 @@
 		"export": "node tools/export-world.mjs",
 		"export:grass-density": "node tools/export-grass-density.mjs",
 		"test:ground-cover-patch-geometry": "node test/ground-cover-patch-geometry.mjs",
+		"test:ground-cover-render-parity": "node --preserve-symlinks test/ground-cover-graph-parity-webgpu.mjs",
 		"test:gameplay-input": "node test/fishing-input-controller.mjs",
 		"test:minimap-hosted-terrain": "node test/minimap-hosted-terrain.mjs",
 		"test:vegetation-codec": "node test/vegetation-placement-codec.mjs",
