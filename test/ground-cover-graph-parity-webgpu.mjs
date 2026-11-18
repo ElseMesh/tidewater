@@ -86,6 +86,7 @@ try {
 	root.traverse( object => { if ( object.isInstancedMesh && ! object.userData.shadowOnly ) graphMeshes.push( object ); } );
 	const graphCounts = graphMeshes.map( mesh => mesh.count );
 	const graphCells = graphMeshes.flatMap( mesh => Array.from( { length: mesh.count }, ( _, index ) => `${mesh.instanceMatrix.array[ index * 16 + 12 ]},${mesh.instanceMatrix.array[ index * 16 + 14 ]}` ) ).sort();
+	assert.ok( graphCells.length > 0, 'the generic Tidewater graph renders visible ground-cover instances from the signed density field' );
 	let totalError = 0, changedPixels = 0;
 	for ( let offset = 0; offset < reference.length; offset += 4 ) {
 		const difference = Math.abs( reference[ offset ] - graphFrame[ offset ] ) + Math.abs( reference[ offset + 1 ] - graphFrame[ offset + 1 ] ) + Math.abs( reference[ offset + 2 ] - graphFrame[ offset + 2 ] );
