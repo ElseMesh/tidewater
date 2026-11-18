@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { mkdir } from 'node:fs/promises';
+import path from 'node:path';
 import { GPU } from '../../../src/engine/gpu/GPU.js';
 import { Texture } from '../../../src/engine/gpu/Texture.js';
 import { Group } from '../../../src/engine/scene/Group.js';
@@ -12,6 +14,8 @@ import { groundCoverFieldRenderFixture } from '../../../test/helpers/ground-cove
 import { GrassField } from '../renderers/webgpu-vegetation/GrassField.js';
 
 const fixture = await groundCoverFieldRenderFixture();
+const captureDir = process.env.ELSEMESH_GROUND_COVER_CAPTURE_DIR || null;
+if ( captureDir ) await mkdir( captureDir, { recursive: true } );
 const L = await setupLife( { W: 256, H: 192, shadowSplits: [ 12 ] } );
 let original, runtime, detailTexture;
 try {
@@ -28,6 +32,8 @@ try {
 	for ( const mesh of original.meshes ) L.scene.add( mesh );
 	await L.run( 2, () => original.update( L.camera ), 0 );
 	const reference = new Uint8Array( ( await readFrame() ).data );
+	if ( captureDir ) await L.save( path.join( captureDir, 'source-webgpu.png' ) );
+	const sourceCounts = original.levels.map( level => level.count );
 	for ( const mesh of original.meshes ) L.scene.remove( mesh );
 	original.dispose();
 	original = null;
@@ -54,6 +60,10 @@ try {
 	assert.equal( runtime.isCoarseReadyForView(), true, 'the Tidewater graph LODs reach coarse coverage' );
 	await L.run( 2, () => runtime.update( 0, L.camera ), 0 );
 	const graphFrame = new Uint8Array( ( await readFrame() ).data );
+	if ( captureDir ) await L.save( path.join( captureDir, 'graph-webgpu.png' ) );
+	const graphMeshes = [];
+	root.traverse( object => { if ( object.isInstancedMesh && ! object.userData.shadowOnly ) graphMeshes.push( object ); } );
+	const graphCounts = graphMeshes.map( mesh => mesh.count );
 	let totalError = 0, changedPixels = 0;
 	for ( let offset = 0; offset < reference.length; offset += 4 ) {
 		const difference = Math.abs( reference[ offset ] - graphFrame[ offset ] ) + Math.abs( reference[ offset + 1 ] - graphFrame[ offset + 1 ] ) + Math.abs( reference[ offset + 2 ] - graphFrame[ offset + 2 ] );
@@ -61,7 +71,7 @@ try {
 		if ( difference > 24 ) changedPixels ++;
 	}
 	const meanAbsoluteError = totalError / ( reference.length / 4 * 3 );
-	console.log( `Tidewater WebGPU ground-cover graph versus source presenter: MAE ${ meanAbsoluteError.toFixed( 3 )}/255; ${ changedPixels } changed pixels` );
+	console.log( `Tidewater WebGPU ground-cover graph versus source presenter: MAE ${ meanAbsoluteError.toFixed( 3 )}/255; ${ changedPixels } changed pixels; source LOD counts ${ sourceCounts.join( '/' ) }; graph LOD counts ${ graphCounts.join( '/' ) }` );
 } finally {
 	original?.dispose();
 	runtime?.dispose();
