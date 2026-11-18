@@ -1,4 +1,4 @@
-import { buildPalmFar, buildTreeNear, buildShrubNear, buildYoungPalm, buildFern, buildBanana, buildMonstera, buildElephantEar, buildHeliconia, buildStrelitzia, TREE_LOBES } from './webgpu-vegetation/PlantGeometry.js';
+import { buildPalmFar, buildTreeNear, buildShrubNear, buildYoungPalm, buildFern, buildBanana, buildMonstera, buildElephantEar, buildHeliconia, buildStrelitzia, TREE_LOBES } from '../vegetation/geometry/PlantGeometry.js';
 
 function webglPlantGeometry( T, source ) {
 

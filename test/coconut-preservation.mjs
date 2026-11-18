@@ -4,7 +4,7 @@ import '../register-behavior.js';
 import { TerrainData } from '../terrain/TerrainData.js';
 import { TIDEWATER_LAYOUT } from '../layout.js';
 import { createVegetationPlacement } from '../vegetation/Scatter.js';
-import { buildPalmNear, PART } from '../renderers/webgpu-vegetation/PlantGeometry.js';
+import { buildPalmNear, PART } from '../vegetation/geometry/PlantGeometry.js';
 import { Village } from '../Village.js';
 import { Colliders } from '../../../src/world/Colliders.js';
 import { Builder } from '../village/GeoBuilder.js';

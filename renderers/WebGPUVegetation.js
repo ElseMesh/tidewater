@@ -9,7 +9,7 @@ const variantOf = ( seed, isShrub ) => `vegVariantOf( ${ seed }, ${ isShrub } )`
 import {
 	buildPalmNear, buildPalmFar, buildUnderstory, buildCanopyNear, buildTreeNear, buildShrubNear,
 	lobeVariantGeometry, LOBE_TABLE, TREE_VARIANTS, SHRUB_VARIANTS, UNDERSTORY, buildBroadleaf, BROADLEAF, buildMonsteraMesh, buildBananas,
-} from './webgpu-vegetation/PlantGeometry.js';
+} from '../vegetation/geometry/PlantGeometry.js';
 import { createPlantLeafMaterial, createCanopyMaterial, createCanopyBakeMaterials, impostorColor, uCanopyNear } from './webgpu-vegetation/VegMaterials.js';
 import { ImpostorAtlas, buildImpostorQuad } from './webgpu-vegetation/Impostors.js';
 import { LeafAtlas } from './webgpu-vegetation/LeafTextures.js';

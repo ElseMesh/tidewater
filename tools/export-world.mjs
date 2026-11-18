@@ -44,7 +44,7 @@ import { TIDEWATER_WHALE_PROFILE } from '../WhaleProfile.js';
 import { writeWorldAssetIndex } from '../../../tools/world-asset-index.mjs';
 import { generateTidewaterReefURLs } from './generate-reef-asset-urls.mjs';
 import { fishPropGeometry } from '../../../src/world/fish/FishProps.js';
-import { buildPalmFar, buildPalmNear } from '../renderers/webgpu-vegetation/PlantGeometry.js';
+import { buildPalmFar, buildPalmNear } from '../vegetation/geometry/PlantGeometry.js';
 import { TIDEWATER_PALM_MATERIAL_GRAPH } from '../vegetation/VegetationMaterialGraph.js';
 import { tidewaterLocalLightSet } from '../WorldLights.js';
 
