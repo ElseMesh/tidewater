@@ -31,8 +31,9 @@ function linearColor( hex ) {
 }
 
 /** Build the authored Tidewater patch graph using the signed density grid's world mapping. */
-export function createTidewaterGroundCoverMaterialGraph( { densityOrigin, densitySize } ) {
+export function createTidewaterGroundCoverMaterialGraph( { densityOrigin, densitySize, vertexPositionMode = 'authored' } ) {
 	if ( ! Number.isFinite( densityOrigin ) || ! Number.isFinite( densitySize ) || densitySize <= 0 ) throw new Error( 'Tidewater ground-cover material requires valid density-grid world bounds' );
+	if ( ! [ 'authored', 'unscaled' ].includes( vertexPositionMode ) ) throw new Error( 'Tidewater ground-cover material has an unknown vertex position mode' );
 	const b = new GraphBuilder(), c = value => b.constant( value ), op = ( name, ...args ) => b.call( name, ...args );
 	const zero = c( 0 ), one = c( 1 ), half = c( 0.5 ), two = c( 2 );
 	const add = ( a, d ) => op( 'add', a, d ), sub = ( a, d ) => op( 'subtract', a, d ), mul = ( a, d ) => op( 'multiply', a, d ), div = ( a, d ) => op( 'divide', a, d );
@@ -241,7 +242,7 @@ export function createTidewaterGroundCoverMaterialGraph( { densityOrigin, densit
 			baseColor: colorBeforeGrass,
 			roughness,
 			metalness: zero,
-			vertexPosition: worldBentPosition,
+			vertexPosition: vertexPositionMode === 'unscaled' ? sub( add( base, position ), cellOrigin ) : worldBentPosition,
 			vertexNormal,
 		surfaceNormal: shadedNormal,
 			translucency,
