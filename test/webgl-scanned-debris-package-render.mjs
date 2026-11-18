@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { accessSync, constants, existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { accessSync, constants, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -23,6 +23,7 @@ async function stopBrowser( browser ) {
 }
 
 const profile = mkdtempSync( join( '/var/tmp', 'tidewater-scanned-debris-webgl-' ) );
+const output = process.argv[ 2 ] || '/var/tmp/elsemesh-tidewater-scanned-debris-webgl.png';
 let browser, socket, vite;
 try {
 	process.chdir( engineRoot );
@@ -84,7 +85,12 @@ try {
 	assert( metrics.changedPixels >= 30, `the selected beach trunk renders visible pixels (${metrics.changedPixels})` );
 	assert( metrics.programCount > 0, 'WebGL compiles the signed debris material programs' );
 	assert.equal( metrics.glError, 0, 'built-in WebGL reports no graphics error' );
+	const capture = await command( 'Runtime.evaluate', { expression: "document.querySelector('canvas')?.toDataURL('image/png')", returnByValue: true } );
+	const dataURL = capture.result?.value;
+	assert( typeof dataURL === 'string' && dataURL.startsWith( 'data:image/png;base64,' ), 'WebGL fixture exposes a PNG capture' );
+	writeFileSync( output, Buffer.from( dataURL.slice( 'data:image/png;base64,'.length ), 'base64' ) );
 	console.log( `Tidewater signed debris WebGL render passed: ${metrics.changedPixels} pixels, ${metrics.placements} placements, ${metrics.textureAssets} textures, LOD ${metrics.selectedLOD} (${metrics.selectedAsset}), ${metrics.programCount} programs; no GL errors` );
+	console.log( `WebGL PNG: ${output}` );
 } finally {
 	socket?.close();
 	if ( browser ) await stopBrowser( browser );

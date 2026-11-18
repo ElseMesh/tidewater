@@ -55,9 +55,13 @@ const connector = {
 const previousAssetImage = globalThis.__assetImage;
 globalThis.__assetImage = async ( bytes, mimeType ) => {
 	assert.equal( mimeType, 'image/jpeg', 'scanned-debris materials use the authored JPEG assets' );
-	const pixels = execFileSync( 'convert', [ 'jpeg:-', '-resize', '32x32!', '-depth', '8', 'rgba:-' ], { input: Buffer.from( bytes ), maxBuffer: 1024 * 1024 } );
-	assert.equal( pixels.length, 32 * 32 * 4, 'JPEG decoder returns a complete RGBA image' );
-	return { data: new Uint8Array( pixels ), width: 32, height: 32 };
+	const imageBytes = Buffer.from( bytes );
+	const dimensions = execFileSync( 'identify', [ '-format', '%w %h', 'jpeg:-' ], { input: imageBytes, encoding: 'utf8' } ).split( /\s+/ ).map( Number );
+	const [ width, height ] = dimensions;
+	assert( Number.isInteger( width ) && Number.isInteger( height ) && width > 0 && height > 0, 'signed JPEG has valid dimensions' );
+	const pixels = execFileSync( 'convert', [ 'jpeg:-', '-depth', '8', 'rgba:-' ], { input: imageBytes, maxBuffer: 16 * 1024 * 1024 } );
+	assert.equal( pixels.length, width * height * 4, 'JPEG decoder returns every authored RGBA texel' );
+	return { data: new Uint8Array( pixels ), width, height };
 };
 
 let life;

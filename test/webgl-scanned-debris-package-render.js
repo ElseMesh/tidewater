@@ -7,6 +7,8 @@ import '../../../src/fallback/WebGLComponentSupport.js';
 const result = document.querySelector( '#result' );
 const canvas = document.createElement( 'canvas' );
 canvas.width = 192; canvas.height = 144;
+canvas.hidden = true;
+document.body.append( canvas );
 const renderer = new THREE.WebGLRenderer( { canvas, antialias: false, preserveDrawingBuffer: true } );
 renderer.setSize( canvas.width, canvas.height, false );
 let runtime;

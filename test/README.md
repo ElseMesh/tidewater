@@ -37,16 +37,15 @@ captures under `/var/tmp`. The captures are intended for visual review; they do
 not yet assert pixel-level parity or prove that every WebGPU fish marking and
 material feature has a WebGL equivalent.
 
-`webgl-scanned-debris-package-render.mjs` and
-`webgpu-scanned-debris-package-render.mjs` render Tidewater's signed 141-instance
-scanned-debris component at the same authored beach-trunk pose and 192×144
-resolution. They report the selected signed trunk LOD asset so the backend
-selection can be compared directly. The WebGPU headless fixture downsamples
-authored JPEGs to 32×32 during decode and uses the software Dawn adapter; its
-output and foreground-pixel count are smoke evidence, not full-resolution
-texture or pixel-parity evidence. Current checks prove both paths render the
-same component and selected LOD, but do not yet establish matched material,
-lighting, texture-detail, shadow, or pre-split image parity.
+`scanned-debris-render-parity.mjs` runs
+`webgpu-scanned-debris-package-render.mjs` and
+`webgl-scanned-debris-package-render.mjs` at the same authored beach-trunk pose
+and 192×144 resolution. The WebGPU fixture decodes the full-resolution signed
+JPEGs and uses the software Dawn adapter; WebGL runs in isolated headless
+Chromium. Both report their selected signed trunk LOD asset. The combined check
+compares foreground silhouette masks and reports RGB difference separately; it
+does not establish full-scene, material, lighting, shadow, or pre-split image
+parity.
 
 `webgl-shore-query-parity.mjs` compares WebGPU and WebGL against Tidewater's
 packaged terrain and shoreline field, then records two 18-second underway boat
