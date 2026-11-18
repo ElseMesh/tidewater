@@ -73,6 +73,7 @@ try {
 		if ( difference > 24 ) changedPixels ++;
 	}
 	const meanAbsoluteError = totalError / ( reference.length / 4 * 3 );
+	assert.ok( meanAbsoluteError <= 10, `the Tidewater material graph stays close to the source WebGPU presenter in the matched flat-field fixture (MAE ${ meanAbsoluteError.toFixed( 3 )}/255)` );
 	console.log( `Tidewater WebGPU ground-cover graph versus source presenter: MAE ${ meanAbsoluteError.toFixed( 3 )}/255; ${ changedPixels } changed pixels; source LOD counts ${ sourceCounts.join( '/' ) }; graph LOD counts ${ graphCounts.join( '/' ) }; source cells ${ sourceCells.join( ';' ) }; graph cells ${ graphCells.join( ';' ) }` );
 } finally {
 	original?.dispose();
