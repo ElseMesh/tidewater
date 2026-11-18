@@ -68,7 +68,8 @@ try {
 	} );
 	await command( 'Page.enable' );
 	await command( 'Runtime.enable' );
-	await command( 'Page.navigate', { url: `http://127.0.0.1:${address.port}/worlds/tidewater/test/webgl-scanned-debris-package-render.html` } );
+	const lightingMode = process.env.ELSEMESH_DEBRIS_LIGHTING || 'full';
+	await command( 'Page.navigate', { url: `http://127.0.0.1:${address.port}/worlds/tidewater/test/webgl-scanned-debris-package-render.html?lighting=${lightingMode}` } );
 	const deadline = Date.now() + 60000;
 	let result;
 	while ( Date.now() < deadline ) {
@@ -89,7 +90,7 @@ try {
 	const dataURL = capture.result?.value;
 	assert( typeof dataURL === 'string' && dataURL.startsWith( 'data:image/png;base64,' ), 'WebGL fixture exposes a PNG capture' );
 	writeFileSync( output, Buffer.from( dataURL.slice( 'data:image/png;base64,'.length ), 'base64' ) );
-	console.log( `Tidewater signed debris WebGL render passed: ${metrics.changedPixels} pixels, ${metrics.placements} placements, ${metrics.textureAssets} textures, LOD ${metrics.selectedLOD} (${metrics.selectedAsset}), ${metrics.programCount} programs; no GL errors` );
+	console.log( `Tidewater signed debris WebGL render passed: ${metrics.changedPixels} pixels, ${metrics.placements} placements, ${metrics.textureAssets} textures, LOD ${metrics.selectedLOD} (${metrics.selectedAsset}), lighting ${metrics.lightingMode}, ${metrics.programCount} programs; no GL errors` );
 	console.log( `WebGL PNG: ${output}` );
 } finally {
 	socket?.close();

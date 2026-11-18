@@ -50,7 +50,12 @@ are disabled for this geometry-focused pass. The combined check requires at
 least 0.90 exact foreground-mask IoU and 0.97 symmetric foreground coverage
 within one pixel; it reports RGB MAE separately. The constant atmosphere does
 not exercise the production sky LUT, and the check does not establish
-full-scene, shadow, or pre-split image parity.
+full-scene, shadow, or pre-split image parity. Set
+`ELSEMESH_DEBRIS_LIGHTING=direct`, `diffuse`, or `ambient` to isolate direct,
+direct-plus-diffuse (with WebGPU environment specular disabled), or diffuse-only
+lighting. The default `full` mode includes the WebGPU harness's fallback
+specular gradient, while this WebGL fixture has no PMREM; its color MAE is
+therefore diagnostic rather than a valid full-environment parity score.
 
 `webgl-shore-query-parity.mjs` compares WebGPU and WebGL against Tidewater's
 packaged terrain and shoreline field, then records two 18-second underway boat

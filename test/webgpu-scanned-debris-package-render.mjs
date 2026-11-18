@@ -14,11 +14,15 @@ import { ShaderModule } from '../../../src/engine/gpu/Shader.js';
 import { worldComponentBackendAdapter } from '../../../src/network/WorldComponentBackendRegistry.js';
 import { disposeWorldPackage } from '../../../src/network/WorldPackage.js';
 import { GPU } from '../../../src/engine/gpu/GPU.js';
+import { G } from '../../../src/engine/render/Frame.js';
+import { SceneLighting } from '../../../src/engine/render/wgsl/lighting.js';
 import '../../../src/network/WebGPUWorldComponentAdapters.js';
 
 const testRoot = dirname( fileURLToPath( import.meta.url ) );
 const assetsRoot = resolve( testRoot, '../assets' );
 const output = process.argv[ 2 ] || '/var/tmp/elsemesh-tidewater-scanned-debris-webgpu.png';
+const lightingMode = process.env.ELSEMESH_DEBRIS_LIGHTING || 'full';
+assert( [ 'full', 'direct', 'diffuse', 'ambient' ].includes( lightingMode ), `unknown scanned-debris lighting diagnostic mode ${lightingMode}` );
 const source = JSON.parse( readFileSync( resolve( testRoot, '../world-source.json' ), 'utf8' ) );
 const component = source.components.find( entry => entry.id === 'elsemesh-component:scanned-debris' );
 assert( component, 'Tidewater source contains the signed scanned-debris component' );
@@ -84,6 +88,18 @@ try {
 	// shadows in a separate paired fixture rather than letting WebGPU's shadow map
 	// affect an RGB-derived silhouette while WebGL has no shadow pass enabled.
 	life.shadowsOn = false;
+	if ( lightingMode === 'direct' ) {
+		G.skyIrradiance.value.setRGB( 0, 0, 0 );
+		G.horizonColor.value.setRGB( 0, 0, 0 );
+	} else if ( lightingMode === 'ambient' || lightingMode === 'diffuse' ) {
+		if ( lightingMode === 'ambient' ) G.sunColor.value.setRGB( 0, 0, 0 );
+		// This fixture has no WebGL scene.environment PMREM. Disable the WebGPU
+		// specular hook too so diffuse/ambient modes compare matched diffuse terms.
+		SceneLighting.set( 'envSpecular', new ShaderModule( {
+			name: 'test-neutral-env-specular',
+			code: 'fn hookEnvSpecular( R: vec3f, roughness: f32 ) -> vec3f { return vec3f( 0.0 ); }',
+		} ) );
+	}
 	GPU.device.addEventListener( 'uncapturederror', event => errors.push( event.error?.message || 'unknown WebGPU error' ) );
 	const install = worldComponentBackendAdapter( 'webgpu', component.type );
 	assert.equal( typeof install, 'function', 'ElseMesh registers the generic WebGPU static-model adapter' );
@@ -134,7 +150,7 @@ try {
 	assert( changedPixels >= 30, `the signed Tidewater beach trunk renders visible WebGPU pixels (${changedPixels})` );
 	assert.deepEqual( errors, [], `Tidewater signed debris shaders have no WebGPU errors: ${errors.join( '; ' )}` );
 	await life.save( output );
-	console.log( `Tidewater signed debris WebGPU render passed: ${changedPixels} pixels, ${runtime.document.instances.length} placements, ${loadedTextures.length} signed textures, LOD ${selectedLOD} (${selectedAsset}); PNG ${output}` );
+	console.log( `Tidewater signed debris WebGPU render passed: ${changedPixels} pixels, ${runtime.document.instances.length} placements, ${loadedTextures.length} signed textures, LOD ${selectedLOD} (${selectedAsset}), lighting ${lightingMode}; PNG ${output}` );
 } finally {
 	runtime?.dispose();
 	disposeWorldPackage( root );

@@ -14,6 +14,8 @@ const renderer = new THREE.WebGLRenderer( { canvas, antialias: false, preserveDr
 renderer.setSize( canvas.width, canvas.height, false );
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.6;
+const lightingMode = new URLSearchParams( location.search ).get( 'lighting' ) || 'full';
+if ( ! [ 'full', 'direct', 'diffuse', 'ambient' ].includes( lightingMode ) ) throw new Error( `Unknown scanned-debris lighting diagnostic mode: ${lightingMode}` );
 const atmosphereTextures = [];
 let runtime;
 
@@ -22,7 +24,7 @@ try {
 	if ( ! component ) throw new Error( 'The built-in world package has no signed scanned-debris component' );
 	const scene = new THREE.Scene();
 	scene.background = new THREE.Color( 0xaabccf );
-	const sun = new THREE.DirectionalLight( new THREE.Color().setRGB( 3.2, 3.0, 2.7, THREE.LinearSRGBColorSpace ), 1 );
+	const sun = new THREE.DirectionalLight( new THREE.Color().setRGB( 3.2, 3.0, 2.7, THREE.LinearSRGBColorSpace ), lightingMode === 'ambient' ? 0 : 1 );
 	sun.position.set( 0.45, 0.62, 0.35 );
 	scene.add( sun );
 	const dataTexture = color => {
@@ -35,8 +37,8 @@ try {
 		return texture;
 	};
 	const atmosphere = {
-		skyIrradianceTexture: dataTexture( [ 0.22, 0.3, 0.42 ] ),
-		horizonTexture: dataTexture( [ 0.55, 0.65, 0.78 ] ),
+		skyIrradianceTexture: dataTexture( lightingMode === 'direct' ? [ 0, 0, 0 ] : [ 0.22, 0.3, 0.42 ] ),
+		horizonTexture: dataTexture( lightingMode === 'direct' ? [ 0, 0, 0 ] : [ 0.55, 0.65, 0.78 ] ),
 	};
 	installWebGLSceneMaterialLighting( THREE, scene, atmosphere );
 	const camera = new THREE.PerspectiveCamera( 55, canvas.width / canvas.height, 0.1, 1000 );
@@ -104,7 +106,7 @@ try {
 	if ( selectedLOD !== 0 ) throw new Error( `Close beach-trunk view selected LOD${selectedLOD}; expected LOD0, the highest-detail model` );
 	const selectedAsset = runtime.document.models[ modelIndex ].lods[ selectedLOD ].assetId;
 	if ( ! connector.assets.has( selectedAsset ) ) throw new Error( `Built-in WebGL did not load the selected signed LOD ${selectedAsset}` );
-	result.textContent = JSON.stringify( { status: 'complete', placements: placementCount, visibleMeshes: visibleMeshes.length, textureAssets: textureAssets.length, changedPixels, programCount: programs.length, selectedLOD, selectedAsset, glError } );
+	result.textContent = JSON.stringify( { status: 'complete', placements: placementCount, visibleMeshes: visibleMeshes.length, textureAssets: textureAssets.length, changedPixels, programCount: programs.length, selectedLOD, selectedAsset, lightingMode, glError } );
 	result.dataset.status = 'complete';
 } catch ( error ) {
 	result.textContent = `FAIL ${ error.stack || error }`;
