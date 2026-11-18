@@ -309,7 +309,7 @@ try {
 	assert.equal( source.components.some( component => component.type === 'elsemesh.procedural-island-terrain/1' ), false, 'the package uses the generic terrain-surface component instead of the legacy world-owned terrain installer' );
 	assert.ok( source.components.some( component => component.type === 'elsemesh.terrain-surface/1' ), 'the package declares the renderer-neutral terrain surface contract' );
 	assert.equal( source.components.some( component => component.type.startsWith( 'elsemesh.village-materials/' ) ), false, 'village materials travel with the signed GLB instead of a Tidewater renderer component' );
-	assert.equal( source.components.length, 10 + source.components.filter( ( component ) => component.type === 'elsemesh.static-reef/1' ).length, 'portable island declares vegetation, light sources, reef tiles, fish props, ground detail, terrain surface, wildlife, humpback, ocean, boat, and ambient components' );
+	assert.equal( source.components.length, 11 + source.components.filter( ( component ) => component.type === 'elsemesh.static-reef/1' ).length, 'portable island declares vegetation, light sources, reef tiles, fish props, ground detail, terrain surface, wildlife, humpback, ocean, boat, ambient, and scanned-debris components' );
 	const localLightComponent = source.components.find( component => component.type === 'elsemesh.local-light-set/1' );
 	const localLights = validateWorldLocalLightSet( localLightComponent );
 	assert.ok( localLights.length > 0, 'Tidewater exports its static lantern, path, and window lights as renderer-neutral data' );
