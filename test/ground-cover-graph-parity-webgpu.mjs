@@ -57,8 +57,8 @@ try {
 	const reference = new Uint8Array( ( await readFrame() ).data );
 	const sourceForegroundPixels = countForegroundPixels( reference );
 	const sourceChangedPixels = changedPixelsFrom( reference, terrainOnly );
-	assert.ok( sourceChangedPixels > 20, `the source presenter contributes foliage beyond the packaged terrain (${sourceChangedPixels} changed pixels)` );
 	if ( captureDir ) await L.save( path.join( captureDir, 'source-webgpu.png' ) );
+	assert.ok( sourceChangedPixels > 20, `the source presenter contributes foliage beyond the packaged terrain (${sourceChangedPixels} changed pixels)` );
 	const sourceCounts = original.levels.map( level => level.count );
 	const sourceCells = original.levels.flatMap( level => Array.from( { length: level.count }, ( _, index ) => `${level.arr[ index * 4 ]},${level.arr[ index * 4 + 1 ]}` ) ).sort();
 	for ( const mesh of original.meshes ) L.scene.remove( mesh );
