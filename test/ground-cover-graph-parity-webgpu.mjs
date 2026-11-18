@@ -45,7 +45,11 @@ try {
 	original = new GrassField( { terrain, mask: density } );
 	for ( const mesh of original.meshes ) L.scene.add( mesh );
 	await L.run( 2, () => original.update( L.camera ), 0 );
+	await GPU.pipelinesReady();
+	await L.run( 2, () => original.update( L.camera ), 0 );
 	const reference = new Uint8Array( ( await readFrame() ).data );
+	const sourceForegroundPixels = countForegroundPixels( reference );
+	assert.ok( sourceForegroundPixels > 20, `the source presenter draws visible foliage into the comparison view (${sourceForegroundPixels} foreground pixels)` );
 	if ( captureDir ) await L.save( path.join( captureDir, 'source-webgpu.png' ) );
 	const sourceCounts = original.levels.map( level => level.count );
 	const sourceCells = original.levels.flatMap( level => Array.from( { length: level.count }, ( _, index ) => `${level.arr[ index * 4 ]},${level.arr[ index * 4 + 1 ]}` ) ).sort();
@@ -80,7 +84,11 @@ try {
 	}
 	assert.equal( runtime.isCoarseReadyForView(), true, 'the Tidewater graph LODs reach coarse coverage' );
 	await L.run( 2, () => runtime.update( 0, L.camera ), 0 );
+	await GPU.pipelinesReady();
+	await L.run( 2, () => runtime.update( 0, L.camera ), 0 );
 	const graphFrame = new Uint8Array( ( await readFrame() ).data );
+	const graphForegroundPixels = countForegroundPixels( graphFrame );
+	assert.ok( graphForegroundPixels > 20, `the generic graph draws visible foliage into the comparison view (${graphForegroundPixels} foreground pixels)` );
 	if ( captureDir ) await L.save( path.join( captureDir, 'graph-webgpu.png' ) );
 	const graphMeshes = [];
 	root.traverse( object => { if ( object.isInstancedMesh && ! object.userData.shadowOnly ) graphMeshes.push( object ); } );
@@ -95,7 +103,7 @@ try {
 	}
 	const meanAbsoluteError = totalError / ( reference.length / 4 * 3 );
 	assert.ok( meanAbsoluteError <= 10, `the Tidewater material graph stays close to the source WebGPU presenter with signed density and terrain assets (MAE ${ meanAbsoluteError.toFixed( 3 )}/255)` );
-	console.log( `Tidewater WebGPU ground-cover graph versus source presenter using signed density ${vegetation.data.grassMaskAssetId} and terrain ${terrainComponent.data.dataAssetId}: MAE ${ meanAbsoluteError.toFixed( 3 )}/255; ${ changedPixels } changed pixels; source LOD counts ${ sourceCounts.join( '/' ) }; graph LOD counts ${ graphCounts.join( '/' ) }; source cells ${ sourceCells.join( ';' ) }; graph cells ${ graphCells.join( ';' ) }` );
+	console.log( `Tidewater WebGPU ground-cover graph versus source presenter using signed density ${vegetation.data.grassMaskAssetId} and terrain ${terrainComponent.data.dataAssetId}: MAE ${ meanAbsoluteError.toFixed( 3 )}/255; ${ changedPixels } changed pixels; source/graph foreground pixels ${sourceForegroundPixels}/${graphForegroundPixels}; source LOD counts ${ sourceCounts.join( '/' ) }; graph LOD counts ${ graphCounts.join( '/' ) }; source cells ${ sourceCells.join( ';' ) }; graph cells ${ graphCells.join( ';' ) }` );
 } finally {
 	original?.dispose();
 	runtime?.dispose();
@@ -108,4 +116,10 @@ await new Promise( resolve => setTimeout( resolve, 200 ) );
 async function readFrame() {
 	const { readTexture } = await import( '../../../src/engine/gpu/Readback.js' );
 	return readTexture( L.ldr.texture );
+}
+
+function countForegroundPixels( pixels ) {
+	let count = 0;
+	for ( let offset = 4; offset < pixels.length; offset += 4 ) if ( pixels[ offset ] !== pixels[ 0 ] || pixels[ offset + 1 ] !== pixels[ 1 ] || pixels[ offset + 2 ] !== pixels[ 2 ] ) count ++;
+	return count;
 }
