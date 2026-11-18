@@ -25,6 +25,7 @@ import { TIDEWATER_SCANNED_DEBRIS_MATERIAL_GRAPH } from '../debris/ScannedMateri
 import { createVegetationPlacement, buildGrassMask } from '../vegetation/Scatter.js';
 import { buildGroundCoverPatch, CELL as GROUND_COVER_CELL } from '../vegetation/GroundCoverPatch.js';
 import { groundCoverPatchGLB } from '../vegetation/GroundCoverPatchGLB.js';
+import { createTidewaterGroundCoverMaterialGraph } from '../vegetation/GroundCoverMaterialGraph.js';
 import { encodeVegetationPlacements } from '../VegetationPlacements.js';
 import { encodeGrassDensityAsset } from '../../../src/network/GrassDensityAsset.js';
 import { Reef } from '../Reef.js';
@@ -216,9 +217,10 @@ await mkdir( vegetationStaticModelsPath, { recursive: true } );
 for ( const entry of await readdir( vegetationStaticModelsPath, { withFileTypes: true } ) ) if ( entry.isFile() && /^[0-9a-f]{64}\.glb$/.test( entry.name ) && ! vegetationStaticModelSet.assets.has( entry.name.slice( 0, 64 ) ) ) await rm( path.join( vegetationStaticModelsPath, entry.name ) );
 for ( const [ hash, bytes ] of vegetationStaticModelSet.assets ) await writeFile( path.join( vegetationStaticModelsPath, `${hash}.glb` ), bytes );
 const groundCoverPatchSet = { format: 'tidewater.ground-cover-patch-set/1', cellSize: GROUND_COVER_CELL, seed: 7, lods: [] }, groundCoverPatchAssets = new Map();
+const groundCoverMaterialGraph = createTidewaterGroundCoverMaterialGraph( { densityOrigin: terrain.origin, densitySize: terrain.size } );
 for ( const [ level, name ] of [ 'near', 'mid', 'far' ].entries() ) {
 	const patch = buildGroundCoverPatch( level, groundCoverPatchSet.seed );
-	const bytes = groundCoverPatchGLB( `Tidewater ground cover ${name}`, patch );
+	const bytes = groundCoverPatchGLB( `Tidewater ground cover ${name}`, patch, groundCoverMaterialGraph );
 	const assetId = `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`;
 	groundCoverPatchAssets.set( assetId.slice( 'sha256:'.length ), bytes );
 	groundCoverPatchSet.lods.push( { level: name, assetId, triangles: patch.triangles, bytes: bytes.byteLength } );

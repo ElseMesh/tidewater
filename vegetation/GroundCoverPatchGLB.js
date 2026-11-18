@@ -1,6 +1,7 @@
 /** Encode Tidewater's renderer-independent patch streams as an indexed glTF binary. */
-export function groundCoverPatchGLB( name, patch ) {
+export function groundCoverPatchGLB( name, patch, graph = null ) {
 	if ( typeof name !== 'string' || ! name || ! patch || !( patch.positions instanceof Float32Array ) || !( patch.normals instanceof Float32Array ) || !( patch.sides instanceof Float32Array ) || !( patch.slots instanceof Float32Array ) || !( patch.bladeData instanceof Float32Array ) || !( patch.indices instanceof Uint16Array || patch.indices instanceof Uint32Array ) ) throw new Error( 'Invalid Tidewater ground-cover patch streams' );
+	if ( graph !== null && ( ! graph || graph.format !== 'elsemesh.material-graph/1' || ! Array.isArray( graph.nodes ) || ! graph.outputs ) ) throw new Error( 'Invalid Tidewater ground-cover material graph' );
 	const vertexCount = patch.positions.length / 3;
 	if ( ! Number.isInteger( vertexCount ) || vertexCount < 1 || patch.normals.length !== vertexCount * 3 || patch.sides.length !== vertexCount * 4 || patch.slots.length !== vertexCount * 4 || patch.bladeData.length !== vertexCount * 4 || patch.indices.length < 3 || patch.indices.length % 3 !== 0 || patch.triangles !== patch.indices.length / 3 || patch.indices.some( index => index >= vertexCount ) ) throw new Error( 'Tidewater ground-cover patch stream lengths or indices do not match' );
 	const chunks = [], bufferViews = [], accessors = [];
@@ -35,7 +36,7 @@ export function groundCoverPatchGLB( name, patch ) {
 		asset: { version: '2.0', generator: 'Tidewater renderer-neutral ground-cover exporter/1' },
 		scene: 0, scenes: [ { nodes: [ 0 ] } ], nodes: [ { name } ],
 		meshes: [ { name, primitives: [ { attributes, indices: indexAccessor, material: 0, mode: 4 } ] } ],
-		materials: [ { name: 'Tidewater ground cover', doubleSided: true, pbrMetallicRoughness: { baseColorFactor: [ 1, 1, 1, 1 ], metallicFactor: 0, roughnessFactor: 0.8 } } ],
+		materials: [ { name: 'Tidewater ground cover', doubleSided: true, pbrMetallicRoughness: { baseColorFactor: [ 1, 1, 1, 1 ], metallicFactor: 0, roughnessFactor: 0.8 }, ...( graph ? { extras: { elsemeshMaterial: { profile: 'elsemesh.material-graph/1', role: 'graph', graph } } } : {} ) } ],
 		accessors, bufferViews, buffers: [ { byteLength: binary.byteLength } ],
 	};
 	const json = new TextEncoder().encode( JSON.stringify( gltf ) );

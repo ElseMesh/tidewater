@@ -30,6 +30,8 @@ import { validateWorldMaterialGraph } from '../../../src/network/WorldMaterialGr
 import { compileWorldMaterialGraph } from '../../../src/materials/WorldMaterialGraphCompiler.js';
 import { validateWorldLocalLightSet } from '../../../src/network/WorldLocalLightSet.js';
 import { TIDEWATER_PALM_MATERIAL_GRAPH } from '../vegetation/VegetationMaterialGraph.js';
+import { createTidewaterGroundCoverMaterialGraph } from '../vegetation/GroundCoverMaterialGraph.js';
+import { TIDEWATER_LAYOUT } from '../layout.js';
 import { TIDEWATER_SCANNED_DEBRIS_MATERIAL_GRAPH } from '../debris/ScannedMaterialGraph.js';
 import { buildGroundCoverPatch } from '../vegetation/GroundCoverPatch.js';
 import { SCANNED_DEBRIS_ASSETS } from '../debris/ScannedAssets.js';
@@ -123,9 +125,16 @@ try {
 	assert.deepEqual( groundCoverPatchSet.lods.map( lod => [ lod.level, lod.triangles ] ), [ [ 'near', 17560 ], [ 'mid', 4716 ], [ 'far', 768 ] ], 'ground-cover sidecar preserves the three authored source LODs' );
 	const groundCoverFiles = await readdir( path.join( output, 'ground-cover-patches' ) );
 	assert.equal( groundCoverFiles.length, 3, 'ground-cover sidecar writes one content-addressed GLB per authored LOD' );
+	const groundCoverGraph = createTidewaterGroundCoverMaterialGraph( { densityOrigin: - TIDEWATER_LAYOUT.terrainSize / 2, densitySize: TIDEWATER_LAYOUT.terrainSize } );
+	validateWorldMaterialGraph( groundCoverGraph );
+	assert.ok( groundCoverGraph.nodes.length < 1024, 'authored ground-cover behavior stays inside the portable graph-node limit' );
+	assert.deepEqual( compileWorldMaterialGraph( groundCoverGraph, 'webgpu' ).textureSlots, [ 'densityField', 'detailField' ], 'WebGPU graph uses the same signed density and terrain-detail texture slots' );
+	assert.deepEqual( compileWorldMaterialGraph( groundCoverGraph, 'webgl' ).textureSlots, [ 'densityField', 'detailField' ], 'WebGL graph uses the same signed density and terrain-detail texture slots' );
 	for ( const [ level, lod ] of groundCoverPatchSet.lods.entries() ) {
 		const bytes = await readFile( path.join( output, 'ground-cover-patches', `${lod.assetId.slice( 'sha256:'.length )}.glb` ) );
 		assert.equal( `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`, lod.assetId, 'ground-cover GLB bytes match their content address' );
+		const materialGraph = parseGLB( bytes ).materials[ 0 ].extras.elsemeshMaterial.graph;
+		assert.deepEqual( materialGraph, groundCoverGraph, 'each LOD carries the same Tidewater-authored renderer-neutral material graph' );
 		const primitive = parseGLB( bytes ).meshes[ 0 ][ 0 ];
 		const authored = buildGroundCoverPatch( level, groundCoverPatchSet.seed );
 		assert.deepEqual( primitive.attributes.POSITION.array, authored.positions, `${lod.level} sidecar geometry remains the authored source stream` );
