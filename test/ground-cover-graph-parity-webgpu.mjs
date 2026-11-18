@@ -77,6 +77,7 @@ try {
 		terrain,
 		terrainHeightModule: graphTerrainHeightModule,
 		terrainDetail: { width: terrainMaps.detailWidth, height: terrainMaps.detailHeight, data: terrainMaps.detail },
+		graphPositionOnly: process.env.ELSEMESH_GROUND_COVER_POSITION_ONLY === '1',
 	} );
 	detailTexture = new Texture( { label: 'tidewater-ground-cover-parity-detail', width: fixture.terrainDetail.width, height: fixture.terrainDetail.height, format: 'rgba8unorm', data: fixture.terrainDetail.data, sampler: 'aniso4Repeat' } );
 	const root = new Group();
