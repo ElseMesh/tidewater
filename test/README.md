@@ -44,11 +44,13 @@ and 192×144 resolution. The WebGPU fixture decodes the full-resolution signed
 JPEGs and uses the software Dawn adapter; WebGL runs in isolated headless
 Chromium. Both wait for the camera-selected near LOD0 to become resident and
 assert the same signed trunk asset, after matching camera pose/projection,
-background, numeric lighting, and disabling shadows for this geometry-focused
-pass. The combined check requires at least 0.90 exact foreground-mask IoU and
-0.97 symmetric foreground coverage within one pixel; it reports RGB MAE
-separately. It does not establish full-scene, material, lighting, shadow, or
-pre-split image parity.
+background, direct-light values, exposure, and the WebGL engine atmosphere
+material adapter fed with the WebGPU harness's sky/horizon constants. Shadows
+are disabled for this geometry-focused pass. The combined check requires at
+least 0.90 exact foreground-mask IoU and 0.97 symmetric foreground coverage
+within one pixel; it reports RGB MAE separately. The constant atmosphere does
+not exercise the production sky LUT, and the check does not establish
+full-scene, shadow, or pre-split image parity.
 
 `webgl-shore-query-parity.mjs` compares WebGPU and WebGL against Tidewater's
 packaged terrain and shoreline field, then records two 18-second underway boat

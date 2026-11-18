@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { defaultWorldPackage } from '../../default.js';
 import { WebGLFallback } from '../../../src/fallback/WebGLFallback.js';
+import { installWebGLSceneMaterialLighting } from '../../../src/fallback/WebGLMaterialLighting.js';
 import '../../../src/fallback/WebGLComponentSupport.js';
 
 const result = document.querySelector( '#result' );
@@ -13,6 +14,7 @@ const renderer = new THREE.WebGLRenderer( { canvas, antialias: false, preserveDr
 renderer.setSize( canvas.width, canvas.height, false );
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.6;
+const atmosphereTextures = [];
 let runtime;
 
 try {
@@ -22,8 +24,21 @@ try {
 	scene.background = new THREE.Color( 0xaabccf );
 	const sun = new THREE.DirectionalLight( new THREE.Color().setRGB( 3.2, 3.0, 2.7, THREE.LinearSRGBColorSpace ), 1 );
 	sun.position.set( 0.45, 0.62, 0.35 );
-	const sky = new THREE.AmbientLight( new THREE.Color().setRGB( 0.22, 0.3, 0.42, THREE.LinearSRGBColorSpace ), 1 );
-	scene.add( sun, sky );
+	scene.add( sun );
+	const dataTexture = color => {
+		const texture = new THREE.DataTexture( new Float32Array( [ ...color, 1 ] ), 1, 1, THREE.RGBAFormat, THREE.FloatType );
+		texture.colorSpace = THREE.NoColorSpace;
+		texture.minFilter = texture.magFilter = THREE.NearestFilter;
+		texture.generateMipmaps = false;
+		texture.needsUpdate = true;
+		atmosphereTextures.push( texture );
+		return texture;
+	};
+	const atmosphere = {
+		skyIrradianceTexture: dataTexture( [ 0.22, 0.3, 0.42 ] ),
+		horizonTexture: dataTexture( [ 0.55, 0.65, 0.78 ] ),
+	};
+	installWebGLSceneMaterialLighting( THREE, scene, atmosphere );
 	const camera = new THREE.PerspectiveCamera( 55, canvas.width / canvas.height, 0.1, 1000 );
 	const fallback = Object.assign( Object.create( WebGLFallback.prototype ), {
 		defaultWorldSource: { ...defaultWorldPackage.source, components: [ component ] },
@@ -96,5 +111,6 @@ try {
 	result.dataset.status = 'failed';
 } finally {
 	runtime?.dispose();
+	for ( const texture of atmosphereTextures ) texture.dispose();
 	renderer.dispose();
 }
