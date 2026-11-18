@@ -34,7 +34,7 @@ export function groundCoverPatchGLB( name, patch, graph = null ) {
 	for ( const chunk of chunks ) { binary.set( chunk, offset ); offset += chunk.byteLength; }
 	const gltf = {
 		asset: { version: '2.0', generator: 'Tidewater renderer-neutral ground-cover exporter/1' },
-		scene: 0, scenes: [ { nodes: [ 0 ] } ], nodes: [ { name } ],
+		scene: 0, scenes: [ { nodes: [ 0 ] } ], nodes: [ { name, mesh: 0 } ],
 		meshes: [ { name, primitives: [ { attributes, indices: indexAccessor, material: 0, mode: 4 } ] } ],
 		materials: [ { name: 'Tidewater ground cover', doubleSided: true, pbrMetallicRoughness: { baseColorFactor: [ 1, 1, 1, 1 ], metallicFactor: 0, roughnessFactor: 0.8 }, ...( graph ? { extras: { elsemeshMaterial: { profile: 'elsemesh.material-graph/1', role: 'graph', graph } } } : {} ) } ],
 		accessors, bufferViews, buffers: [ { byteLength: binary.byteLength } ],

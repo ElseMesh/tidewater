@@ -135,6 +135,7 @@ try {
 		assert.equal( `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`, lod.assetId, 'ground-cover GLB bytes match their content address' );
 		const materialGraph = parseGLB( bytes ).materials[ 0 ].extras.elsemeshMaterial.graph;
 		assert.deepEqual( materialGraph, groundCoverGraph, 'each LOD carries the same Tidewater-authored renderer-neutral material graph' );
+		assert.equal( parseGLB( bytes ).nodes[ 0 ].mesh, 0, 'each exported ground-cover scene node references its authored mesh' );
 		const primitive = parseGLB( bytes ).meshes[ 0 ][ 0 ];
 		const authored = buildGroundCoverPatch( level, groundCoverPatchSet.seed );
 		assert.deepEqual( primitive.attributes.POSITION.array, authored.positions, `${lod.level} sidecar geometry remains the authored source stream` );
