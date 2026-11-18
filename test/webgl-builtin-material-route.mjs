@@ -9,6 +9,6 @@ assert.ok( start >= 0 && end > start, 'the built-in WebGL world loader is presen
 
 const loadIsland = source.slice( start, end );
 assert.match( loadIsland, /loadAsync\( this\.defaultWorldAssets\.villageLOD \)/, 'the built-in path loads the packaged village LOD' );
-assert.match( loadIsland, /applyWebGLWorldMaterialGraphs\( T, model\.scene \)/, 'the built-in village GLB is translated through the engine-owned WebGL material-graph compiler' );
+assert.match( loadIsland, /applyWebGLWorldMaterialGraphs\( T, model\.scene, \{ terrainHeightField: this\.terrain \} \)/, 'the built-in village GLB is translated through the engine-owned WebGL material-graph compiler with its terrain field' );
 
 console.log( 'Built-in WebGL village GLBs use the engine material-graph presenter' );

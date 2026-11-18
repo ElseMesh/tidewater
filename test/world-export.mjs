@@ -187,6 +187,10 @@ try {
 			const graph = validateWorldMaterialGraph( material.extras?.elsemeshMaterial?.graph );
 			assert.deepEqual( graph, TIDEWATER_SCANNED_DEBRIS_MATERIAL_GRAPH, `${model.id} GLB signs the Tidewater-authored renderer-neutral material graph` );
 			const webgpuGraph = compileWorldMaterialGraph( graph, 'webgpu' ), webglGraph = compileWorldMaterialGraph( graph, 'webgl' );
+			assert.equal( webgpuGraph.requiresTerrainHeight, true, `${model.id} graph declares its generic terrain-query dependency in WebGPU` );
+			assert.equal( webglGraph.requiresTerrainHeight, true, `${model.id} graph declares its generic terrain-query dependency in WebGL` );
+			assert.match( webgpuGraph.surface, /terrainHeightAt\( emg_worldXZ \)/, `${model.id} WebGPU graph calls the renderer-neutral height query` );
+			assert.match( webglGraph.glsl.fragment, /emgTerrainHeightAt\( vEmg_worldXZ \)/, `${model.id} WebGL graph calls the renderer-neutral height query` );
 			for ( const input of [ 'worldPosition', 'instanceMaterial0' ] ) {
 				assert.ok( webgpuGraph.inputs.includes( input ) && webglGraph.inputs.includes( input ), `${model.id} graph shares ${input} across both renderer compilers` );
 			}

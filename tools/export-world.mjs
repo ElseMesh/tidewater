@@ -263,10 +263,10 @@ for ( const { id: assetName } of SCANNED_DEBRIS_ASSETS ) {
 
 // Renderer-neutral migration fixture for the live scanned-debris population.
 // It carries all three source meshes, all source PBR maps, and portable graph
-// data, but stays outside the signed package until rendered parity checks prove
-// the center-sampled contact height and shared LOD/fade policy preserve the
-// current terrain-query-driven appearance.
-const scannedStaticModelSet = await exportScannedStaticModelSet( debris, terrain );
+// data, but stays outside the signed package until built-in integration and
+// rendered parity checks prove the terrain query and shared LOD/fade policy
+// preserve the current appearance.
+const scannedStaticModelSet = await exportScannedStaticModelSet( debris );
 await writeFile( path.join( output, 'scanned-debris-static-model-instance-set.json' ), JSON.stringify( scannedStaticModelSet.document, null, 2 ) + '\n' );
 const scannedStaticModelsPath = path.join( output, 'scanned-debris-static-models' );
 await mkdir( scannedStaticModelsPath, { recursive: true } );
@@ -1308,7 +1308,7 @@ function exportScannedLOD( sourceBytes, textureMaps, name, meshIndex, materialGr
 	return Buffer.concat( [ header, jsonHeader, jsonPadded, binHeader, binPadded ] );
 }
 
-async function exportScannedStaticModelSet( instances, terrain ) {
+async function exportScannedStaticModelSet( instances ) {
 	const assets = new Map();
 	const models = [];
 	for ( const { id: name } of SCANNED_DEBRIS_ASSETS ) {
@@ -1352,7 +1352,7 @@ async function exportScannedStaticModelSet( instances, terrain ) {
 			scale: [ instance.sx, instance.sy, instance.sz ],
 			lodDistanceOffset: Math.hypot( SCANNED_DEBRIS_ASSETS[ instance.asset ].size[ 0 ] * instance.sx, SCANNED_DEBRIS_ASSETS[ instance.asset ].size[ 1 ] * instance.sy, SCANNED_DEBRIS_ASSETS[ instance.asset ].size[ 2 ] * instance.sz ) * 3,
 			placementId: `elsemesh-object:scanned-debris-${index}`,
-			materialData: [ instance.asset, instance.rnd, terrain.heightAt( instance.x, instance.z ), 0, 0, 0, 0, 0 ],
+			materialData: [ instance.asset, instance.rnd, 0, 0, 0, 0, 0, 0 ],
 		} ) ),
 	};
 	return { document, assets };
