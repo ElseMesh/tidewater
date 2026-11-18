@@ -16,6 +16,7 @@ import '../../../src/network/WebGPUWorldComponentAdapters.js';
 import { setupLife } from '../../../test/life-harness.mjs';
 import { groundCoverFieldRenderFixture } from '../../../test/helpers/ground-cover-field-render-fixture.mjs';
 import { GrassField } from '../renderers/webgpu-vegetation/GrassField.js';
+import { uCamPos } from '../renderers/webgpu-vegetation/VegNodes.js';
 
 const worldRoot = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..' );
 const worldSource = JSON.parse( await readFile( path.join( worldRoot, 'world-source.json' ), 'utf8' ) );
@@ -52,9 +53,9 @@ try {
 	// geometry, placement, signed density, packaged terrain, camera, and frame time fixed.
 	original = new GrassField( { terrain, mask: density } );
 	for ( const mesh of original.meshes ) L.scene.add( mesh );
-	await L.run( 2, () => { terrainSurface.update( L.camera, true ); original.update( L.camera ); }, 0 );
+	await L.run( 2, () => { uCamPos.value.copy( L.camera.position ); terrainSurface.update( L.camera, true ); original.update( L.camera ); }, 0 );
 	await GPU.pipelinesReady();
-	await L.run( 2, () => { terrainSurface.update( L.camera, true ); original.update( L.camera ); }, 0 );
+	await L.run( 2, () => { uCamPos.value.copy( L.camera.position ); terrainSurface.update( L.camera, true ); original.update( L.camera ); }, 0 );
 	const reference = new Uint8Array( ( await readFrame() ).data );
 	const sourceForegroundPixels = countForegroundPixels( reference );
 	const sourceChangedPixels = changedPixelsFrom( reference, emptyFrame );
