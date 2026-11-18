@@ -1,6 +1,6 @@
 # Example Island asset index
 
-Generated from [world-source.json](world-source.json) (63 verified content-addressed assets).
+Generated from [world-source.json](world-source.json) (68 verified content-addressed assets).
 Each filename is the SHA-256 of the exact packaged bytes. Keep these names immutable; use the descriptions and use sites below to identify the assets.
 
 | Description / use | Format | Size | SHA-256 asset |
@@ -54,14 +54,19 @@ Each filename is the SHA-256 of the exact packaged bytes. Keep these names immut
 | Component elsemesh-component:reef-tile-2-1 — reef-placement/1 | Binary (reef-placement/1) | 7.7 KiB | [`5aa859968dcde2074dd8ff465c7cdf14df34ae0756b07aba659b253444212de9`](assets/5aa859968dcde2074dd8ff465c7cdf14df34ae0756b07aba659b253444212de9) |
 | Component elsemesh-component:reef-tile-2-2 — reef-placement/1 | Binary (reef-placement/1) | 9.0 KiB | [`915b9b99134d08eeb0d6e42945f162758960432bcb20b3944cd3ce0d01a1addb`](assets/915b9b99134d08eeb0d6e42945f162758960432bcb20b3944cd3ce0d01a1addb) |
 | Component elsemesh-component:reef-tile-2-3 — reef-placement/1 | Binary (reef-placement/1) | 0.3 KiB | [`f9dfbd9eab64e24254837c585f1ed8ceddce1392aeaea477e1aaea03d36e0143`](assets/f9dfbd9eab64e24254837c585f1ed8ceddce1392aeaea477e1aaea03d36e0143) |
-| dead quiver branch 01 — glb | glTF binary (GLB) | 724.4 KiB | [`4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b`](assets/4db3e1d2ecf5f50361c0662f9e5555f97a63e56c0ec76881c8d6d489aee8377b) |
-| dead quiver branch 01 distance mesh — glb | glTF binary (GLB) | 711.1 KiB | [`4e1e116e64fb845aa97c061fe50f37fe4c31e2c206dfd450cebe70ffd9e72d6a`](assets/4e1e116e64fb845aa97c061fe50f37fe4c31e2c206dfd450cebe70ffd9e72d6a) |
-| dead quiver branch 02 — glb | glTF binary (GLB) | 623.4 KiB | [`7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382`](assets/7fe1ca8005be099418080eadb889ce11e921b012bb1cbbd50d1c0fe312372382) |
-| dead quiver branch 02 distance mesh — glb | glTF binary (GLB) | 610.1 KiB | [`15c7505081368abf3f31c29810562c1078ec5155b1aacf5f086ae30e42c42f85`](assets/15c7505081368abf3f31c29810562c1078ec5155b1aacf5f086ae30e42c42f85) |
-| dead quiver trunk — glb | glTF binary (GLB) | 770.9 KiB | [`1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064`](assets/1ffb419a0a3c96c14ddf5b63676066aaa9f40189e33329dfba95fb73dab0d064) |
-| dead quiver trunk distance mesh — glb | glTF binary (GLB) | 757.0 KiB | [`a04c935740dd782344cce120e937d934e674426f0d1568827c21da19e0e8fa8b`](assets/a04c935740dd782344cce120e937d934e674426f0d1568827c21da19e0e8fa8b) |
-| lambis shell — glb | glTF binary (GLB) | 781.0 KiB | [`0ee07523352578110d78347d93a4536673f67c2d01a0aee6b334882bad80b717`](assets/0ee07523352578110d78347d93a4536673f67c2d01a0aee6b334882bad80b717) |
-| lambis shell distance mesh — glb | glTF binary (GLB) | 772.7 KiB | [`6348fabfc00e8ae4efb50b1b2987567bb116e0bf05b63402c187a3e2236ac056`](assets/6348fabfc00e8ae4efb50b1b2987567bb116e0bf05b63402c187a3e2236ac056) |
+| Component elsemesh-component:scanned-debris — glb | glTF binary (GLB) | 1.85 MiB | [`028bbff53b16aef25f59da3899b8ea0d5cc60896eb26fc2e67f7e4d63bd47fff`](assets/028bbff53b16aef25f59da3899b8ea0d5cc60896eb26fc2e67f7e4d63bd47fff) |
+| Component elsemesh-component:scanned-debris — glb | glTF binary (GLB) | 1.86 MiB | [`0fb1ca20dc45649d160e87bc03c69ae78720ddd8be053f97d69cff84a6ab1dd4`](assets/0fb1ca20dc45649d160e87bc03c69ae78720ddd8be053f97d69cff84a6ab1dd4) |
+| Component elsemesh-component:scanned-debris — glb | glTF binary (GLB) | 2.26 MiB | [`3010db23d28322411d23887c45bb7888b502b192b2985cc539d6cd144c714d50`](assets/3010db23d28322411d23887c45bb7888b502b192b2985cc539d6cd144c714d50) |
+| Component elsemesh-component:scanned-debris — glb | glTF binary (GLB) | 1.79 MiB | [`7576c099a79c2a18dc5d114ce973f3b097542878715616a32b7ac202584869fb`](assets/7576c099a79c2a18dc5d114ce973f3b097542878715616a32b7ac202584869fb) |
+| Component elsemesh-component:scanned-debris — glb | glTF binary (GLB) | 1.78 MiB | [`8a0a102bce0f7403d8f796e9d6846a74bf0f9afd50d401d6d35c91b73b5a727b`](assets/8a0a102bce0f7403d8f796e9d6846a74bf0f9afd50d401d6d35c91b73b5a727b) |
+| Component elsemesh-component:scanned-debris — glb | glTF binary (GLB) | 1.79 MiB | [`9d1b93b23599a2bf6fd47393262cc66994e4a7a2a3a52dbdb0218a783becf410`](assets/9d1b93b23599a2bf6fd47393262cc66994e4a7a2a3a52dbdb0218a783becf410) |
+| Component elsemesh-component:scanned-debris — glb | glTF binary (GLB) | 1.89 MiB | [`a6b59d3889afa6571b9568ba769514a8fcbafb6465ac838f180c31cc336eb70e`](assets/a6b59d3889afa6571b9568ba769514a8fcbafb6465ac838f180c31cc336eb70e) |
+| Component elsemesh-component:scanned-debris — glb | glTF binary (GLB) | 2.31 MiB | [`aa417bf9f55faaf7f12f0ea1103a8c7600a7d6629d6b132722397f02ac039e92`](assets/aa417bf9f55faaf7f12f0ea1103a8c7600a7d6629d6b132722397f02ac039e92) |
+| Component elsemesh-component:scanned-debris — glb | glTF binary (GLB) | 1.86 MiB | [`c9e91e44451278b2d41e6c24926b7656861120a80fae29f027754dae679b496c`](assets/c9e91e44451278b2d41e6c24926b7656861120a80fae29f027754dae679b496c) |
+| Component elsemesh-component:scanned-debris — glb | glTF binary (GLB) | 2.24 MiB | [`cc30e0c9e5ad16e63fcebb03bde54baea303e7678ab3cda1df34a749f5e7f4e0`](assets/cc30e0c9e5ad16e63fcebb03bde54baea303e7678ab3cda1df34a749f5e7f4e0) |
+| Component elsemesh-component:scanned-debris — glb | glTF binary (GLB) | 1.78 MiB | [`d8528b374b72296b051a1cb41270574e1976b670338e00e6cc6114aec4d83782`](assets/d8528b374b72296b051a1cb41270574e1976b670338e00e6cc6114aec4d83782) |
+| Component elsemesh-component:scanned-debris — glb | glTF binary (GLB) | 1.87 MiB | [`e9da0cb10880225a145a3fb0d95f2dc6d3e807e187c6e714f830e597b5eafa48`](assets/e9da0cb10880225a145a3fb0d95f2dc6d3e807e187c6e714f830e597b5eafa48) |
+| Component elsemesh-component:scanned-debris — static-model-instance-set/1 | JSON | 94.1 KiB | [`66cdf2f5d7854410c73a82db6c0f2157e2e5418069da4d332c2b01a1a320b115`](assets/66cdf2f5d7854410c73a82db6c0f2157e2e5418069da4d332c2b01a1a320b115) |
 | Moored lobster boat (static preview) — glb | glTF binary (GLB) | 2.44 MiB | [`a9f0ba1bc43cf4a25aed9ad7c6f4e1c9271d166e9fae06f57d03d64af195b8db`](assets/a9f0ba1bc43cf4a25aed9ad7c6f4e1c9271d166e9fae06f57d03d64af195b8db) |
 | Moored lobster boat (static preview) distance mesh — glb | glTF binary (GLB) | 1.20 MiB | [`eed66ccd07cb5e3a6583e12fbba397b17650c224c15d8b60cc53ce83366aac74`](assets/eed66ccd07cb5e3a6583e12fbba397b17650c224c15d8b60cc53ce83366aac74) |
 | Portal preview terrain — glb | glTF binary (GLB) | 823.9 KiB | [`3ee6e7b8591964e1c494c91e1b04ef65e1380332650d38db5a89e2c1a3c68fc5`](assets/3ee6e7b8591964e1c494c91e1b04ef65e1380332650d38db5a89e2c1a3c68fc5) |

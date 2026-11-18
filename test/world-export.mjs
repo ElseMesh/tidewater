@@ -24,6 +24,7 @@ import { decodeGroundDetailDensityAsset, GROUND_DETAIL_DENSITY_ASSET_KIND } from
 import { BANK } from '../../../src/audio/soundBank.js';
 import { transformBoundsCenter } from '../../../src/network/WorldStreaming.js';
 import { Vector3 } from '../../../src/engine/math/Vector3.js';
+import { Quaternion } from '../../../src/engine/math/Quaternion.js';
 import { validateStaticModelInstanceSet } from '../../../src/network/StaticModelInstanceSet.js';
 import { validateWorldMaterialGraph } from '../../../src/network/WorldMaterialGraph.js';
 import { compileWorldMaterialGraph } from '../../../src/materials/WorldMaterialGraphCompiler.js';
@@ -163,10 +164,20 @@ try {
 	}
 	assert.deepEqual( fishSetBytes, fishSetBytesFirst, 'the generic fish model-set descriptor is deterministic' );
 	const scannedSet = validateStaticModelInstanceSet( JSON.parse( scannedSetBytes ) );
-	const scannedSetSourceObjects = firstDocument.objects.filter( object => object.id.startsWith( 'elsemesh-object:scanned-debris-' ) );
-	assert.equal( scannedSet.instances.length, scannedSetSourceObjects.length, 'scanned-debris migration artifact preserves every authored placement' );
-	assert.equal( scannedSet.instances.length, 141, 'scanned-debris migration artifact contains the complete generated population' );
-	assert.equal( scannedSet.models.length, 4, 'scanned-debris migration artifact keeps the four source asset classes distinct' );
+	const scannedSetComponent = firstDocument.components.find( component => component.type === 'elsemesh.static-model-instance-set/1' );
+	assert.ok( scannedSetComponent, 'the signed world source installs scanned debris through the shared static-model component' );
+	assert.equal( firstDocument.objects.some( object => object.id.startsWith( 'elsemesh-object:scanned-debris-' ) ), false, 'scanned debris no longer duplicates content through per-object GLB records' );
+	assert.equal( scannedSet.instances.length, 141, 'scanned-debris component contains the complete generated population' );
+	assert.equal( scannedSet.models.length, 4, 'scanned-debris component keeps the four source asset classes distinct' );
+	assert.equal( scannedSetComponent.assets.filter( asset => asset.kind === 'static-model-instance-set/1' ).length, 1, 'component declares exactly one placement descriptor' );
+	assert.equal( scannedSetComponent.assets.filter( asset => asset.kind === 'glb' ).length, 12, 'component declares every shared model LOD for both renderers' );
+	const scannedSetReference = scannedSetComponent.assets.find( asset => asset.kind === 'static-model-instance-set/1' );
+	assert.equal( scannedSetReference.assetId, `sha256:${createHash( 'sha256' ).update( scannedSetBytesFirst ).digest( 'hex' )}`, 'signed component descriptor uses the content hash of the generated placement asset' );
+	for ( const asset of scannedSetComponent.assets ) {
+		const bytes = firstAssets.get( asset.assetId );
+		assert.ok( bytes?.length > 0, `signed scanned-debris component asset exists: ${asset.assetId}` );
+		assert.equal( `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`, asset.assetId, 'signed scanned-debris component asset matches its content hash' );
+	}
 	assert.deepEqual( scannedSet.models[ 0 ].lodThresholds, [ 70, 22 ], 'the shared planner receives the authored coarse-to-fine distance handoffs' );
 	assert.equal( scannedSet.models[ 0 ].lodMetric, 'world-distance-offset', 'the shared planner supports Tidewater radius-adjusted LOD distances' );
 	assert.equal( scannedSet.models[ 0 ].shadowLod, 2, 'near source geometry is selected for shadows in coarse-to-fine ordering' );
@@ -203,14 +214,13 @@ try {
 			}
 		}
 	}
-	for ( let index = 0; index < scannedSetSourceObjects.length; index ++ ) {
-		const sourceObject = scannedSetSourceObjects[ index ], instance = scannedSet.instances[ index ];
-		assert.equal( instance.placementId, sourceObject.id, 'the shared instance retains the source placement identity' );
-		assert.deepEqual( instance.position, sourceObject.transform.position, 'the shared instance keeps the exact authored position' );
-		assert.deepEqual( instance.rotation, sourceObject.transform.rotation, 'the shared instance keeps the exact authored orientation' );
-		assert.deepEqual( instance.scale, sourceObject.scale, 'the shared instance keeps the exact authored scale' );
-		const sourceAsset = SCANNED_DEBRIS_ASSETS.find( asset => asset.id.replaceAll( '_', ' ' ) === sourceObject.label );
-		assert.ok( sourceAsset, 'scanned source object resolves its original size record' );
+	for ( let index = 0; index < scannedSet.instances.length; index ++ ) {
+		const instance = scannedSet.instances[ index ];
+		assert.equal( instance.placementId, `elsemesh-object:scanned-debris-${index}`, 'the shared instance retains its stable placement identity' );
+		assert.ok( instance.position.every( Number.isFinite ), 'scanned placement keeps a finite world transform' );
+		assert.ok( Math.abs( Math.hypot( ...instance.rotation ) - 1 ) < 1e-4, 'scanned placement keeps a normalized collision-free orientation' );
+		const sourceAsset = SCANNED_DEBRIS_ASSETS.find( asset => asset.id === instance.model );
+		assert.ok( sourceAsset, 'scanned instance resolves its original model class' );
 		const expectedOffset = Math.hypot( sourceAsset.size[ 0 ] * instance.scale[ 0 ], sourceAsset.size[ 1 ] * instance.scale[ 1 ], sourceAsset.size[ 2 ] * instance.scale[ 2 ] ) * 3;
 		assert.equal( instance.lodDistanceOffset, expectedOffset, 'the authored LOD offset matches the original six-times-radius calculation' );
 	}
@@ -290,7 +300,7 @@ try {
 	assert.deepEqual( naturalDebrisLODGLB.materials.map( material => material.name ), naturalDebrisGLB.materials.map( material => material.name ), 'natural-debris LOD keeps separate coconut, husk, and frond materials' );
 	assert.ok( naturalDebrisLODGLB.meshes[ 0 ].every( primitive => primitive.indices?.length > 0 && primitive.attributes.COLOR_0 ), 'natural-debris LOD preserves indexed, vertex-colored debris pieces' );
 	assert.ok( naturalDebrisLODGLB.meshes[ 0 ].reduce( ( total, primitive ) => total + primitive.indices.length / 3, 0 ) < naturalDebrisGLB.meshes[ 0 ].reduce( ( total, primitive ) => total + primitive.indices.length / 3, 0 ) * 0.7, 'natural-debris LOD reduces geometry by keeping whole authored pieces' );
-	assert.deepEqual( source.rules.requiredFeatures, [ 'elsemesh.static-glb/1', 'elsemesh.static-glb-quaternion/1', 'elsemesh.terrain-surface/1', 'elsemesh.ground-detail-field/1', 'elsemesh.static-vegetation/1', 'elsemesh.static-grass/1', 'elsemesh.static-reef/1', 'elsemesh.static-fish-props/1', 'elsemesh.example-island-wildlife/1', 'elsemesh.humpback-whale/1', 'elsemesh.island-ocean/1', 'elsemesh.downeast-boat/1', 'elsemesh.local-light-set/1', 'elsemesh.ambient-audio/1', 'elsemesh.portal-handoff/1', 'elsemesh.portal-preview-static/1' ], 'portable content declares the renderer capabilities it requires' );
+	assert.deepEqual( source.rules.requiredFeatures, [ 'elsemesh.static-glb/1', 'elsemesh.static-glb-quaternion/1', 'elsemesh.static-model-instance-set/1', 'elsemesh.terrain-surface/1', 'elsemesh.ground-detail-field/1', 'elsemesh.static-vegetation/1', 'elsemesh.static-grass/1', 'elsemesh.static-reef/1', 'elsemesh.static-fish-props/1', 'elsemesh.example-island-wildlife/1', 'elsemesh.humpback-whale/1', 'elsemesh.island-ocean/1', 'elsemesh.downeast-boat/1', 'elsemesh.local-light-set/1', 'elsemesh.ambient-audio/1', 'elsemesh.portal-handoff/1', 'elsemesh.portal-preview-static/1' ], 'portable content declares the renderer capabilities it requires' );
 	assert.deepEqual( source.portals, [], 'the island package contains no undeclared external world links' );
 	assert.equal( source.components.some( component => component.type === 'elsemesh.procedural-island-terrain/1' ), false, 'the package uses the generic terrain-surface component instead of the legacy world-owned terrain installer' );
 	assert.ok( source.components.some( component => component.type === 'elsemesh.terrain-surface/1' ), 'the package declares the renderer-neutral terrain surface contract' );
@@ -509,35 +519,38 @@ try {
 	assert.deepEqual( boatLOD.materials.map( material => material.name ).sort(), boatBase.materials.map( material => material.name ).sort(), 'moored boat LOD preserves the complete material catalog' );
 	assert.ok( boatLOD.meshes.flat().every( primitive => primitive.attributes.COLOR_0 && primitive.attributes.TEXCOORD_0 ), 'moored boat LOD preserves vertex colors and UVs' );
 	assert.equal( boatObject.lods[ 0 ].maxScreenFraction, 0.45, 'moored boat uses the authored projected-size threshold' );
-	const scannedObjects = source.objects.filter( ( object ) => object.id.startsWith( 'elsemesh-object:scanned-debris-' ) );
-	assert.equal( scannedObjects.length, 141, 'export contains debris placements generated with the playable vegetation clearances' );
+	const scannedComponent = source.components.find( component => component.type === 'elsemesh.static-model-instance-set/1' );
+	assert.equal( scannedSet.instances.length, 141, 'export contains debris placements generated with the playable vegetation clearances' );
 	assert.ok( source.objects.every( ( object ) => object.streamingBounds && Number.isFinite( object.streamingBounds.radius ) && object.streamingBounds.radius > 0 ), 'exported island objects include local streaming bounds' );
-	assert.ok( scannedObjects.every( ( object ) => Array.isArray( object.transform.rotation ) && Math.abs( Math.hypot( ...object.transform.rotation ) - 1 ) < 1e-4 && object.collision.enabled === false ), 'scanned objects carry normalized collision-free rotations' );
-	const scannedAssetIDs = new Set( scannedObjects.map( ( object ) => object.assetId ) );
-	assert.equal( scannedAssetIDs.size, 4, 'all four scanned debris assets are included once each' );
-	const scannedLODAssetIDs = new Set( scannedObjects.map( ( object ) => object.lods?.[ 0 ]?.assetId ) );
-	assert.equal( scannedLODAssetIDs.size, 4, 'each scanned debris type shares one authored distance mesh across its placements' );
-	for ( const id of scannedAssetIDs ) {
-		const bytes = firstAssets.get( id );
-		const parsed = parseGLB( bytes );
+	assert.ok( scannedComponent && scannedComponent.priority === 'visible', 'scanned model set streams with the visible world content' );
+	assert.ok( scannedComponent.streamingBounds.radius > 0, 'scanned model set has bounds for component streaming' );
+	const scannedModelsByID = new Map( scannedSet.models.map( model => [ model.id, model ] ) );
+	const scannedBoundsCenter = new Vector3( ...scannedComponent.streamingBounds.center );
+	for ( const instance of scannedSet.instances ) {
+		const model = scannedModelsByID.get( instance.model );
+		const instanceCenter = new Vector3( ...model.bounds.center ).multiply( new Vector3( ...instance.scale ) )
+			.applyQuaternion( new Quaternion( ...instance.rotation ) )
+			.add( new Vector3( ...instance.position ) );
+		const instanceRadius = model.bounds.radius * Math.max( ...instance.scale );
+		assert.ok( instanceCenter.distanceTo( scannedBoundsCenter ) + instanceRadius <= scannedComponent.streamingBounds.radius + 1e-3, 'scanned component streaming bounds contain each transformed model' );
+	}
+	const scannedAssetIDs = new Set( scannedSet.models.map( model => model.lods[ model.lods.length - 1 ].assetId ) );
+	assert.equal( scannedAssetIDs.size, 4, 'all four scanned debris source models remain distinct' );
+	const scannedLODAssetIDs = new Set( scannedSet.models.flatMap( model => model.lods.map( lod => lod.assetId ) ) );
+	assert.equal( scannedLODAssetIDs.size, 12, 'each scanned debris type shares all three authored LOD assets across its placements' );
+	for ( const model of scannedSet.models ) {
+		const parsed = parseGLB( firstAssets.get( model.lods[ 2 ].assetId ) );
 		assert.equal( parsed.meshes.length, 1, 'scanned base asset contains only its near-detail mesh' );
 		assert.ok( parsed.materials[ 0 ]?.pbrMetallicRoughness?.baseColorTexture, 'scanned asset has a base-color texture' );
 		assert.equal( parsed.images[ 0 ]?.mimeType, 'image/jpeg', 'scanned albedo is embedded in the GLB' );
 		assert.ok( parsed.images[ 0 ]?.bytes?.length > 0, 'scanned GLB contains embedded image bytes' );
-		const instance = scannedObjects.find( object => object.assetId === id );
-		assert.equal( instance.lods[ 0 ].maxScreenFraction, 0.45, 'scanned debris selects its authored distance mesh by projected size' );
-		assert.ok( scannedObjects.filter( object => object.assetId === id ).every( object => object.lods[ 0 ].assetId === instance.lods[ 0 ].assetId ), 'instances of one scanned asset share the same LOD hash' );
-		const lodBytes = firstAssets.get( instance.lods[ 0 ].assetId );
-		const lod = parseGLB( lodBytes );
-		assert.ok( triangleCount( lod ) < triangleCount( parsed ) * 0.3, 'the authored scanned mesh removes at least 70% of its near-detail triangles' );
-		assert.deepEqual( lod.images[ 0 ]?.bytes, parsed.images[ 0 ]?.bytes, 'scanned distance mesh reuses the exact authored albedo bytes' );
-		assert.ok( lod.meshes.flat().every( primitive => primitive.attributes.TEXCOORD_0 && primitive.attributes.NORMAL ), 'scanned distance mesh keeps textured, lit geometry' );
-		assert.ok( lod.meshes.flat().every( primitive => Number.isInteger( primitive.material ) ), 'scanned distance mesh retains material assignments' );
-		assert.ok( lod.meshes.flat().every( primitive => {
-			const positions = primitive.attributes.POSITION.array, center = instance.streamingBounds.center, radius = instance.streamingBounds.radius;
-			for ( let i = 0; i < positions.length; i += 3 ) if ( Math.hypot( positions[ i ] - center[ 0 ], positions[ i + 1 ] - center[ 1 ], positions[ i + 2 ] - center[ 2 ] ) > radius + 0.001 ) return false;
-			return true;
-		} ), 'streaming bounds contain the full and distance meshes' );
+		for ( const lodRecord of model.lods.slice( 0, - 1 ) ) {
+			const lod = parseGLB( firstAssets.get( lodRecord.assetId ) );
+			assert.ok( triangleCount( lod ) < triangleCount( parsed ) * 0.3, 'the authored scanned LOD removes at least 70% of its near-detail triangles' );
+			assert.deepEqual( lod.images[ 0 ]?.bytes, parsed.images[ 0 ]?.bytes, 'scanned LOD reuses the exact authored albedo bytes' );
+			assert.ok( lod.meshes.flat().every( primitive => primitive.attributes.TEXCOORD_0 && primitive.attributes.NORMAL ), 'scanned LOD keeps textured, lit geometry' );
+			assert.ok( lod.meshes.flat().every( primitive => Number.isInteger( primitive.material ) ), 'scanned LOD retains material assignments' );
+		}
 	}
 	const payload = assetBytes;
 	const connector = { worldId: source.worldId, manifest: { assets: [ { id: source.objects[ 0 ].assetId, priority: 'visible' } ], objects: source.objects } };

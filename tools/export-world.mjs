@@ -10,7 +10,7 @@ import { TerrainData } from '../terrain/TerrainData.js';
 import { TIDEWATER_LAYOUT } from '../layout.js';
 import { computeShoreField } from '../../../src/world/ShoreField.js';
 import { parseGLB } from '../../../src/engine/loaders/GLTF.js';
-import { Euler, Quaternion } from '../../../src/engine/index.js';
+import { Euler, Quaternion, Vector3 } from '../../../src/engine/index.js';
 import { Village } from '../Village.js';
 import { BoatModel } from '../../../src/world/BoatModel.js';
 import { Rocks } from '../Rocks.js';
@@ -239,35 +239,17 @@ for ( const tile of reefTiles ) {
 		data: { placementAssetId: id },
 	} );
 }
-if ( reefComponents.length + 9 > 128 ) throw new Error( 'Island world exceeds the 128 component limit after adding reef tiles and the fixed component set' );
-const debrisAssetIDs = new Map();
-const debrisLODAssetIDs = new Map();
-const debrisAssetBounds = new Map();
-for ( const { id: assetName } of SCANNED_DEBRIS_ASSETS ) {
-	const originalGLB = await readFile( path.join( REPO, 'public', 'models', 'debris', `${assetName}.glb` ) );
-	const albedo = await readFile( path.join( REPO, 'public', 'models', 'debris', `${assetName}_albedo.jpg` ) );
-	const packagedGLB = exportScannedLOD( originalGLB, { albedo }, assetName, 1 );
-	const packagedLODGLB = exportScannedLOD( originalGLB, { albedo }, assetName, 2 );
-	const packagedID = `sha256:${createHash( 'sha256' ).update( packagedGLB ).digest( 'hex' )}`;
-	const packagedLODID = `sha256:${createHash( 'sha256' ).update( packagedLODGLB ).digest( 'hex' )}`;
-	const packagedData = parseGLB( packagedGLB.buffer.slice( packagedGLB.byteOffset, packagedGLB.byteOffset + packagedGLB.byteLength ) );
-	const packagedLODData = parseGLB( packagedLODGLB.buffer.slice( packagedLODGLB.byteOffset, packagedLODGLB.byteOffset + packagedLODGLB.byteLength ) );
-	if ( triangleCount( packagedLODData ) >= triangleCount( packagedData ) * 0.3 ) throw new Error( `Scanned asset ${assetName} distance LOD must reduce triangles by at least 70%` );
-	if ( ! packagedLODData.images[ 0 ]?.bytes || ! packagedData.images[ 0 ]?.bytes || ! Buffer.from( packagedLODData.images[ 0 ].bytes ).equals( Buffer.from( packagedData.images[ 0 ].bytes ) ) ) throw new Error( `Scanned asset ${assetName} distance LOD must preserve its albedo bytes` );
-	debrisAssetIDs.set( assetName, packagedID );
-	debrisLODAssetIDs.set( assetName, packagedLODID );
-	debrisAssetBounds.set( assetName, boundsForGLB( packagedGLB, packagedLODGLB ) );
-	staticAssets.set( packagedID, packagedGLB );
-	staticAssets.set( packagedLODID, packagedLODGLB );
-}
-
-// Renderer-neutral migration fixture for the live scanned-debris population.
+if ( reefComponents.length + 10 > 128 ) throw new Error( 'Island world exceeds the 128 component limit after adding reef tiles and the fixed component set' );
+// Renderer-neutral component for the live scanned-debris population.
 // It carries all three source meshes, all source PBR maps, and portable graph
-// data, but stays outside the signed package until built-in integration and
-// rendered parity checks prove the terrain query and shared LOD/fade policy
-// preserve the current appearance.
+// data; both renderer adapters consume this signed component.
 const scannedStaticModelSet = await exportScannedStaticModelSet( debris );
-await writeFile( path.join( output, 'scanned-debris-static-model-instance-set.json' ), JSON.stringify( scannedStaticModelSet.document, null, 2 ) + '\n' );
+const scannedSetBytes = Buffer.from( `${JSON.stringify( scannedStaticModelSet.document, null, 2 )}\n` );
+const scannedSetAssetId = `sha256:${createHash( 'sha256' ).update( scannedSetBytes ).digest( 'hex' )}`;
+staticAssets.set( scannedSetAssetId, scannedSetBytes );
+for ( const [ hash, bytes ] of scannedStaticModelSet.assets ) staticAssets.set( `sha256:${hash}`, bytes );
+const scannedDebrisBounds = boundsForStaticModelInstances( scannedStaticModelSet.document );
+await writeFile( path.join( output, 'scanned-debris-static-model-instance-set.json' ), scannedSetBytes );
 const scannedStaticModelsPath = path.join( output, 'scanned-debris-static-models' );
 await mkdir( scannedStaticModelsPath, { recursive: true } );
 for ( const entry of await readdir( scannedStaticModelsPath, { withFileTypes: true } ) ) if ( entry.isFile() && /^[0-9a-f]{64}\.glb$/.test( entry.name ) && ! scannedStaticModelSet.assets.has( entry.name.slice( 0, 64 ) ) ) await rm( path.join( scannedStaticModelsPath, entry.name ) );
@@ -327,7 +309,7 @@ const source = {
 			},
 			vehicles: { 'elsemesh.downeast-boat/1': { stepHeightMeters: 0.36 } },
 		},
-		requiredFeatures: [ 'elsemesh.static-glb/1', 'elsemesh.static-glb-quaternion/1', 'elsemesh.terrain-surface/1', 'elsemesh.ground-detail-field/1', 'elsemesh.static-vegetation/1', 'elsemesh.static-grass/1', 'elsemesh.static-reef/1', 'elsemesh.static-fish-props/1', 'elsemesh.example-island-wildlife/1', 'elsemesh.humpback-whale/1', 'elsemesh.island-ocean/1', 'elsemesh.downeast-boat/1', 'elsemesh.local-light-set/1', 'elsemesh.ambient-audio/1', 'elsemesh.portal-handoff/1', 'elsemesh.portal-preview-static/1' ],
+		requiredFeatures: [ 'elsemesh.static-glb/1', 'elsemesh.static-glb-quaternion/1', 'elsemesh.static-model-instance-set/1', 'elsemesh.terrain-surface/1', 'elsemesh.ground-detail-field/1', 'elsemesh.static-vegetation/1', 'elsemesh.static-grass/1', 'elsemesh.static-reef/1', 'elsemesh.static-fish-props/1', 'elsemesh.example-island-wildlife/1', 'elsemesh.humpback-whale/1', 'elsemesh.island-ocean/1', 'elsemesh.downeast-boat/1', 'elsemesh.local-light-set/1', 'elsemesh.ambient-audio/1', 'elsemesh.portal-handoff/1', 'elsemesh.portal-preview-static/1' ],
 		maxPackageBytes: canonicalSource.rules.maxPackageBytes ?? 128 * 1024 * 1024,
 	},
 	hosts: [],
@@ -385,27 +367,13 @@ const source = {
 		transform: { position: [ 0, 0, 0 ], yaw: 0 },
 		scale: [ 1, 1, 1 ],
 		collision: { shape: 'none', enabled: false },
-	}, ...debris.map( ( instance, index ) => {
-		const assetName = SCANNED_DEBRIS_ASSETS[ instance.asset ].id;
-		const rotation = new Quaternion().setFromEuler( new Euler( instance.roll || 0, instance.yaw, instance.pitch || 0, 'YXZ' ) ).toArray();
-		return {
-			id: `elsemesh-object:scanned-debris-${index}`,
-			kind: 'asset-instance',
-			label: assetName.replaceAll( '_', ' ' ),
-			assetId: debrisAssetIDs.get( assetName ),
-			lods: [ { assetId: debrisLODAssetIDs.get( assetName ), maxScreenFraction: 0.45 } ],
-			priority: 'visible',
-			streamingBounds: debrisAssetBounds.get( assetName ),
-			transform: { position: [ instance.x, instance.y, instance.z ], yaw: instance.yaw, rotation },
-			scale: [ instance.sx, instance.sy, instance.sz ],
-			collision: { shape: 'none', enabled: false },
-		};
-	} ) ],
+	} ],
 	components: [
 		{ id: 'elsemesh-component:island-lights', type: 'elsemesh.local-light-set/1', priority: 'visible', assets: [], data: { lights: generated.localLights } },
 		{ id: 'elsemesh-component:island-vegetation', type: 'elsemesh.static-vegetation/1', priority: 'portal-preview', assets: [ { assetId: vegetationAssetId, kind: 'vegetation-placement/1' }, { assetId: grassDensityAssetId, kind: 'grass-density/1' } ], data: { placementAssetId: vegetationAssetId, grassMaskAssetId: grassDensityAssetId, seed: 7 } },
 		...( generated.fishProps.length ? [ { id: 'elsemesh-component:island-fish-props', type: 'elsemesh.static-fish-props/1', priority: 'visible', streamingBounds: fishPropsBounds, assets: [ { assetId: fishPropsAssetId, kind: 'fish-props-placement/1' } ], data: { placementAssetId: fishPropsAssetId } } ] : [] ),
 		{ id: 'elsemesh-component:island-terrain', type: 'elsemesh.terrain-surface/1', priority: 'visible', assets: [ { assetId: terrainSurfaceAssetId, kind: 'terrain-surface/1' } ], data: { ...terrainSurfaceSource.data, profile: 'example-island-v1', objectId: 'elsemesh-object:island-terrain', dataAssetId: terrainSurfaceAssetId } },
+		{ id: 'elsemesh-component:scanned-debris', type: 'elsemesh.static-model-instance-set/1', priority: 'visible', streamingBounds: scannedDebrisBounds, assets: [ { assetId: scannedSetAssetId, kind: 'static-model-instance-set/1' }, ...[ ...scannedStaticModelSet.assets.keys() ].map( hash => ( { assetId: `sha256:${hash}`, kind: 'glb' } ) ) ], data: {} },
 		{ id: 'elsemesh-component:ground-detail-field', type: 'elsemesh.ground-detail-field/1', priority: 'visible', assets: [ { assetId: groundDetailDensityAssetId, kind: 'ground-detail-density/1' } ], data: { resolution: generated.groundDetailDensity.res, texel: generated.groundDetailDensity.texel } },
 		{ id: 'elsemesh-component:island-wildlife', type: 'elsemesh.example-island-wildlife/1', priority: 'visible', streamingBounds: { center: [ 0, 0, - 40 ], radius: 300 }, assets: [], data: { profile: 'example-island-wildlife-v1', seed: 5, roofPerches: generated.roofPerches, footprints: generated.villageFootprints } },
 		{ id: 'elsemesh-component:island-humpback', type: 'elsemesh.humpback-whale/1', priority: 'visible', streamingBounds: { center: [ 0, - 4, 200 ], radius: 250 }, assets: [ { assetId: whaleAssetIDs[ 0 ], kind: 'whale-model/1' }, { assetId: whaleAssetIDs[ 1 ], kind: 'whale-geometry/1' }, { assetId: whaleAssetIDs[ 2 ], kind: 'whale-albedo/1' }, { assetId: whaleAssetIDs[ 3 ], kind: 'whale-height/1' } ], data: { profile: 'example-island-humpback-v1', modelAssetId: whaleAssetIDs[ 0 ], geometryAssetId: whaleAssetIDs[ 1 ], albedoAssetId: whaleAssetIDs[ 2 ], heightAssetId: whaleAssetIDs[ 3 ], ...TIDEWATER_WHALE_PROFILE } },
@@ -1356,6 +1324,23 @@ async function exportScannedStaticModelSet( instances ) {
 		} ) ),
 	};
 	return { document, assets };
+}
+
+function boundsForStaticModelInstances( document ) {
+	const models = new Map( document.models.map( model => [ model.id, model ] ) );
+	const min = new Vector3( Infinity, Infinity, Infinity ), max = new Vector3( - Infinity, - Infinity, - Infinity );
+	for ( const instance of document.instances ) {
+		const model = models.get( instance.model );
+		const center = new Vector3( ...model.bounds.center ).multiply( new Vector3( ...instance.scale ) )
+			.applyQuaternion( new Quaternion( ...instance.rotation ) )
+			.add( new Vector3( ...instance.position ) );
+		const radius = model.bounds.radius * Math.max( ...instance.scale );
+		min.min( new Vector3( center.x - radius, center.y - radius, center.z - radius ) );
+		max.max( new Vector3( center.x + radius, center.y + radius, center.z + radius ) );
+	}
+	const center = min.clone().add( max ).multiplyScalar( 0.5 );
+	const radius = new Vector3( max.x - center.x, max.y - center.y, max.z - center.z ).length();
+	return { center: center.toArray(), radius: Math.max( 0.01, radius ) };
 }
 
 function boundsForGLB( ...assets ) {
