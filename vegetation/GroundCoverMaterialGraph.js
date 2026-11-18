@@ -33,7 +33,7 @@ function linearColor( hex ) {
 /** Build the authored Tidewater patch graph using the signed density grid's world mapping. */
 export function createTidewaterGroundCoverMaterialGraph( { densityOrigin, densitySize, vertexPositionMode = 'authored', forcePresence = false } ) {
 	if ( ! Number.isFinite( densityOrigin ) || ! Number.isFinite( densitySize ) || densitySize <= 0 ) throw new Error( 'Tidewater ground-cover material requires valid density-grid world bounds' );
-	if ( ! [ 'authored', 'unscaled', 'rest', 'sized', 'noLod' ].includes( vertexPositionMode ) ) throw new Error( 'Tidewater ground-cover material has an unknown vertex position mode' );
+	if ( ! [ 'authored', 'unscaled', 'rest', 'sized', 'noLod', 'lodNear' ].includes( vertexPositionMode ) ) throw new Error( 'Tidewater ground-cover material has an unknown vertex position mode' );
 	if ( typeof forcePresence !== 'boolean' ) throw new Error( 'Tidewater ground-cover material presence mode must be boolean' );
 	const b = new GraphBuilder(), c = value => b.constant( value ), op = ( name, ...args ) => b.call( name, ...args );
 	const zero = c( 0 ), one = c( 1 ), half = c( 0.5 ), two = c( 2 );
@@ -132,7 +132,7 @@ export function createTidewaterGroundCoverMaterialGraph( { densityOrigin, densit
 
 	// Source tier fade: category identity and tier metadata are in the signed patch.
 	const distanceDelta = sub( xz, op( 'xy', cameraPosition ) );
-	const distance = op( 'length', distanceDelta );
+	const distance = vertexPositionMode === 'lodNear' ? zero : op( 'length', distanceDelta );
 	const tierFromBlade = select( less( kind, c( 2.5 ) ), w( blade ), zero );
 	const tier = op( 'max', tierFromBlade, w( slots ) );
 	const cutPhase = add( mul( random, c( 7.13 ) ), flowerHash );
