@@ -13,6 +13,7 @@ import {
 import { createPlantLeafMaterial, createCanopyMaterial, createCanopyBakeMaterials, impostorColor, uCanopyNear } from './webgpu-vegetation/VegMaterials.js';
 import { ImpostorAtlas, buildImpostorQuad } from './webgpu-vegetation/Impostors.js';
 import { LeafAtlas } from './webgpu-vegetation/LeafTextures.js';
+import { CANOPY_FAR_FADE, PALM_LOD } from '../vegetation/LODRules.js';
 
 // Island vegetation: coconut palms along the back of the beach (leaning to the sea), a closed
 // rainforest canopy on the hillsides and gullies thinning into scattered trees and shrub
@@ -60,13 +61,13 @@ function axisSphere( geometry ) {
 
 }
 
-const PALM_NEAR = 120; // m, full detail palms
+const PALM_NEAR = PALM_LOD.nearDistance; // m, full detail palms
 const TREE_NEAR = 65; // m, trees: geometry -> impostor
 const SHRUB_NEAR = 45;
 const UNDER_FADE = [ 120, 140 ]; // young palms / bananas
 const BROAD_FADE = [ 85, 105 ]; // monstera / elephant ear / heliconia
 const BANANA_FADE = [ 100, 120 ];
-const CANOPY_FAR = [ 2600, 2800 ];
+const CANOPY_FAR = CANOPY_FAR_FADE;
 
 export class Vegetation {
 

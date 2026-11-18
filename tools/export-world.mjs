@@ -45,6 +45,7 @@ import { writeWorldAssetIndex } from '../../../tools/world-asset-index.mjs';
 import { generateTidewaterReefURLs } from './generate-reef-asset-urls.mjs';
 import { fishPropGeometry } from '../../../src/world/fish/FishProps.js';
 import { buildPalmFar, buildPalmNear } from '../vegetation/geometry/PlantGeometry.js';
+import { CANOPY_FAR_FADE, PALM_LOD } from '../vegetation/LODRules.js';
 import { TIDEWATER_PALM_MATERIAL_GRAPH } from '../vegetation/VegetationMaterialGraph.js';
 import { tidewaterLocalLightSet } from '../WorldLights.js';
 
@@ -756,6 +757,8 @@ function exportPalmStaticModelSet( records ) {
 	let bounds = null;
 	// Match the values consumed at runtime from the signed float32 placement asset.
 	const placements = records.map( record => Object.fromEntries( Object.entries( record ).map( ( [ key, value ] ) => [ key, Math.fround( value ) ] ) ) );
+	// ElseMesh's current generic model-set contract orders assets coarse-to-fine.
+	// Far is low detail; near is high detail.
 	for ( const [ name, build ] of [ [ 'palm-far', buildPalmFar ], [ 'palm-near', buildPalmNear ] ] ) {
 		const { geometry } = build( 11 );
 		const glb = exportVegetationGLB( name, geometry );
@@ -770,8 +773,8 @@ function exportPalmStaticModelSet( records ) {
 			format: 'elsemesh.static-model-instance-set/1',
 			models: [ {
 				id: 'coconut-palm', bounds, geometryMirrorX: false, lods,
-				lodThresholds: [ 112.8 ], lodMetric: 'world-distance', lodFadeFraction: 0.11320754716981132,
-				shadowLod: 0, shadowMaxDistance: 0, drawMaxDistance: 2800, drawFadeStartDistance: 2600,
+				lodThresholds: [ PALM_LOD.fadeStart ], lodMetric: 'world-distance', lodFadeFraction: 1 - PALM_LOD.fadeStart / PALM_LOD.fadeEnd,
+				shadowLod: 1, shadowMaxDistance: PALM_LOD.shadowMaxDistance, drawMaxDistance: CANOPY_FAR_FADE[ 1 ], drawFadeStartDistance: CANOPY_FAR_FADE[ 0 ],
 			} ],
 			instances: placements.map( record => ( {
 				model: 'coconut-palm',

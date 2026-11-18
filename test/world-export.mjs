@@ -30,6 +30,8 @@ import { validateWorldMaterialGraph } from '../../../src/network/WorldMaterialGr
 import { compileWorldMaterialGraph } from '../../../src/materials/WorldMaterialGraphCompiler.js';
 import { validateWorldLocalLightSet } from '../../../src/network/WorldLocalLightSet.js';
 import { TIDEWATER_PALM_MATERIAL_GRAPH } from '../vegetation/VegetationMaterialGraph.js';
+import { CANOPY_FAR_FADE, PALM_LOD } from '../vegetation/LODRules.js';
+import { writeInstanceLODSelection } from '../../../src/engine/render/InstanceDrawPlannerMath.js';
 import { createTidewaterGroundCoverMaterialGraph } from '../vegetation/GroundCoverMaterialGraph.js';
 import { TIDEWATER_LAYOUT } from '../layout.js';
 import { TIDEWATER_SCANNED_DEBRIS_MATERIAL_GRAPH } from '../debris/ScannedMaterialGraph.js';
@@ -146,8 +148,15 @@ try {
 	assert.equal( vegetationSet.models.length, 1, 'vegetation migration artifact exports the coconut-palm model' );
 	assert.equal( vegetationSet.models[ 0 ].id, 'coconut-palm', 'vegetation migration artifact identifies its first supported category' );
 	assert.equal( vegetationSet.models[ 0 ].lods.length, 2, 'palm migration artifact preserves near and far source meshes' );
-	assert.deepEqual( vegetationSet.models[ 0 ].lodThresholds, [ 112.8 ], 'palm artifact starts the LOD cross-fade at the source WebGPU handoff-band start' );
+	assert.deepEqual( vegetationSet.models[ 0 ].lodThresholds, [ PALM_LOD.fadeStart ], 'palm artifact starts the LOD cross-fade at the authored handoff-band start' );
 	assert.equal( vegetationSet.models[ 0 ].lodMetric, 'world-distance', 'palm artifact uses scale-independent world-space distance' );
+	assert.equal( vegetationSet.models[ 0 ].lodFadeFraction, 1 - PALM_LOD.fadeStart / PALM_LOD.fadeEnd, 'palm artifact covers the authored cross-fade interval' );
+	assert.equal( vegetationSet.models[ 0 ].shadowMaxDistance, PALM_LOD.shadowMaxDistance, 'palm near LOD retains the authored shadow distance' );
+	assert.equal( vegetationSet.models[ 0 ].shadowLod, 1, 'palm shadows use the near geometry' );
+	assert.deepEqual( [ vegetationSet.models[ 0 ].drawFadeStartDistance, vegetationSet.models[ 0 ].drawMaxDistance ], CANOPY_FAR_FADE, 'palm far fade uses the authored canopy range' );
+	const lodMeasure = distance => writeInstanceLODSelection( new Float64Array( 4 ), 'world-distance', distance, 1, 1, 1, vegetationSet.models[ 0 ].lodThresholds, vegetationSet.models[ 0 ].lodFadeFraction, 0 )[ 0 ];
+	assert.equal( lodMeasure( 50 ), 1, 'near palm views choose the high-detail near model' );
+	assert.equal( lodMeasure( 200 ), 0, 'far palm views choose the low-detail far model' );
 	assert.deepEqual( vegetationSet.models[ 0 ].bounds.center, [ 0, 0, 0 ], 'palm culling and draw-distance origin matches the authored placement origin' );
 	assert.equal( vegetationSet.models[ 0 ].drawMaxDistance, 2800, 'palm artifact preserves the authored far fade end' );
 	const generatedVegetationComponent = firstDocument.components.find( component => component.type === 'elsemesh.static-vegetation/1' );
@@ -165,6 +174,8 @@ try {
 		const bytes = await readFile( path.join( output, 'vegetation-static-models', `${assetId.slice( 'sha256:'.length )}.glb` ) );
 		assert.equal( `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`, assetId, 'palm GLB filename and bytes match its content address' );
 		const parsed = parseGLB( bytes );
+		const lodIndex = vegetationSet.models[ 0 ].lods.findIndex( lod => lod.assetId === assetId );
+		assert.equal( parsed.nodes[ 0 ].name, lodIndex === 0 ? 'palm-far' : 'palm-near', 'palm GLB order matches the coarse-to-fine shared LOD contract' );
 		const primitive = parsed.meshes[ 0 ][ 0 ];
 		const graphMaterial = parsed.materials[ 0 ].extras?.elsemeshMaterial;
 		assert.equal( graphMaterial?.profile, 'elsemesh.material-graph/1', 'palm GLB carries the world-authored renderer-neutral material graph' );
