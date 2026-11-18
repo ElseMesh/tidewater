@@ -15414,56 +15414,104 @@
       },
       "assets": [
         {
-          "assetId": "sha256:66cdf2f5d7854410c73a82db6c0f2157e2e5418069da4d332c2b01a1a320b115",
+          "assetId": "sha256:62ec585249ddfa755da499df7c245a124e7519292f8388b6b0aa92afc178b76a",
           "kind": "static-model-instance-set/1"
         },
         {
-          "assetId": "sha256:e9da0cb10880225a145a3fb0d95f2dc6d3e807e187c6e714f830e597b5eafa48",
+          "assetId": "sha256:416b79f7e408d37089535dfb65e3ded7239f332534ea65e793be8b2c52386333",
           "kind": "glb"
         },
         {
-          "assetId": "sha256:7576c099a79c2a18dc5d114ce973f3b097542878715616a32b7ac202584869fb",
+          "assetId": "sha256:c8f140e2d89d3dbf158fff079cbe428271ad3280d72ab313c1b60ea5ccbf11db",
           "kind": "glb"
         },
         {
-          "assetId": "sha256:8a0a102bce0f7403d8f796e9d6846a74bf0f9afd50d401d6d35c91b73b5a727b",
+          "assetId": "sha256:5cfe47573e93f1704d6c28255fdb8b75a6f16a6bf53100c5dcee27288c83dcc6",
           "kind": "glb"
         },
         {
-          "assetId": "sha256:028bbff53b16aef25f59da3899b8ea0d5cc60896eb26fc2e67f7e4d63bd47fff",
+          "assetId": "sha256:906c8811968e3d80f1574eb5670f56c260d5f15d367ec4c3a5dfadceecc18860",
           "kind": "glb"
         },
         {
-          "assetId": "sha256:9d1b93b23599a2bf6fd47393262cc66994e4a7a2a3a52dbdb0218a783becf410",
+          "assetId": "sha256:149666d8e73cf3bfbf2abedb52a39d7da3ecaf5210828556343ebb42b37bd467",
           "kind": "glb"
         },
         {
-          "assetId": "sha256:d8528b374b72296b051a1cb41270574e1976b670338e00e6cc6114aec4d83782",
+          "assetId": "sha256:603c054ddb00c11e020fa0a25cf596a393e6f0104aa04dc209b680c97ffeaf15",
           "kind": "glb"
         },
         {
-          "assetId": "sha256:aa417bf9f55faaf7f12f0ea1103a8c7600a7d6629d6b132722397f02ac039e92",
+          "assetId": "sha256:79ed458f658f60a5d729aee35825256bf8277746779e31e4a43dbb7f90ad3f71",
           "kind": "glb"
         },
         {
-          "assetId": "sha256:3010db23d28322411d23887c45bb7888b502b192b2985cc539d6cd144c714d50",
+          "assetId": "sha256:a8dcf226bb056f8be093934bde97e6df52b8434da7348123c6ae8fb552e118e1",
           "kind": "glb"
         },
         {
-          "assetId": "sha256:cc30e0c9e5ad16e63fcebb03bde54baea303e7678ab3cda1df34a749f5e7f4e0",
+          "assetId": "sha256:ad2ea79fd849a651e71add8beb3af0309e148841c9d4c5cd34fb332327c2ff45",
           "kind": "glb"
         },
         {
-          "assetId": "sha256:a6b59d3889afa6571b9568ba769514a8fcbafb6465ac838f180c31cc336eb70e",
+          "assetId": "sha256:99f2f19d4bb7c7fb86d7f93f85f4b04ad60ba68f0335ae4c2b2ac8c14ce0c4c0",
           "kind": "glb"
         },
         {
-          "assetId": "sha256:c9e91e44451278b2d41e6c24926b7656861120a80fae29f027754dae679b496c",
+          "assetId": "sha256:02f95507781603ca07123ad14c9c928fed04b78b5c5b9a0d15e77b16b05ae881",
           "kind": "glb"
         },
         {
-          "assetId": "sha256:0fb1ca20dc45649d160e87bc03c69ae78720ddd8be053f97d69cff84a6ab1dd4",
+          "assetId": "sha256:5c34c59fce09513f7310088b614252923f9ca2f7de01e9202ffc571642347ad2",
           "kind": "glb"
+        },
+        {
+          "assetId": "sha256:53015f7dc3cc9a5ad360439b63c72d90402314201255495684bf6a6499aef7e0",
+          "kind": "image/jpeg"
+        },
+        {
+          "assetId": "sha256:b3d987eba87112005529664455a82809da2325420021d494832dd8ba860eb62c",
+          "kind": "image/jpeg"
+        },
+        {
+          "assetId": "sha256:7aa714956b606c2d4a929d4ab76490db4a45f23a1ec24c66f088867ef363f37a",
+          "kind": "image/jpeg"
+        },
+        {
+          "assetId": "sha256:6519bf7082bb3849c94a43a1f615a4a94547edd59217e05ab1351205eafd88da",
+          "kind": "image/jpeg"
+        },
+        {
+          "assetId": "sha256:27007d93991058dcead6a52b877d86bc7f5b27a13e397d5a99e8f00562166533",
+          "kind": "image/jpeg"
+        },
+        {
+          "assetId": "sha256:4cc11b6d5ffd457280ffc2652f40f27c25352447f03afaa0f3e8920b5f597280",
+          "kind": "image/jpeg"
+        },
+        {
+          "assetId": "sha256:2da1b4bdd5ea430d7ad1ba2fb547bf4f18d9def6f711781be89972e004757d2a",
+          "kind": "image/jpeg"
+        },
+        {
+          "assetId": "sha256:1d6603df36d0dd711d73e0ae2f067cd96f63d5e3ab0681d4a85bcb8df2049388",
+          "kind": "image/jpeg"
+        },
+        {
+          "assetId": "sha256:9fc47d37b740a409fea889edc7f2d7bedac3d970a3a506092e18cfca10d2ed82",
+          "kind": "image/jpeg"
+        },
+        {
+          "assetId": "sha256:0b9296a51b8a157fff2245fced2a7723db9db4c7ea3e976802e1f9d3f93b7cc8",
+          "kind": "image/jpeg"
+        },
+        {
+          "assetId": "sha256:285344a5bd1ea5710fdd0447be0fb7b86bd2b5a8d67f1c93d01d4201d8f3e369",
+          "kind": "image/jpeg"
+        },
+        {
+          "assetId": "sha256:360e5e637404cd8999914ba679d4bcc726b73016b69697631ba7ab33b31b4d2c",
+          "kind": "image/jpeg"
         }
       ],
       "data": {}

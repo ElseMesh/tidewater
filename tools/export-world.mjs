@@ -248,6 +248,7 @@ const scannedSetBytes = Buffer.from( `${JSON.stringify( scannedStaticModelSet.do
 const scannedSetAssetId = `sha256:${createHash( 'sha256' ).update( scannedSetBytes ).digest( 'hex' )}`;
 staticAssets.set( scannedSetAssetId, scannedSetBytes );
 for ( const [ hash, bytes ] of scannedStaticModelSet.assets ) staticAssets.set( `sha256:${hash}`, bytes );
+for ( const [ hash, bytes ] of scannedStaticModelSet.textureAssets ) staticAssets.set( `sha256:${hash}`, bytes );
 const scannedDebrisBounds = boundsForStaticModelInstances( scannedStaticModelSet.document );
 await writeFile( path.join( output, 'scanned-debris-static-model-instance-set.json' ), scannedSetBytes );
 const scannedStaticModelsPath = path.join( output, 'scanned-debris-static-models' );
@@ -373,7 +374,7 @@ const source = {
 		{ id: 'elsemesh-component:island-vegetation', type: 'elsemesh.static-vegetation/1', priority: 'portal-preview', assets: [ { assetId: vegetationAssetId, kind: 'vegetation-placement/1' }, { assetId: grassDensityAssetId, kind: 'grass-density/1' } ], data: { placementAssetId: vegetationAssetId, grassMaskAssetId: grassDensityAssetId, seed: 7 } },
 		...( generated.fishProps.length ? [ { id: 'elsemesh-component:island-fish-props', type: 'elsemesh.static-fish-props/1', priority: 'visible', streamingBounds: fishPropsBounds, assets: [ { assetId: fishPropsAssetId, kind: 'fish-props-placement/1' } ], data: { placementAssetId: fishPropsAssetId } } ] : [] ),
 		{ id: 'elsemesh-component:island-terrain', type: 'elsemesh.terrain-surface/1', priority: 'visible', assets: [ { assetId: terrainSurfaceAssetId, kind: 'terrain-surface/1' } ], data: { ...terrainSurfaceSource.data, profile: 'example-island-v1', objectId: 'elsemesh-object:island-terrain', dataAssetId: terrainSurfaceAssetId } },
-		{ id: 'elsemesh-component:scanned-debris', type: 'elsemesh.static-model-instance-set/1', priority: 'visible', streamingBounds: scannedDebrisBounds, assets: [ { assetId: scannedSetAssetId, kind: 'static-model-instance-set/1' }, ...[ ...scannedStaticModelSet.assets.keys() ].map( hash => ( { assetId: `sha256:${hash}`, kind: 'glb' } ) ) ], data: {} },
+		{ id: 'elsemesh-component:scanned-debris', type: 'elsemesh.static-model-instance-set/1', priority: 'visible', streamingBounds: scannedDebrisBounds, assets: [ { assetId: scannedSetAssetId, kind: 'static-model-instance-set/1' }, ...[ ...scannedStaticModelSet.assets.keys() ].map( hash => ( { assetId: `sha256:${hash}`, kind: 'glb' } ) ), ...[ ...scannedStaticModelSet.textureAssets.keys() ].map( hash => ( { assetId: `sha256:${hash}`, kind: 'image/jpeg' } ) ) ], data: {} },
 		{ id: 'elsemesh-component:ground-detail-field', type: 'elsemesh.ground-detail-field/1', priority: 'visible', assets: [ { assetId: groundDetailDensityAssetId, kind: 'ground-detail-density/1' } ], data: { resolution: generated.groundDetailDensity.res, texel: generated.groundDetailDensity.texel } },
 		{ id: 'elsemesh-component:island-wildlife', type: 'elsemesh.example-island-wildlife/1', priority: 'visible', streamingBounds: { center: [ 0, 0, - 40 ], radius: 300 }, assets: [], data: { profile: 'example-island-wildlife-v1', seed: 5, roofPerches: generated.roofPerches, footprints: generated.villageFootprints } },
 		{ id: 'elsemesh-component:island-humpback', type: 'elsemesh.humpback-whale/1', priority: 'visible', streamingBounds: { center: [ 0, - 4, 200 ], radius: 250 }, assets: [ { assetId: whaleAssetIDs[ 0 ], kind: 'whale-model/1' }, { assetId: whaleAssetIDs[ 1 ], kind: 'whale-geometry/1' }, { assetId: whaleAssetIDs[ 2 ], kind: 'whale-albedo/1' }, { assetId: whaleAssetIDs[ 3 ], kind: 'whale-height/1' } ], data: { profile: 'example-island-humpback-v1', modelAssetId: whaleAssetIDs[ 0 ], geometryAssetId: whaleAssetIDs[ 1 ], albedoAssetId: whaleAssetIDs[ 2 ], heightAssetId: whaleAssetIDs[ 3 ], ...TIDEWATER_WHALE_PROFILE } },
@@ -1210,7 +1211,7 @@ function exportBatchGLB( batches, sceneName, villageMaterials = false ) {
 	return Buffer.concat( [ header, jsonHeader, jsonPadded, binHeader, binPadded ] );
 }
 
-function exportScannedLOD( sourceBytes, textureMaps, name, meshIndex, materialGraph = null ) {
+function exportScannedLOD( sourceBytes, name, meshIndex, materialGraph, textureAssetIDs ) {
 	const parsed = parseGLB( sourceBytes.buffer.slice( sourceBytes.byteOffset, sourceBytes.byteOffset + sourceBytes.byteLength ) );
 	const primitive = parsed.meshes[ meshIndex ]?.[ 0 ];
 	if ( ! primitive?.attributes?.POSITION || ! primitive.attributes.NORMAL || ! primitive.attributes.TEXCOORD_0 || ! primitive.indices ) throw new Error( `Scanned asset ${name} has no supported LOD${meshIndex} triangle mesh` );
@@ -1252,9 +1253,8 @@ function exportScannedLOD( sourceBytes, textureMaps, name, meshIndex, materialGr
 	const uvArray = Float32Array.from( sourceUV.array, ( value ) => Math.min( 0.998, Math.max( 0.002, value ) ) );
 	const uv = addAccessor( { ...sourceUV, array: uvArray, componentType: 5126, normalized: false }, 'VEC2', 34962 );
 	const indices = addAccessor( { array: primitive.indices, itemSize: 1, componentType: primitive.indices instanceof Uint32Array ? 5125 : 5123 }, 'SCALAR', 34963 );
-	const mapNames = [ 'albedo', 'normal', 'arm' ].filter( map => textureMaps[ map ] );
-	const imageViews = mapNames.map( map => append( textureMaps[ map ], { mimeType: 'image/jpeg' } ) );
 	const binary = Buffer.concat( chunks );
+	const mapNames = [ 'albedo', 'normal', 'arm' ];
 	const textureInfo = Object.fromEntries( mapNames.map( ( map, index ) => [ map, { index } ] ) );
 	const gltf = {
 		asset: { version: '2.0', generator: 'ElseMesh island scanned asset exporter/1' },
@@ -1262,7 +1262,9 @@ function exportScannedLOD( sourceBytes, textureMaps, name, meshIndex, materialGr
 		meshes: [ { name, primitives: [ { attributes: { POSITION: position, NORMAL: normal, TEXCOORD_0: uv }, indices, material: 0, mode: 4 } ] } ],
 		materials: [ { name: mapNames.length === 1 ? `${name} albedo` : `${name} portable PBR`, pbrMetallicRoughness: { baseColorTexture: textureInfo.albedo, metallicRoughnessTexture: textureInfo.arm, metallicFactor: 0, roughnessFactor: 1 }, ...( textureInfo.normal ? { normalTexture: textureInfo.normal } : {} ), ...( textureInfo.arm ? { occlusionTexture: { ...textureInfo.arm, strength: 1 } } : {} ), ...( materialGraph ? { extras: { elsemeshMaterial: { profile: 'elsemesh.material-graph/1', role: 'graph', graph: materialGraph } } } : {} ) } ],
 		textures: mapNames.map( ( _map, index ) => ( { sampler: 0, source: index } ) ), samplers: [ { magFilter: 9729, minFilter: 9987, wrapS: 10497, wrapT: 10497 } ],
-		images: mapNames.map( ( map, index ) => ( { bufferView: imageViews[ index ], mimeType: 'image/jpeg', name: `${name} ${map}` } ) ),
+		extensionsUsed: [ 'EXT_elsemesh_asset_reference' ],
+		extensionsRequired: [ 'EXT_elsemesh_asset_reference' ],
+		images: mapNames.map( ( map ) => ( { mimeType: 'image/jpeg', name: `${name} ${map}`, extensions: { EXT_elsemesh_asset_reference: { assetId: textureAssetIDs[ map ] } } } ) ),
 		accessors, bufferViews, buffers: [ { byteLength: binary.length } ],
 	};
 	const json = Buffer.from( JSON.stringify( gltf ) );
@@ -1278,16 +1280,22 @@ function exportScannedLOD( sourceBytes, textureMaps, name, meshIndex, materialGr
 
 async function exportScannedStaticModelSet( instances ) {
 	const assets = new Map();
+	const textureAssets = new Map();
 	const models = [];
 	for ( const { id: name } of SCANNED_DEBRIS_ASSETS ) {
 		const sourceBytes = readFile( path.join( REPO, 'public', 'models', 'debris', `${name}.glb` ) );
 		const textureMaps = Object.fromEntries( [ 'albedo', 'normal', 'arm' ].map( map => [ map, readFile( path.join( REPO, 'public', 'models', 'debris', `${name}_${map}.jpg` ) ) ] ) );
 		const [ sourceGLB, maps ] = await Promise.all( [ sourceBytes, Promise.all( Object.entries( textureMaps ).map( async ( [ map, bytes ] ) => [ map, await bytes ] ) ) ] );
 		const resolvedMaps = Object.fromEntries( maps );
+		const textureAssetIDs = Object.fromEntries( Object.entries( resolvedMaps ).map( ( [ map, bytes ] ) => {
+			const hash = createHash( 'sha256' ).update( bytes ).digest( 'hex' );
+			textureAssets.set( hash, bytes );
+			return [ map, `sha256:${hash}` ];
+		} ) );
 		const lodAssets = [];
 		const lodBytes = [];
 		for ( const meshIndex of [ 0, 1, 2 ] ) {
-			const glb = exportScannedLOD( sourceGLB, resolvedMaps, name, meshIndex, TIDEWATER_SCANNED_DEBRIS_MATERIAL_GRAPH );
+			const glb = exportScannedLOD( sourceGLB, name, meshIndex, TIDEWATER_SCANNED_DEBRIS_MATERIAL_GRAPH, textureAssetIDs );
 			const assetId = `sha256:${createHash( 'sha256' ).update( glb ).digest( 'hex' )}`;
 			assets.set( assetId.slice( 'sha256:'.length ), glb );
 			lodAssets.push( { assetId, meshIndex } );
@@ -1323,7 +1331,7 @@ async function exportScannedStaticModelSet( instances ) {
 			materialData: [ instance.asset, instance.rnd, 0, 0, 0, 0, 0, 0 ],
 		} ) ),
 	};
-	return { document, assets };
+	return { document, assets, textureAssets };
 }
 
 function boundsForStaticModelInstances( document ) {

@@ -171,6 +171,7 @@ try {
 	assert.equal( scannedSet.models.length, 4, 'scanned-debris component keeps the four source asset classes distinct' );
 	assert.equal( scannedSetComponent.assets.filter( asset => asset.kind === 'static-model-instance-set/1' ).length, 1, 'component declares exactly one placement descriptor' );
 	assert.equal( scannedSetComponent.assets.filter( asset => asset.kind === 'glb' ).length, 12, 'component declares every shared model LOD for both renderers' );
+	assert.equal( scannedSetComponent.assets.filter( asset => asset.kind === 'image/jpeg' ).length, 12, 'component declares each shared source texture once instead of embedding it in every LOD' );
 	const scannedSetReference = scannedSetComponent.assets.find( asset => asset.kind === 'static-model-instance-set/1' );
 	assert.equal( scannedSetReference.assetId, `sha256:${createHash( 'sha256' ).update( scannedSetBytesFirst ).digest( 'hex' )}`, 'signed component descriptor uses the content hash of the generated placement asset' );
 	for ( const asset of scannedSetComponent.assets ) {
@@ -207,10 +208,13 @@ try {
 			}
 			assert.ok( webgpuGraph.textureSlots.includes( 'baseColor' ) && webgpuGraph.textureSlots.includes( 'metallicRoughness' ) && webgpuGraph.textureSlots.includes( 'occlusion' ), `${model.id} graph uses the same portable PBR slots in WebGPU` );
 			assert.ok( webglGraph.textureSlots.includes( 'baseColor' ) && webglGraph.textureSlots.includes( 'metallicRoughness' ) && webglGraph.textureSlots.includes( 'occlusion' ), `${model.id} graph uses the same portable PBR slots in WebGL` );
-			assert.equal( parsed.images.length, 3, `${model.id} GLB embeds albedo, normal, and ARM source maps` );
+			assert.equal( parsed.images.length, 3, `${model.id} GLB references albedo, normal, and ARM source maps` );
 			for ( const [ index, map ] of [ 'albedo', 'normal', 'arm' ].entries() ) {
 				const sourceMap = await readFile( path.join( checkedInDir, 'source', 'models', 'debris', `${model.id}_${map}.jpg` ) );
-				assert.deepEqual( Buffer.from( parsed.images[ index ].bytes ), sourceMap, `${model.id} ${map} map bytes remain identical to the source asset` );
+				const image = parsed.images[ index ];
+				assert.equal( image.assetId, `sha256:${createHash( 'sha256' ).update( sourceMap ).digest( 'hex' )}`, `${model.id} ${map} image uses its source-map content hash` );
+				assert.equal( image.bytes, null, `${model.id} ${map} bytes are shared outside the LOD GLB` );
+				assert.deepEqual( Buffer.from( firstAssets.get( image.assetId ) ), sourceMap, `${model.id} ${map} asset bytes remain identical to the source map` );
 			}
 		}
 	}
@@ -542,12 +546,12 @@ try {
 		const parsed = parseGLB( firstAssets.get( model.lods[ 2 ].assetId ) );
 		assert.equal( parsed.meshes.length, 1, 'scanned base asset contains only its near-detail mesh' );
 		assert.ok( parsed.materials[ 0 ]?.pbrMetallicRoughness?.baseColorTexture, 'scanned asset has a base-color texture' );
-		assert.equal( parsed.images[ 0 ]?.mimeType, 'image/jpeg', 'scanned albedo is embedded in the GLB' );
-		assert.ok( parsed.images[ 0 ]?.bytes?.length > 0, 'scanned GLB contains embedded image bytes' );
+		assert.equal( parsed.images[ 0 ]?.mimeType, 'image/jpeg', 'scanned albedo remains a JPEG source asset' );
+		assert.match( parsed.images[ 0 ]?.assetId || '', /^sha256:[0-9a-f]{64}$/, 'scanned GLB points to a signed shared image asset' );
 		for ( const lodRecord of model.lods.slice( 0, - 1 ) ) {
 			const lod = parseGLB( firstAssets.get( lodRecord.assetId ) );
 			assert.ok( triangleCount( lod ) < triangleCount( parsed ) * 0.3, 'the authored scanned LOD removes at least 70% of its near-detail triangles' );
-			assert.deepEqual( lod.images[ 0 ]?.bytes, parsed.images[ 0 ]?.bytes, 'scanned LOD reuses the exact authored albedo bytes' );
+			assert.deepEqual( lod.images.map( image => image.assetId ), parsed.images.map( image => image.assetId ), 'scanned LODs reference the same source texture assets' );
 			assert.ok( lod.meshes.flat().every( primitive => primitive.attributes.TEXCOORD_0 && primitive.attributes.NORMAL ), 'scanned LOD keeps textured, lit geometry' );
 			assert.ok( lod.meshes.flat().every( primitive => Number.isInteger( primitive.material ) ), 'scanned LOD retains material assignments' );
 		}
