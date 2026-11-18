@@ -190,7 +190,7 @@ try {
 			assert.equal( webgpuGraph.requiresTerrainHeight, true, `${model.id} graph declares its generic terrain-query dependency in WebGPU` );
 			assert.equal( webglGraph.requiresTerrainHeight, true, `${model.id} graph declares its generic terrain-query dependency in WebGL` );
 			assert.match( webgpuGraph.surface, /terrainHeightAt\( emg_worldXZ \)/, `${model.id} WebGPU graph calls the renderer-neutral height query` );
-			assert.match( webglGraph.glsl.fragment, /emgTerrainHeightAt\( vEmg_worldXZ \)/, `${model.id} WebGL graph calls the renderer-neutral height query` );
+			assert.match( webglGraph.glsl.fragment, /emgTerrainHeightAt\( emg_worldXZ \)/, `${model.id} WebGL graph calls the renderer-neutral height query` );
 			for ( const input of [ 'worldPosition', 'instanceMaterial0' ] ) {
 				assert.ok( webgpuGraph.inputs.includes( input ) && webglGraph.inputs.includes( input ), `${model.id} graph shares ${input} across both renderer compilers` );
 			}
