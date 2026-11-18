@@ -34,6 +34,7 @@ try {
 	const reference = new Uint8Array( ( await readFrame() ).data );
 	if ( captureDir ) await L.save( path.join( captureDir, 'source-webgpu.png' ) );
 	const sourceCounts = original.levels.map( level => level.count );
+	const sourceCells = original.levels.flatMap( level => Array.from( { length: level.count }, ( _, index ) => `${level.arr[ index * 4 ]},${level.arr[ index * 4 + 1 ]}` ) ).sort();
 	for ( const mesh of original.meshes ) L.scene.remove( mesh );
 	original.dispose();
 	original = null;
@@ -64,6 +65,7 @@ try {
 	const graphMeshes = [];
 	root.traverse( object => { if ( object.isInstancedMesh && ! object.userData.shadowOnly ) graphMeshes.push( object ); } );
 	const graphCounts = graphMeshes.map( mesh => mesh.count );
+	const graphCells = graphMeshes.flatMap( mesh => Array.from( { length: mesh.count }, ( _, index ) => `${mesh.instanceMatrix.array[ index * 16 + 12 ]},${mesh.instanceMatrix.array[ index * 16 + 14 ]}` ) ).sort();
 	let totalError = 0, changedPixels = 0;
 	for ( let offset = 0; offset < reference.length; offset += 4 ) {
 		const difference = Math.abs( reference[ offset ] - graphFrame[ offset ] ) + Math.abs( reference[ offset + 1 ] - graphFrame[ offset + 1 ] ) + Math.abs( reference[ offset + 2 ] - graphFrame[ offset + 2 ] );
@@ -71,7 +73,7 @@ try {
 		if ( difference > 24 ) changedPixels ++;
 	}
 	const meanAbsoluteError = totalError / ( reference.length / 4 * 3 );
-	console.log( `Tidewater WebGPU ground-cover graph versus source presenter: MAE ${ meanAbsoluteError.toFixed( 3 )}/255; ${ changedPixels } changed pixels; source LOD counts ${ sourceCounts.join( '/' ) }; graph LOD counts ${ graphCounts.join( '/' ) }` );
+	console.log( `Tidewater WebGPU ground-cover graph versus source presenter: MAE ${ meanAbsoluteError.toFixed( 3 )}/255; ${ changedPixels } changed pixels; source LOD counts ${ sourceCounts.join( '/' ) }; graph LOD counts ${ graphCounts.join( '/' ) }; source cells ${ sourceCells.join( ';' ) }; graph cells ${ graphCells.join( ';' ) }` );
 } finally {
 	original?.dispose();
 	runtime?.dispose();
