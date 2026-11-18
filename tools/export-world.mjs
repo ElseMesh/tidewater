@@ -1290,7 +1290,7 @@ function exportScannedLOD( sourceBytes, textureMaps, name, meshIndex ) {
 		asset: { version: '2.0', generator: 'ElseMesh island scanned asset exporter/1' },
 		scene: 0, scenes: [ { nodes: [ 0 ] } ], nodes: [ { name, mesh: 0 } ],
 		meshes: [ { name, primitives: [ { attributes: { POSITION: position, NORMAL: normal, TEXCOORD_0: uv }, indices, material: 0, mode: 4 } ] } ],
-		materials: [ { name: `${name} portable PBR`, pbrMetallicRoughness: { baseColorTexture: textureInfo.albedo, metallicRoughnessTexture: textureInfo.arm, metallicFactor: 0, roughnessFactor: 1 }, ...( textureInfo.normal ? { normalTexture: textureInfo.normal } : {} ), ...( textureInfo.arm ? { occlusionTexture: { ...textureInfo.arm, strength: 1 } } : {} ) } ],
+		materials: [ { name: mapNames.length === 1 ? `${name} albedo` : `${name} portable PBR`, pbrMetallicRoughness: { baseColorTexture: textureInfo.albedo, metallicRoughnessTexture: textureInfo.arm, metallicFactor: 0, roughnessFactor: 1 }, ...( textureInfo.normal ? { normalTexture: textureInfo.normal } : {} ), ...( textureInfo.arm ? { occlusionTexture: { ...textureInfo.arm, strength: 1 } } : {} ) } ],
 		textures: mapNames.map( ( _map, index ) => ( { sampler: 0, source: index } ) ), samplers: [ { magFilter: 9729, minFilter: 9987, wrapS: 10497, wrapT: 10497 } ],
 		images: mapNames.map( ( map, index ) => ( { bufferView: imageViews[ index ], mimeType: 'image/jpeg', name: `${name} ${map}` } ) ),
 		accessors, bufferViews, buffers: [ { byteLength: binary.length } ],
