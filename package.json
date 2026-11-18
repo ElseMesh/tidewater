@@ -3,7 +3,6 @@
   "type": "module",
   "scripts": {
 		"export": "node tools/export-world.mjs",
-		"export:grass-density": "node tools/export-grass-density.mjs",
 		"test:ground-cover-patch-geometry": "node test/ground-cover-patch-geometry.mjs",
 		"test:ground-cover-render-parity": "node --preserve-symlinks test/ground-cover-graph-parity-webgpu.mjs",
 		"test:gameplay-input": "node test/fishing-input-controller.mjs",

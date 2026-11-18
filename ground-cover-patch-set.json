@@ -1,0 +1,25 @@
+{
+  "format": "tidewater.ground-cover-patch-set/1",
+  "cellSize": 8,
+  "seed": 7,
+  "lods": [
+    {
+      "level": "near",
+      "assetId": "sha256:deddfb428ef28061a661a6878d1ac0be812308b8e9dcde9227fe57714d1b3aa7",
+      "triangles": 17560,
+      "bytes": 1870328
+    },
+    {
+      "level": "mid",
+      "assetId": "sha256:0da5735c58ef617c3276ea6710b6b26acb61840b316a161e0ac226afbf0c19eb",
+      "triangles": 4716,
+      "bytes": 627716
+    },
+    {
+      "level": "far",
+      "assetId": "sha256:ca1bb40bb05291f7a73b0cf2e506ce5c7cbb9bd45e393f2e2a8c8cd822bd9da9",
+      "triangles": 768,
+      "bytes": 202260
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # Example Island asset index
 
-Generated from [world-source.json](world-source.json) (80 verified content-addressed assets).
+Generated from [world-source.json](world-source.json) (83 verified content-addressed assets).
 Each filename is the SHA-256 of the exact packaged bytes. Keep these names immutable; use the descriptions and use sites below to identify the assets.
 
 | Description / use | Format | Size | SHA-256 asset |
@@ -18,12 +18,15 @@ Each filename is the SHA-256 of the exact packaged bytes. Keep these names immut
 | Component elsemesh-component:island-ambience — audio/ogg<br>Editable source: source/audio/surf_far.ogg | Ogg audio | 356.6 KiB | [`a4c0068c83ae7752c0b666cf06548ac917aefd61bb49f970d9f19d52b4f7eaa4`](assets/a4c0068c83ae7752c0b666cf06548ac917aefd61bb49f970d9f19d52b4f7eaa4) |
 | Component elsemesh-component:island-ambience — audio/ogg<br>Editable source: source/audio/pier_lap.ogg | Ogg audio | 280.5 KiB | [`e020be075543b148dfb2b47540a605c1a30d25e5d18206b945b949b96a32079a`](assets/e020be075543b148dfb2b47540a605c1a30d25e5d18206b945b949b96a32079a) |
 | Component elsemesh-component:island-fish-props — fish-props-placement/1 | JSON | 25.2 KiB | [`11f5ea7d9ccaf1a3d7931bfc46a34d71f133e0df23225e8b86904c47137f0fcf`](assets/11f5ea7d9ccaf1a3d7931bfc46a34d71f133e0df23225e8b86904c47137f0fcf) |
+| Component elsemesh-component:island-ground-cover — glb | glTF binary (GLB) | 613.0 KiB | [`0da5735c58ef617c3276ea6710b6b26acb61840b316a161e0ac226afbf0c19eb`](assets/0da5735c58ef617c3276ea6710b6b26acb61840b316a161e0ac226afbf0c19eb) |
+| Component elsemesh-component:island-ground-cover — glb | glTF binary (GLB) | 197.5 KiB | [`ca1bb40bb05291f7a73b0cf2e506ce5c7cbb9bd45e393f2e2a8c8cd822bd9da9`](assets/ca1bb40bb05291f7a73b0cf2e506ce5c7cbb9bd45e393f2e2a8c8cd822bd9da9) |
+| Component elsemesh-component:island-ground-cover — glb | glTF binary (GLB) | 1.78 MiB | [`deddfb428ef28061a661a6878d1ac0be812308b8e9dcde9227fe57714d1b3aa7`](assets/deddfb428ef28061a661a6878d1ac0be812308b8e9dcde9227fe57714d1b3aa7) |
+| Component elsemesh-component:island-ground-cover — grass-density/1 | Binary (grass-density/1) | 4.00 MiB | [`36507b8de08a52423c0eb3d5bf7cba6c373dbbec931aa1e1969e09abac9df8c2`](assets/36507b8de08a52423c0eb3d5bf7cba6c373dbbec931aa1e1969e09abac9df8c2) |
 | Component elsemesh-component:island-humpback — whale-albedo/1<br>Editable source: source/models/whale/humpback_albedo.png | PNG image | 4.09 MiB | [`5daaa6727f5304aaa3b6f6ef86cedcebc7cf922376a5c0e7caad66c4f4a5efe1`](assets/5daaa6727f5304aaa3b6f6ef86cedcebc7cf922376a5c0e7caad66c4f4a5efe1) |
 | Component elsemesh-component:island-humpback — whale-geometry/1<br>Editable source: source/models/whale/humpback.bin | Binary (whale-geometry/1) | 3.31 MiB | [`b3a31801a393489331bc3dd4fd5be64cbad32ac4e159f5180e0eb028d489a92d`](assets/b3a31801a393489331bc3dd4fd5be64cbad32ac4e159f5180e0eb028d489a92d) |
 | Component elsemesh-component:island-humpback — whale-height/1<br>Editable source: source/models/whale/humpback_height.png | PNG image | 12.30 MiB | [`5e18fbff0aa0034519d149c245d515f75011e7dd4f626dbd1a5e97eea79b66b5`](assets/5e18fbff0aa0034519d149c245d515f75011e7dd4f626dbd1a5e97eea79b66b5) |
 | Component elsemesh-component:island-humpback — whale-model/1<br>Editable source: source/models/whale/humpback.json | JSON | 4.0 KiB | [`c47390c365da1c8c6fa73bea4996bf51073a973770c1942e8993f545e283a354`](assets/c47390c365da1c8c6fa73bea4996bf51073a973770c1942e8993f545e283a354) |
 | Component elsemesh-component:island-terrain — terrain-surface/1 | Binary (terrain-surface/1) | 29.71 MiB | [`b26986a190a36734acfe3004d0ddd3663e3c467d2764b30b60a8afee655d76e8`](assets/b26986a190a36734acfe3004d0ddd3663e3c467d2764b30b60a8afee655d76e8) |
-| Component elsemesh-component:island-vegetation — grass-density/1 | Binary (grass-density/1) | 4.00 MiB | [`36507b8de08a52423c0eb3d5bf7cba6c373dbbec931aa1e1969e09abac9df8c2`](assets/36507b8de08a52423c0eb3d5bf7cba6c373dbbec931aa1e1969e09abac9df8c2) |
 | Component elsemesh-component:island-vegetation — vegetation-placement/1 | Binary (vegetation-placement/1) | 2.56 MiB | [`e9ead2780768e0dabea07317da0c020497137472e6adc1cb3f166611fb0fbae6`](assets/e9ead2780768e0dabea07317da0c020497137472e6adc1cb3f166611fb0fbae6) |
 | Component elsemesh-component:reef-tile--1--1 — reef-placement/1 | Binary (reef-placement/1) | 40.4 KiB | [`92cdd6f611d76139891a1440cd2deeb4ae88159a899989593127eb0630b28ae4`](assets/92cdd6f611d76139891a1440cd2deeb4ae88159a899989593127eb0630b28ae4) |
 | Component elsemesh-component:reef-tile--1-0 — reef-placement/1 | Binary (reef-placement/1) | 700.6 KiB | [`a57e9503967a8bb1e21ea64964cf0d4945c4656948ae76bc0ff19af83cfb5cdf`](assets/a57e9503967a8bb1e21ea64964cf0d4945c4656948ae76bc0ff19af83cfb5cdf) |

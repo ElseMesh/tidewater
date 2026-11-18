@@ -6,7 +6,6 @@ import { Whale } from './marine/Whale.js';
 import { worldComponentDescriptor } from '../../src/network/WorldComponentRegistry.js';
 import { HostedBoat } from '../../src/network/HostedBoat.js';
 import { decodeWorldComponentAsset } from '../../src/network/WorldComponentAssetCodecRegistry.js';
-import { decodeGrassDensityAsset } from '../../src/network/GrassDensityAsset.js';
 import { decodeReefPlacements, MAX_REEF_PLACEMENTS, REEF_PLACEMENT_HEADER_BYTES, REEF_PLACEMENT_RECORD_BYTES } from './ReefPlacements.js';
 
 const INSTALLERS = new Map( [
@@ -23,11 +22,8 @@ export function tidewaterComponentInstaller( type ) {
 
 async function installVegetation( { root, connector, installed }, component ) {
 	const placementRecords = component.placementAssetId ? readVegetationPlacements( connector, component ) : null;
-	const grassMask = component.grassMaskAssetId ? decodeGrassDensityAsset( connector.assets.get( component.grassMaskAssetId ) ) : null;
 	const terrain = root.userData.terrainData;
-	if ( grassMask && ! terrain ) return false;
-	if ( grassMask && ( grassMask.size !== terrain.size || grassMask.origin !== terrain.origin ) ) throw new Error( `Static vegetation component ${component.id} grass mask does not match its terrain surface` );
-	installed.push( new Vegetation( { scene: root, terrain, village: null, worldLayout: TIDEWATER_LAYOUT, includeGrass: !! grassMask, grassMask, placementRecords } ) );
+	installed.push( new Vegetation( { scene: root, terrain, village: null, worldLayout: TIDEWATER_LAYOUT, placementRecords } ) );
 	return true;
 }
 

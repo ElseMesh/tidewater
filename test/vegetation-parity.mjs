@@ -15,12 +15,14 @@ import { encodeVegetationPlacements } from '../VegetationPlacements.js';
 const worldRoot = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..' );
 const source = JSON.parse( await readFile( path.join( worldRoot, 'world-source.json' ), 'utf8' ) );
 const component = source.components.find( item => item.type === 'elsemesh.static-vegetation/1' );
+const groundCover = source.components.find( item => item.type === 'elsemesh.ground-cover-field/1' );
 const data = component?.data;
-assert.ok( data?.placementAssetId && data.grassMaskAssetId, 'Tidewater static vegetation keeps its authored asset IDs in opaque owner data' );
+assert.ok( data?.placementAssetId && groundCover?.data?.densityAssetId, 'Tidewater keeps finite plant placements and dense ground-cover density in separate renderer-neutral components' );
 assert.equal( data.seed, 7, 'Tidewater placement generation seed is world-authored component data' );
-assert.deepEqual( component.assets, [ { assetId: data.placementAssetId, kind: 'vegetation-placement/1' }, { assetId: data.grassMaskAssetId, kind: 'grass-density/1' } ], 'generic component references declare each asset kind separately' );
+assert.deepEqual( component.assets, [ { assetId: data.placementAssetId, kind: 'vegetation-placement/1' } ], 'finite vegetation component contains only its placement asset' );
+assert.ok( groundCover.assets.some( asset => asset.assetId === groundCover.data.densityAssetId && asset.kind === 'grass-density/1' ), 'renderer-neutral ground-cover component declares its density asset' );
 
-const assetID = data.grassMaskAssetId.slice( 'sha256:'.length );
+const assetID = groundCover.data.densityAssetId.slice( 'sha256:'.length );
 const packaged = decodeGrassDensityAsset( await readFile( path.join( worldRoot, 'assets', assetID ) ) );
 const terrain = new TerrainData( { seed: 7, worldLayout: TIDEWATER_LAYOUT } );
 const normal = terrain.normalAt( 0, 0 );
@@ -45,4 +47,4 @@ assert.equal( packaged.origin, terrain.origin, 'packaged grass mask uses the sou
 assert.equal( packaged.res, sourceMask.res, 'packaged grass mask has the source generator resolution' );
 assert.deepEqual( Uint8Array.from( packaged.data ), sourceMask.data, 'packaged grass density matches the built-in generator in all channels' );
 assert.deepEqual( packagedPlacements, Buffer.from( sourcePlacements ), 'packaged plant placements match built-in seeded generation byte for byte' );
-console.log( `ok Tidewater vegetation placements and grass mask match built-in source generation (${packaged.res}x${packaged.res})` );
+console.log( `ok Tidewater vegetation placements and ground-cover density match world-authored generation (${packaged.res}x${packaged.res})` );

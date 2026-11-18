@@ -50,6 +50,7 @@ try {
 	assert.doesNotMatch( await readFile( new URL( '../../../src/world/terrain/DetailTextureData.js', import.meta.url ), 'utf8' ), /engine\/(?:gpu|scene|render)\//, 'detail data generation has no graphics API dependency' );
 	await GPU.init( { headless: true } );
 	const checkedInDir = path.dirname( path.dirname( fileURLToPath( import.meta.url ) ) );
+	const checkedInAssetDir = process.env.ELSEMESH_TIDEWATER_ASSET_DIR || path.join( checkedInDir, 'assets' );
 	const checkedInSourceBytes = await readFile( path.join( checkedInDir, 'world-source.json' ) );
 	const checkedInTerrainReportBytes = await readFile( path.join( checkedInDir, 'terrain-validation.json' ) );
 	const checkedInSource = validateWorldSource( JSON.parse( checkedInSourceBytes ) );
@@ -61,11 +62,11 @@ try {
 	for ( const [ name, assetId ] of builtInAliases ) assert.equal( await readlink( path.join( checkedInDir, 'lod-source', name ) ), `../assets/${assetId.slice( 'sha256:'.length )}`, `built-in ${name} alias points at the current signed asset` );
 	const referencedIDs = ( source ) => new Set( [ ...source.objects.flatMap( ( object ) => [ object.assetId, ...( object.lods || [] ).map( ( lod ) => lod.assetId ) ] ), ...source.components.flatMap( componentAssetRefs ), ...( source.experience?.extensions || [] ).map( extension => extension.assetId ) ] );
 	const checkedInIDs = referencedIDs( checkedInSource );
-	const checkedInFiles = ( await readdir( path.join( checkedInDir, 'assets' ) ) ).sort();
+	const checkedInFiles = ( await readdir( checkedInAssetDir ) ).sort();
 	assert.deepEqual( checkedInFiles, [ ...checkedInIDs ].map( ( id ) => id.slice( 'sha256:'.length ) ).sort(), 'checked-in island package stores exactly its referenced assets' );
 	let checkedInBytes = 0;
 	for ( const id of checkedInIDs ) {
-		const bytes = await readFile( path.join( checkedInDir, 'assets', id.slice( 'sha256:'.length ) ) );
+		const bytes = await readFile( path.join( checkedInAssetDir, id.slice( 'sha256:'.length ) ) );
 		checkedInBytes += bytes.length;
 		assert.equal( `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`, id, `checked-in package asset bytes must match ${id}` );
 	}
@@ -74,7 +75,7 @@ try {
 	assert.ok( checkedInGroundDetail, 'Tidewater package declares renderer-neutral ground detail' );
 	const groundDetailReference = checkedInGroundDetail.assets.find( asset => asset.kind === GROUND_DETAIL_DENSITY_ASSET_KIND );
 	assert.ok( groundDetailReference, 'ground detail references its density asset by the generic asset kind' );
-	const groundDetail = await decodeGroundDetailDensityAsset( await readFile( path.join( checkedInDir, 'assets', groundDetailReference.assetId.slice( 'sha256:'.length ) ) ), componentData( checkedInGroundDetail ) );
+	const groundDetail = await decodeGroundDetailDensityAsset( await readFile( path.join( checkedInAssetDir, groundDetailReference.assetId.slice( 'sha256:'.length ) ) ), componentData( checkedInGroundDetail ) );
 	assert.equal( groundDetail.data.byteLength, groundDetail.res * groundDetail.res * 4, 'ground detail carries the authored RGBA density mask' );
 	assert.ok( groundDetail.data.some( value => value > 0 ), 'ground detail density mask contains authored placement regions' );
 	assert.ok( checkedInSource.objects.some( ( object ) => object.id === 'elsemesh-object:island-village' ), 'checked-in island source contains the static village GLB instance' );
@@ -83,7 +84,7 @@ try {
 	assert.deepEqual( componentData( checkedInWhale ).route, [ [ 70, 300 ], [ 60, 200 ], [ 35, 120 ], [ 5, 88 ], [ -25, 100 ], [ -52, 128 ], [ -75, 178 ], [ -52, 262 ], [ -10, 330 ] ], 'whale route is explicit world data, not a hidden client default' );
 	assert.equal( componentData( checkedInWhale ).seed, 1, 'whale simulation seed is explicit and stable' );
 	for ( const id of whaleAssetRefs( checkedInWhale ) ) {
-		const bytes = await readFile( path.join( checkedInDir, 'assets', id.slice( 'sha256:'.length ) ) );
+		const bytes = await readFile( path.join( checkedInAssetDir, id.slice( 'sha256:'.length ) ) );
 		assert.equal( `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`, id, `whale model input ${id} is content addressed` );
 	}
 	const checkedInBoat = checkedInSource.objects.find( ( object ) => object.id === 'elsemesh-object:moored-lobster-boat' );
@@ -91,11 +92,11 @@ try {
 	assert.equal( checkedInBoat.priority, 'portal-preview', 'the moored boat is included in open portal previews' );
 	assert.deepEqual( checkedInBoat.transform.position, [ 64.5, 0, 36.5 ], 'static boat instance matches the playable world dock location' );
 	assert.equal( checkedInBoat.collision.enabled, false, 'static preview boat does not imply unsupported boat physics' );
-	const checkedInBoatGLB = parseGLB( await readFile( path.join( checkedInDir, 'assets', checkedInBoat.assetId.slice( 'sha256:'.length ) ) ) );
+	const checkedInBoatGLB = parseGLB( await readFile( path.join( checkedInAssetDir, checkedInBoat.assetId.slice( 'sha256:'.length ) ) ) );
 	assert.ok( checkedInBoatGLB.meshes[ 0 ]?.length >= 10, 'static boat GLB includes the generated hull, cabin, deck gear, and fittings' );
 	assert.ok( checkedInBoatGLB.meshes.every( ( mesh ) => mesh.every( ( primitive ) => primitive.attributes.COLOR_0 && primitive.indices?.length > 0 ) ), 'static boat GLB keeps vertex colors and indexed geometry' );
 	const checkedInVegetationComponent = checkedInSource.components.find( component => component.type === 'elsemesh.static-vegetation/1' );
-	const checkedInVegetationBytes = await readFile( path.join( checkedInDir, 'assets', componentData( checkedInVegetationComponent ).placementAssetId.slice( 'sha256:'.length ) ) );
+	const checkedInVegetationBytes = await readFile( path.join( checkedInAssetDir, componentData( checkedInVegetationComponent ).placementAssetId.slice( 'sha256:'.length ) ) );
 	const checkedInVegetation = decodeVegetationPlacements( new Uint8Array( checkedInVegetationBytes ) );
 	assert.ok( Object.values( checkedInVegetation ).filter( Array.isArray ).reduce( ( count, records ) => count + records.length, 0 ) > 100, 'checked-in component asset contains portable individual vegetation placements' );
 	const sourcePath = path.join( output, 'world-source.json' );
@@ -299,7 +300,7 @@ try {
 	for ( const [ id, bytes ] of firstAssets ) {
 		assert.deepEqual( await readFile( path.join( output, 'assets', id.slice( 'sha256:'.length ) ) ), bytes, `repeated generation must preserve bytes for ${id}` );
 		assert.equal( `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`, id, `content-addressed asset bytes must match ${id}` );
-		assert.deepEqual( await readFile( path.join( checkedInDir, 'assets', id.slice( 'sha256:'.length ) ) ), bytes, `checked-in package must contain current exported bytes for ${id}` );
+		assert.deepEqual( await readFile( path.join( checkedInAssetDir, id.slice( 'sha256:'.length ) ) ), bytes, `checked-in package must contain current exported bytes for ${id}` );
 	}
 	const assetFiles = ( await readdir( path.join( output, 'assets' ) ) ).sort();
 	assert.deepEqual( assetFiles, [ ...firstAssets.keys() ].map( ( id ) => id.slice( 'sha256:'.length ) ).sort(), 'package asset directory contains exactly the referenced unique assets' );
@@ -333,20 +334,26 @@ try {
 	assert.deepEqual( naturalDebrisLODGLB.materials.map( material => material.name ), naturalDebrisGLB.materials.map( material => material.name ), 'natural-debris LOD keeps separate coconut, husk, and frond materials' );
 	assert.ok( naturalDebrisLODGLB.meshes[ 0 ].every( primitive => primitive.indices?.length > 0 && primitive.attributes.COLOR_0 ), 'natural-debris LOD preserves indexed, vertex-colored debris pieces' );
 	assert.ok( naturalDebrisLODGLB.meshes[ 0 ].reduce( ( total, primitive ) => total + primitive.indices.length / 3, 0 ) < naturalDebrisGLB.meshes[ 0 ].reduce( ( total, primitive ) => total + primitive.indices.length / 3, 0 ) * 0.7, 'natural-debris LOD reduces geometry by keeping whole authored pieces' );
-	assert.deepEqual( source.rules.requiredFeatures, [ 'elsemesh.static-glb/1', 'elsemesh.static-glb-quaternion/1', 'elsemesh.static-model-instance-set/1', 'elsemesh.terrain-surface/1', 'elsemesh.ground-detail-field/1', 'elsemesh.static-vegetation/1', 'elsemesh.static-grass/1', 'elsemesh.static-reef/1', 'elsemesh.static-fish-props/1', 'elsemesh.example-island-wildlife/1', 'elsemesh.humpback-whale/1', 'elsemesh.island-ocean/1', 'elsemesh.downeast-boat/1', 'elsemesh.local-light-set/1', 'elsemesh.ambient-audio/1', 'elsemesh.portal-handoff/1', 'elsemesh.portal-preview-static/1' ], 'portable content declares the renderer capabilities it requires' );
+	assert.deepEqual( source.rules.requiredFeatures, [ 'elsemesh.static-glb/1', 'elsemesh.static-glb-quaternion/1', 'elsemesh.static-model-instance-set/1', 'elsemesh.terrain-surface/1', 'elsemesh.ground-detail-field/1', 'elsemesh.static-vegetation/1', 'elsemesh.ground-cover-field/1', 'elsemesh.static-reef/1', 'elsemesh.static-fish-props/1', 'elsemesh.example-island-wildlife/1', 'elsemesh.humpback-whale/1', 'elsemesh.island-ocean/1', 'elsemesh.downeast-boat/1', 'elsemesh.local-light-set/1', 'elsemesh.ambient-audio/1', 'elsemesh.portal-handoff/1', 'elsemesh.portal-preview-static/1' ], 'portable content declares the renderer capabilities it requires' );
 	assert.deepEqual( source.portals, [], 'the island package contains no undeclared external world links' );
 	assert.equal( source.components.some( component => component.type === 'elsemesh.procedural-island-terrain/1' ), false, 'the package uses the generic terrain-surface component instead of the legacy world-owned terrain installer' );
 	assert.ok( source.components.some( component => component.type === 'elsemesh.terrain-surface/1' ), 'the package declares the renderer-neutral terrain surface contract' );
 	assert.equal( source.components.some( component => component.type.startsWith( 'elsemesh.village-materials/' ) ), false, 'village materials travel with the signed GLB instead of a Tidewater renderer component' );
-	assert.equal( source.components.length, 11 + source.components.filter( ( component ) => component.type === 'elsemesh.static-reef/1' ).length, 'portable island declares vegetation, light sources, reef tiles, fish props, ground detail, terrain surface, wildlife, humpback, ocean, boat, ambient, and scanned-debris components' );
+	assert.equal( source.components.length, 12 + source.components.filter( ( component ) => component.type === 'elsemesh.static-reef/1' ).length, 'portable island declares finite vegetation, dense ground cover, light sources, reef tiles, fish props, ground detail, terrain surface, wildlife, humpback, ocean, boat, ambient, and scanned-debris components' );
 	const localLightComponent = source.components.find( component => component.type === 'elsemesh.local-light-set/1' );
 	const localLights = validateWorldLocalLightSet( localLightComponent );
 	assert.ok( localLights.length > 0, 'Tidewater exports its static lantern, path, and window lights as renderer-neutral data' );
 	assert.ok( localLights.some( light => light.type === 'point' ) && localLights.some( light => light.type === 'spot' ), 'Tidewater exports both point lights and outward-facing window spots' );
 	assert.equal( vegetationComponent.type, 'elsemesh.static-vegetation/1', 'portable island uses terrain-independent, authored world-space vegetation placements' );
 	assert.match( componentData( vegetationComponent ).placementAssetId, /^sha256:[0-9a-f]{64}$/, 'vegetation placement data is content addressed' );
-	assert.match( componentData( vegetationComponent ).grassMaskAssetId, /^sha256:[0-9a-f]{64}$/, 'grass density data is content addressed' );
-	const grassMask = decodeGrassDensityAsset( new Uint8Array( firstAssets.get( componentData( vegetationComponent ).grassMaskAssetId ) ) );
+	assert.equal( componentData( vegetationComponent ).grassMaskAssetId, undefined, 'finite vegetation does not carry dense grass data' );
+	const groundCoverComponent = source.components.find( component => component.type === 'elsemesh.ground-cover-field/1' );
+	assert.ok( groundCoverComponent, 'dense vegetation uses the renderer-neutral ground-cover contract' );
+	assert.deepEqual( groundCoverComponent.data.species[ 0 ].modelAssetIds, groundCoverPatchSet.lods.map( lod => lod.assetId ).reverse(), 'ground-cover LODs use one shared coarsest-to-finest signed asset list' );
+	assert.equal( groundCoverComponent.data.placementAlgorithm, 'fixed-cell-patch/1', 'ground cover uses its authored fixed-cell patch arrangement' );
+	assert.deepEqual( groundCoverComponent.assets.filter( asset => asset.kind === 'glb' ).map( asset => asset.assetId ).sort(), groundCoverComponent.data.species[ 0 ].modelAssetIds.slice().sort(), 'every shared patch LOD is declared as a signed GLB asset' );
+	assert.match( groundCoverComponent.data.densityAssetId, /^sha256:[0-9a-f]{64}$/, 'ground-cover density data is content addressed' );
+	const grassMask = decodeGrassDensityAsset( new Uint8Array( firstAssets.get( groundCoverComponent.data.densityAssetId ) ) );
 	assert.equal( grassMask.res, 1024, 'portable grass density uses two-metre terrain-mask texels' );
 	assert.equal( grassMask.data.length, grassMask.res * grassMask.res * 4, 'portable grass density has four RGBA channels per texel' );
 	assert.equal( vegetationComponent.priority, 'portal-preview', 'vegetation records are available for open portal previews' );

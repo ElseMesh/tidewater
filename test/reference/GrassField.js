@@ -3,7 +3,7 @@ import { Texture } from '../../../../src/engine/gpu/Texture.js';
 import { ShaderModule } from '../../../../src/engine/gpu/Shader.js';
 import { Material } from '../../../../src/engine/render/Material.js';
 import { GroundCoverCellPlanner } from '../../../../src/engine/render/GroundCoverCellPlanner.js';
-import { vegModule, uCamPos, C, f } from './VegNodes.js';
+import { vegModule, uCamPos, C, f } from '../../renderers/webgpu-vegetation/VegNodes.js';
 import { buildGroundCoverPatch, CELL, R_NEAR, R_MID, R_FAR, FADE_T2, FADE_T1, FADE_T0, MAX_NEAR, MAX_MID, MAX_FAR, TIER_N } from '../../vegetation/GroundCoverPatch.js';
 
 // Camera-following ground flora: tall meadow grass (knee to waist high), dune grass, sea oats and

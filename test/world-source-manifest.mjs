@@ -41,6 +41,9 @@ try {
 	const grassBytes = Buffer.from( encodeGrassDensityAsset( { data: new Uint8Array( 16 ), res: 2, size: 4, origin: -2 } ) );
 	const grassAssetID = `sha256:${createHashForTest( grassBytes )}`;
 	await writeFile( path.join( assetsPath, grassAssetID.slice( 'sha256:'.length ) ), grassBytes );
+	const groundCoverModelBytes = Buffer.from( 'ground cover GLB test payload' );
+	const groundCoverModelID = `sha256:${createHashForTest( groundCoverModelBytes )}`;
+	await writeFile( path.join( assetsPath, groundCoverModelID.slice( 'sha256:'.length ) ), groundCoverModelBytes );
 	const reefPlacementBytes = Buffer.from( 'reef placements test payload' );
 	const reefPlacementAssetID = `sha256:${createHashForTest( reefPlacementBytes )}`;
 	await writeFile( path.join( assetsPath, reefPlacementAssetID.slice( 'sha256:'.length ) ), reefPlacementBytes );
@@ -71,16 +74,27 @@ try {
 		const { id, type, priority, streamingBounds, ...data } = component;
 		const assets = [
 			...( component.placementAssetId ? [ { assetId: component.placementAssetId, kind: type === 'elsemesh.static-reef/1' ? 'reef-placement/1' : type === 'elsemesh.static-fish-props/1' ? 'fish-props-placement/1' : 'vegetation-placement/1' } ] : [] ),
-			...( component.grassMaskAssetId ? [ { assetId: component.grassMaskAssetId, kind: 'grass-density/1' } ] : [] ),
 			...( component.dataAssetId ? [ { assetId: component.dataAssetId, kind: 'terrain-surface/1' } ] : [] ),
 			...( type === 'elsemesh.humpback-whale/1' ? [ [ component.modelAssetId, 'whale-model/1' ], [ component.geometryAssetId, 'whale-geometry/1' ], [ component.albedoAssetId, 'whale-albedo/1' ], [ component.heightAssetId, 'whale-height/1' ] ].map( ( [ assetId, kind ] ) => ( { assetId, kind } ) ) : [] ),
 			...( component.beds || [] ).map( bed => ( { assetId: bed.assetId, kind: 'audio/ogg' } ) ),
 		];
-		for ( const key of [ 'placementAssetId', 'grassMaskAssetId', 'dataAssetId', 'modelAssetId', 'geometryAssetId', 'albedoAssetId', 'heightAssetId' ] ) delete data[ key ];
+		for ( const key of [ 'placementAssetId', 'dataAssetId', 'modelAssetId', 'geometryAssetId', 'albedoAssetId', 'heightAssetId' ] ) delete data[ key ];
 		if ( data.beds ) data.beds = data.beds.map( ( { assetId, ...bed } ) => bed );
 		return { id, type, ...( priority === undefined ? {} : { priority } ), ...( streamingBounds === undefined ? {} : { streamingBounds } ), assets, data };
 	};
-	const sourceComponents = [ { id: 'elsemesh-component:static-plants', type: 'elsemesh.static-vegetation/1', priority: 'portal-preview', placementAssetId: placementAssetID, grassMaskAssetId: grassAssetID }, { id: 'elsemesh-component:reef-tile', type: 'elsemesh.static-reef/1', priority: 'visible', placementAssetId: reefPlacementAssetID, streamingBounds: { center: [ 0, -4, 0 ], radius: 32 } }, { id: 'elsemesh-component:fish-props', type: 'elsemesh.static-fish-props/1', priority: 'visible', placementAssetId: fishPropAssetID, streamingBounds: { center: [ 0, 0, 0 ], radius: 4 } }, terrainSurface, wildlife, humpback, { id: 'elsemesh-component:test-ocean', type: 'elsemesh.island-ocean/1', priority: 'portal-preview' }, { id: 'elsemesh-component:hosted-boat', type: 'elsemesh.downeast-boat/1', objectId: 'elsemesh-object:boat-preview', priority: 'portal-preview' }, { id: 'elsemesh-component:test-ambience', type: 'elsemesh.ambient-audio/1', priority: 'portal-preview', beds: [ { assetId: ambientAssetID, gain: 0.3, condition: 'underwater', position: [ 1, 2, 3 ] } ] } ].map( genericComponent );
+	const sourceComponents = [ { id: 'elsemesh-component:static-plants', type: 'elsemesh.static-vegetation/1', priority: 'portal-preview', placementAssetId: placementAssetID }, { id: 'elsemesh-component:reef-tile', type: 'elsemesh.static-reef/1', priority: 'visible', placementAssetId: reefPlacementAssetID, streamingBounds: { center: [ 0, -4, 0 ], radius: 32 } }, { id: 'elsemesh-component:fish-props', type: 'elsemesh.static-fish-props/1', priority: 'visible', placementAssetId: fishPropAssetID, streamingBounds: { center: [ 0, 0, 0 ], radius: 4 } }, terrainSurface, wildlife, humpback, { id: 'elsemesh-component:test-ocean', type: 'elsemesh.island-ocean/1', priority: 'portal-preview' }, { id: 'elsemesh-component:hosted-boat', type: 'elsemesh.downeast-boat/1', objectId: 'elsemesh-object:boat-preview', priority: 'portal-preview' }, { id: 'elsemesh-component:test-ambience', type: 'elsemesh.ambient-audio/1', priority: 'portal-preview', beds: [ { assetId: ambientAssetID, gain: 0.3, condition: 'underwater', position: [ 1, 2, 3 ] } ] } ].map( genericComponent );
+	sourceComponents.push( {
+		id: 'elsemesh-component:ground-cover', type: 'elsemesh.ground-cover-field/1', priority: 'visible',
+		assets: [ { assetId: grassAssetID, kind: 'grass-density/1' }, { assetId: groundCoverModelID, kind: 'glb' } ],
+		data: {
+			densityAssetId: grassAssetID, seed: 7, cellSize: 8, pointsPerCell: 1, placementAlgorithm: 'fixed-cell-patch/1',
+			distanceBands: [ { maxDistance: 88, cellCapacity: 48 } ], species: [ {
+				id: 'ground-cover-test', densityExpression: { op: 'channel', index: 0 }, densityThreshold: 8,
+				modelAssetIds: [ groundCoverModelID ], bounds: { center: [ 4, 0.65, 4 ], radius: 6 }, geometryMirrorX: false,
+				drawMaxDistance: 88, drawFadeStartDistance: 87, castsShadow: false, shadowMaxDistance: 0,
+			} ],
+		},
+	} );
 	sourceComponents.find( component => component.type === 'elsemesh.downeast-boat/1' ).data.complexityTriangles = 46845;
 	await writeFile( sourcePath, JSON.stringify( {
 		protocol: 'elsemesh.world-source/3',
@@ -90,7 +104,7 @@ try {
 		spawn: { position: [ 53.6, 4.447713719743241, -77 ], yaw: Math.PI, pitch: -0.05 },
 		coordinateSystem: 'right-handed-y-up-meters',
 		styleGuide: '',
-		rules: { gravity: 1, maxVisitors: 12, spawnRadius: 0, seaLevel: -4.5, atmosphereLevel: 18000, avatarComplexity: 20000, physicsProfile: 'default', movement: { walkSpeed: 2.5, sprintSpeed: 7, jumpSpeed: 4.2 }, vehiclePolicy: { enabled: true, maxSpeed: 8, maxCombinedComplexity: 50000 }, maxPackageBytes: 1024, requiredFeatures: [ 'elsemesh.portal-handoff/1', 'elsemesh.static-vegetation/1', 'elsemesh.static-grass/1', 'elsemesh.static-reef/1', 'elsemesh.static-fish-props/1', 'elsemesh.terrain-surface/1', 'elsemesh.example-island-wildlife/1', 'elsemesh.humpback-whale/1', 'elsemesh.island-ocean/1', 'elsemesh.downeast-boat/1', 'elsemesh.ambient-audio/1', 'elsemesh.static-glb-emissive-strength/1' ] },
+		rules: { gravity: 1, maxVisitors: 12, spawnRadius: 0, seaLevel: -4.5, atmosphereLevel: 18000, avatarComplexity: 20000, physicsProfile: 'default', movement: { walkSpeed: 2.5, sprintSpeed: 7, jumpSpeed: 4.2 }, vehiclePolicy: { enabled: true, maxSpeed: 8, maxCombinedComplexity: 50000 }, maxPackageBytes: 1024, requiredFeatures: [ 'elsemesh.portal-handoff/1', 'elsemesh.static-vegetation/1', 'elsemesh.ground-cover-field/1', 'elsemesh.static-reef/1', 'elsemesh.static-fish-props/1', 'elsemesh.terrain-surface/1', 'elsemesh.example-island-wildlife/1', 'elsemesh.humpback-whale/1', 'elsemesh.island-ocean/1', 'elsemesh.downeast-boat/1', 'elsemesh.ambient-audio/1', 'elsemesh.static-glb-emissive-strength/1' ] },
 		hosts: [ { peerId: '12D3KooWAbcdefghijk1234567890123456', scopes: [ 'content-cache', 'failover-authority' ], expiresAt: 1900000000, epoch: 3, failoverAfter: 1800000000, failoverSeconds: 300 } ],
 		objects: [ { id: 'elsemesh-object:bounded', kind: 'asset-instance', label: 'Bounded', assetId: boundedAssetID, priority: 'nearby', streamingBounds: { center: [ 1, 2, 3 ], radius: 4 }, transform: { position: [ 0, 0, 0 ], yaw: 0 }, scale: [ 1, 1, 1 ], collision: { shape: 'none', enabled: false } }, { id: 'elsemesh-object:boat-preview', kind: 'asset-instance', label: 'Boat berth preview', assetId: boatPreviewAssetID, priority: 'portal-preview', transform: { position: [ 0, -4.5, 0 ], yaw: 0 }, scale: [ 1, 1, 1 ], collision: { shape: 'none', enabled: false } } ],
 		components: sourceComponents,
@@ -106,7 +120,7 @@ try {
 			'--owner', 'owner-peer',
 			'--assets', assetsPath,
 			'--out', path.join( root, output ),
-		], { stdio: 'ignore' } );
+		], { stdio: 'inherit' } );
 	}
 
 	const [ first, second ] = await Promise.all( outputs.map( ( output ) => readFile( path.join( root, output ) ) ) );
@@ -123,9 +137,10 @@ try {
 	assert.equal( manifest.updatedAt, 1790771696, 'runtime timestamp must come from the source snapshot' );
 	assert.equal( manifest.discoverable, false, 'world publication is private by default' );
 	assert.deepEqual( manifest.hosts, [ { peerId: '12D3KooWAbcdefghijk1234567890123456', scopes: [ 'content-cache', 'failover-authority' ], expiresAt: 1900000000, epoch: 3, failoverAfter: 1800000000, failoverSeconds: 300 } ], 'owner-granted cache and failover authority survive conversion' );
-	assert.deepEqual( manifest.rules.requiredFeatures, [ 'elsemesh.portal-handoff/1', 'elsemesh.static-vegetation/1', 'elsemesh.static-grass/1', 'elsemesh.static-reef/1', 'elsemesh.static-fish-props/1', 'elsemesh.terrain-surface/1', 'elsemesh.example-island-wildlife/1', 'elsemesh.humpback-whale/1', 'elsemesh.island-ocean/1', 'elsemesh.downeast-boat/1', 'elsemesh.ambient-audio/1', 'elsemesh.static-glb-emissive-strength/1' ], 'runtime feature requirements survive deterministic conversion' );
+	assert.deepEqual( manifest.rules.requiredFeatures, [ 'elsemesh.portal-handoff/1', 'elsemesh.static-vegetation/1', 'elsemesh.ground-cover-field/1', 'elsemesh.static-reef/1', 'elsemesh.static-fish-props/1', 'elsemesh.terrain-surface/1', 'elsemesh.example-island-wildlife/1', 'elsemesh.humpback-whale/1', 'elsemesh.island-ocean/1', 'elsemesh.downeast-boat/1', 'elsemesh.ambient-audio/1', 'elsemesh.static-glb-emissive-strength/1' ], 'runtime feature requirements survive deterministic conversion' );
 	assert.deepEqual( manifest.components.find( component => component.type === wildlife.type ), genericComponent( wildlife ), 'deterministic conversion preserves the generic envelope and opaque owner data' );
-	assert.deepEqual( manifest.components.at( -1 ), genericComponent( { id: 'elsemesh-component:test-ambience', type: 'elsemesh.ambient-audio/1', priority: 'portal-preview', beds: [ { assetId: ambientAssetID, gain: 0.3, condition: 'underwater', position: [ 1, 2, 3 ] } ] } ), 'component data and asset references survive deterministic conversion' );
+	assert.deepEqual( manifest.components.find( component => component.id === 'elsemesh-component:test-ambience' ), genericComponent( { id: 'elsemesh-component:test-ambience', type: 'elsemesh.ambient-audio/1', priority: 'portal-preview', beds: [ { assetId: ambientAssetID, gain: 0.3, condition: 'underwater', position: [ 1, 2, 3 ] } ] } ), 'component data and asset references survive deterministic conversion' );
+	assert.deepEqual( manifest.components.find( component => component.id === 'elsemesh-component:ground-cover' ), sourceComponents.find( component => component.id === 'elsemesh-component:ground-cover' ), 'renderer-neutral ground-cover component survives deterministic conversion unchanged' );
 	assert.deepEqual( manifest.components.find( ( component ) => component.type === 'elsemesh.downeast-boat/1' ), genericComponent( { id: 'elsemesh-component:hosted-boat', type: 'elsemesh.downeast-boat/1', objectId: 'elsemesh-object:boat-preview', complexityTriangles: 46845, priority: 'portal-preview' } ), 'vehicle complexity metadata survives deterministic conversion' );
 	assert.ok( manifest.assets.some( ( asset ) => asset.id === ambientAssetID && asset.kind === 'audio/ogg' && asset.priority === 'portal-preview' ), 'audio bytes are included in the signed manifest at the component streaming priority' );
 	assert.ok( manifest.assets.some( asset => asset.id === javascriptAssetID && asset.kind === 'javascript/1' && asset.bytes === javascriptBytes.byteLength && asset.priority === 'visible' ), 'referenced JavaScript bytes are included as a bounded visible asset' );
@@ -144,7 +159,7 @@ try {
 	malformedComponentSource.components.at( -1 ).beds = [];
 	assert.throws( () => validateWorldSource( malformedComponentSource ), /world component envelope/, 'source validation rejects semantic fields outside the generic component envelope' );
 	assert.ok( manifest.assets.some( ( asset ) => asset.id === placementAssetID && asset.kind === 'vegetation-placement/1' && asset.priority === 'portal-preview' ), 'component placement data is included as a hash-verified early-stream asset' );
-	assert.ok( manifest.assets.some( ( asset ) => asset.id === grassAssetID && asset.kind === 'grass-density/1' && asset.priority === 'portal-preview' ), 'portable grass mask is included with the component stream priority' );
+	assert.ok( manifest.assets.some( ( asset ) => asset.id === grassAssetID && asset.kind === 'grass-density/1' && asset.priority === 'visible' ), 'portable ground-cover density is included with the component stream priority' );
 	assert.doesNotThrow( () => validateWorldComponents( manifest.components, manifest.rules, new Set(), manifest.assets, manifest.objects ), 'client accepts the correctly referenced portable grass component' );
 	assert.throws( () => validateWorldComponents( manifest.components, { ...manifest.rules, requiredFeatures: manifest.rules.requiredFeatures.filter( feature => feature !== 'elsemesh.static-vegetation/1' ) }, new Set(), manifest.assets, manifest.objects ), /missing from requiredFeatures/, 'client requires every component type to be declared' );
 	assert.throws( () => validateWorldComponents( manifest.components, manifest.rules, new Set(), manifest.assets.filter( asset => asset.id !== grassAssetID ), manifest.objects ), /invalid component asset reference/, 'client rejects a missing component asset' );

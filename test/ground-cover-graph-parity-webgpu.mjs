@@ -15,7 +15,7 @@ import { worldComponentBackendAdapter } from '../../../src/network/WorldComponen
 import '../../../src/network/WebGPUWorldComponentAdapters.js';
 import { setupLife } from '../../../test/life-harness.mjs';
 import { groundCoverFieldRenderFixture } from '../../../test/helpers/ground-cover-field-render-fixture.mjs';
-import { GrassField } from '../renderers/webgpu-vegetation/GrassField.js';
+import { GrassField } from './reference/GrassField.js';
 import { uCamPos } from '../renderers/webgpu-vegetation/VegNodes.js';
 
 const worldRoot = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..' );
@@ -26,10 +26,10 @@ const assetBytes = async assetId => {
 	assert.equal( createHash( 'sha256' ).update( bytes ).digest( 'hex' ), assetId.slice( 'sha256:'.length ), `signed asset ${assetId} matches its content hash` );
 	return bytes;
 };
-const vegetation = worldSource.components.find( component => component.type === 'elsemesh.static-vegetation/1' );
+const groundCover = worldSource.components.find( component => component.type === 'elsemesh.ground-cover-field/1' );
 const terrainComponent = worldSource.components.find( component => component.type === 'elsemesh.terrain-surface/1' );
-assert.ok( vegetation?.data?.grassMaskAssetId && terrainComponent?.data?.dataAssetId, 'Tidewater declares its authored vegetation density and terrain surface' );
-const [ densityBytes, terrainBytes ] = await Promise.all( [ assetBytes( vegetation.data.grassMaskAssetId ), assetBytes( terrainComponent.data.dataAssetId ) ] );
+assert.ok( groundCover?.data?.densityAssetId && terrainComponent?.data?.dataAssetId, 'Tidewater declares its authored ground-cover density and terrain surface' );
+const [ densityBytes, terrainBytes ] = await Promise.all( [ assetBytes( groundCover.data.densityAssetId ), assetBytes( terrainComponent.data.dataAssetId ) ] );
 const density = decodeGrassDensityAsset( densityBytes );
 const terrainMaps = await decodeTerrainSurfaceAsset( terrainBytes );
 const terrain = new HeightfieldTerrainData( terrainMaps );
@@ -74,15 +74,13 @@ try {
 		terrainHeightModule: terrainGPU.heightModule,
 		terrainDetail: { width: terrainMaps.detailWidth, height: terrainMaps.detailHeight, data: terrainMaps.detail },
 	} );
+	assert.deepEqual( fixture.component.data.species[ 0 ].modelAssetIds, groundCover.data.species[ 0 ].modelAssetIds, 'both engine paths use the exact content-addressed Tidewater patch GLBs declared by the signed package' );
 	detailTexture = new Texture( { label: 'tidewater-ground-cover-parity-detail', width: fixture.terrainDetail.width, height: fixture.terrainDetail.height, format: 'rgba8unorm', data: fixture.terrainDetail.data, sampler: 'aniso4Repeat' } );
 	const root = new Group();
 	root.userData.terrainData = fixture.terrain;
 	root.userData.worldComponents = [ { terrainSurface: true, terrainGPU: { detailTexture, heightModule: fixture.terrainHeightModule } } ];
 	root.userData.worldPackage = { parsed: new Map(), loadedObjects: new Set(), connector: fixture.connector, progressiveController: new AbortController() };
-	const component = {
-		...fixture.component,
-		data: { ...fixture.component.data, species: [ { ...fixture.component.data.species[ 0 ], castsShadow: false, shadowMaxDistance: 0 } ] },
-	};
+	const component = groundCover;
 	const installed = await worldComponentBackendAdapter( 'webgpu', component.type )( { app: {}, root, connector: fixture.connector }, component );
 	assert.equal( installed?.installed, true, 'Tidewater patch GLBs install through the generic WebGPU ground-cover adapter' );
 	runtime = installed.runtime;

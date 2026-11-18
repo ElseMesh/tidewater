@@ -546,7 +546,7 @@
       "elsemesh.terrain-surface/1",
       "elsemesh.ground-detail-field/1",
       "elsemesh.static-vegetation/1",
-      "elsemesh.static-grass/1",
+      "elsemesh.ground-cover-field/1",
       "elsemesh.static-reef/1",
       "elsemesh.static-fish-props/1",
       "elsemesh.example-island-wildlife/1",
@@ -15337,16 +15337,104 @@
         {
           "assetId": "sha256:e9ead2780768e0dabea07317da0c020497137472e6adc1cb3f166611fb0fbae6",
           "kind": "vegetation-placement/1"
-        },
-        {
-          "assetId": "sha256:36507b8de08a52423c0eb3d5bf7cba6c373dbbec931aa1e1969e09abac9df8c2",
-          "kind": "grass-density/1"
         }
       ],
       "data": {
         "placementAssetId": "sha256:e9ead2780768e0dabea07317da0c020497137472e6adc1cb3f166611fb0fbae6",
-        "grassMaskAssetId": "sha256:36507b8de08a52423c0eb3d5bf7cba6c373dbbec931aa1e1969e09abac9df8c2",
         "seed": 7
+      }
+    },
+    {
+      "id": "elsemesh-component:island-ground-cover",
+      "type": "elsemesh.ground-cover-field/1",
+      "priority": "visible",
+      "assets": [
+        {
+          "assetId": "sha256:36507b8de08a52423c0eb3d5bf7cba6c373dbbec931aa1e1969e09abac9df8c2",
+          "kind": "grass-density/1"
+        },
+        {
+          "assetId": "sha256:deddfb428ef28061a661a6878d1ac0be812308b8e9dcde9227fe57714d1b3aa7",
+          "kind": "glb"
+        },
+        {
+          "assetId": "sha256:0da5735c58ef617c3276ea6710b6b26acb61840b316a161e0ac226afbf0c19eb",
+          "kind": "glb"
+        },
+        {
+          "assetId": "sha256:ca1bb40bb05291f7a73b0cf2e506ce5c7cbb9bd45e393f2e2a8c8cd822bd9da9",
+          "kind": "glb"
+        }
+      ],
+      "data": {
+        "densityAssetId": "sha256:36507b8de08a52423c0eb3d5bf7cba6c373dbbec931aa1e1969e09abac9df8c2",
+        "seed": 7,
+        "cellSize": 8,
+        "pointsPerCell": 1,
+        "placementAlgorithm": "fixed-cell-patch/1",
+        "distanceBands": [
+          {
+            "maxDistance": 18,
+            "cellCapacity": 48
+          },
+          {
+            "maxDistance": 46,
+            "cellCapacity": 160
+          },
+          {
+            "maxDistance": 88,
+            "cellCapacity": 420
+          }
+        ],
+        "species": [
+          {
+            "id": "tidewater-ground-cover",
+            "densityExpression": {
+              "op": "max",
+              "left": {
+                "op": "max",
+                "left": {
+                  "op": "channel",
+                  "index": 0
+                },
+                "right": {
+                  "op": "channel",
+                  "index": 1
+                }
+              },
+              "right": {
+                "op": "max",
+                "left": {
+                  "op": "channel",
+                  "index": 2
+                },
+                "right": {
+                  "op": "channel",
+                  "index": 3
+                }
+              }
+            },
+            "densityThreshold": 8,
+            "modelAssetIds": [
+              "sha256:ca1bb40bb05291f7a73b0cf2e506ce5c7cbb9bd45e393f2e2a8c8cd822bd9da9",
+              "sha256:0da5735c58ef617c3276ea6710b6b26acb61840b316a161e0ac226afbf0c19eb",
+              "sha256:deddfb428ef28061a661a6878d1ac0be812308b8e9dcde9227fe57714d1b3aa7"
+            ],
+            "bounds": {
+              "center": [
+                4,
+                0.65,
+                4
+              ],
+              "radius": 5.772564421468157
+            },
+            "geometryMirrorX": false,
+            "drawMaxDistance": 88,
+            "drawFadeStartDistance": 87,
+            "castsShadow": false,
+            "shadowMaxDistance": 0
+          }
+        ]
       }
     },
     {

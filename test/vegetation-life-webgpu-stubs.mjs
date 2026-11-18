@@ -1,5 +1,5 @@
-// Node module hook for the Tidewater WebGPU vegetation fixture: replaces GrassField.js with a
-// stub when VEG_STUB_GRASS=1 (grass is exercised separately by vegetation-life-grass.mjs).
+// Node module hook: replace the test-only pre-migration GrassField reference with a stub when
+// VEG_STUB_GRASS=1 (grass is exercised separately by vegetation-life-grass.mjs).
 export async function resolve( specifier, context, next ) {
 
 	if ( process.env.VEG_STUB_GRASS === '1' && /\/GrassField\.js$/.test( specifier ) ) {

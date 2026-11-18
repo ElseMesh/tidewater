@@ -1,8 +1,7 @@
 import * as THREE from '../../../src/engine/index.js';
 import { G } from '../../../src/core/Globals.js';
-import { createVegetationPlacement, createVegetationSite, buildGrassMask, RULES } from '../vegetation/Scatter.js';
+import { createVegetationPlacement, RULES } from '../vegetation/Scatter.js';
 import { VegType, LodLevel } from './webgpu-vegetation/InstanceLOD.js';
-import { GrassField } from './webgpu-vegetation/GrassField.js';
 import { uCamPos, uGustOffset, UNDER_FERN_FADE } from './webgpu-vegetation/VegNodes.js';
 
 // WGSL variant index of an instance (VegNodes.vegVariantOf)
@@ -17,16 +16,15 @@ import { LeafAtlas } from './webgpu-vegetation/LeafTextures.js';
 
 // Island vegetation: coconut palms along the back of the beach (leaning to the sea), a closed
 // rainforest canopy on the hillsides and gullies thinning into scattered trees and shrub
-// thickets at the forest edge, banana groves, young palms and ferns in the understory, and a
-// camera-following field of tall meadow grass, dune grass, sea oats and beach creeper.
+// thickets at the forest edge, banana groves, young palms and ferns in the understory.
 //
 // Everything is instanced and procedural. Wind (G.windDir / G.windSpeed) drives trunk sway,
-// frond / branch bending, leaf flutter and travelling gusts across the grass.
+// frond and branch bending, and leaf flutter.
 //
 // Draw calls (main pass): palm near, palm far, understory (young palms + ferns), bananas, monstera,
 // broadleaf (elephant ear + heliconia + bird of paradise), canopy near (trees + shrubs), canopy impostors (octahedral,
-// trees + shrubs), grass near / mid / far = 11 (fewer when a level is empty). Shadow casters: palm
-// near, bananas, monstera, broadleaf, canopy near.
+// trees + shrubs) = 8 (fewer when a level is empty). Shadow casters: palm near, bananas, monstera,
+// broadleaf, canopy near.
 //
 // Options: { scene, terrain, village? } - with a village (Village.js) its building footprints
 // and boardwalks are kept clear; otherwise a default boardwalk polyline is used.
@@ -72,7 +70,7 @@ const CANOPY_FAR = [ 2600, 2800 ];
 
 export class Vegetation {
 
-	constructor( { scene, terrain, village = null, worldLayout, includeGrass = true, placementRecords = null, grassMask = null } ) {
+	constructor( { scene, terrain, village = null, worldLayout, placementRecords = null } ) {
 
 		this.scene = scene;
 		this.terrain = terrain;
@@ -82,13 +80,10 @@ export class Vegetation {
 
 		const t0 = performance.now();
 		const placement = placementRecords ? null : createVegetationPlacement( terrain, village, worldLayout );
-		const site = placement?.site || ( includeGrass && ! grassMask ? createVegetationSite( terrain, village, worldLayout ) : null );
-		this.site = site;
 		const recs = placementRecords || placement.records;
 		this.records = recs;
 		const t1 = performance.now();
-		const resolvedGrassMask = includeGrass ? grassMask || buildGrassMask( site ) : null;
-		this.timings = { scatter: t1 - t0, mask: performance.now() - t1 };
+		this.timings = { scatter: t1 - t0 };
 
 		// materials (shared across meshes)
 		const leafMat = createPlantLeafMaterial();
@@ -191,14 +186,10 @@ export class Vegetation {
 		// renderer handle; the atlas bakes with its own MeshRenderer)
 		this.renderer = true;
 
-		this.grass = includeGrass ? new GrassField( { terrain, mask: resolvedGrassMask } ) : null;
-		if ( this.grass ) for ( const m of this.grass.meshes ) this.group.add( m );
-
 		this.geometryTriangles = {
 			palmNear: palmNear.triangles, palmFar: palmFar.triangles, understory: under.triangles, understoryPerKind: under.perKind,
 			broadleaf: broad.triangles, broadleafPerKind: broad.perKind, monstera: monsteraMesh.triangles, bananas: bananaMesh.triangles,
 			canopy: canopy.triangles, tree: canopy.treeTriangles, shrub: canopy.shrubTriangles, impostor: 2,
-			grassNearPatch: this.grass?.patchTris[ 0 ] ?? 0, grassMidPatch: this.grass?.patchTris[ 1 ] ?? 0, grassFarPatch: this.grass?.patchTris[ 2 ] ?? 0,
 		};
 
 		this.group.updateMatrixWorld( true );
@@ -253,16 +244,6 @@ export class Vegetation {
 		if ( a ) a.update( p, true );
 		if ( b ) b.update( p, true );
 
-		this.grass?.update( camera );
-
-	}
-
-	// Re-upload the terrain height texture used by the grass after terrain.flatten() & co.
-	// (plant placement is computed once in the constructor: build Vegetation after terrain edits).
-	refreshTerrain() {
-
-		if ( this.grass ) this.grass.heightTex.needsUpdate = true;
-
 	}
 
 	stats() {
@@ -285,12 +266,6 @@ export class Vegetation {
 
 		}
 
-		const g = this.grass;
-		if ( g ) {
-			types.grass = { nearCells: g.levels[ 0 ].count, midCells: g.levels[ 1 ].count, farCells: g.levels[ 2 ].count, triangles: g.triangles };
-			tris += g.triangles;
-			draws += g.levels.filter( ( l ) => l.count > 0 ).length;
-		}
 		return { types, triangles: tris, drawCalls: draws, villagePalms: this.records.villagePalms, rules: RULES };
 
 	}
@@ -304,7 +279,6 @@ export class Vegetation {
 		this.leafAtlas.rt.dispose();
 		this.atlas.rtB.dispose();
 		this.atlas.depth.destroy();
-		this.grass?.dispose();
 
 	}
 

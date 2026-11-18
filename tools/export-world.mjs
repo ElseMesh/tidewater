@@ -223,6 +223,7 @@ for ( const [ level, name ] of [ 'near', 'mid', 'far' ].entries() ) {
 	const bytes = groundCoverPatchGLB( `Tidewater ground cover ${name}`, patch, groundCoverMaterialGraph );
 	const assetId = `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`;
 	groundCoverPatchAssets.set( assetId.slice( 'sha256:'.length ), bytes );
+	staticAssets.set( assetId, bytes );
 	groundCoverPatchSet.lods.push( { level: name, assetId, triangles: patch.triangles, bytes: bytes.byteLength } );
 }
 const groundCoverPatchPath = path.join( output, 'ground-cover-patches' );
@@ -327,7 +328,7 @@ const source = {
 			},
 			vehicles: { 'elsemesh.downeast-boat/1': { stepHeightMeters: 0.36 } },
 		},
-		requiredFeatures: [ 'elsemesh.static-glb/1', 'elsemesh.static-glb-quaternion/1', 'elsemesh.static-model-instance-set/1', 'elsemesh.terrain-surface/1', 'elsemesh.ground-detail-field/1', 'elsemesh.static-vegetation/1', 'elsemesh.static-grass/1', 'elsemesh.static-reef/1', 'elsemesh.static-fish-props/1', 'elsemesh.example-island-wildlife/1', 'elsemesh.humpback-whale/1', 'elsemesh.island-ocean/1', 'elsemesh.downeast-boat/1', 'elsemesh.local-light-set/1', 'elsemesh.ambient-audio/1', 'elsemesh.portal-handoff/1', 'elsemesh.portal-preview-static/1' ],
+		requiredFeatures: [ 'elsemesh.static-glb/1', 'elsemesh.static-glb-quaternion/1', 'elsemesh.static-model-instance-set/1', 'elsemesh.terrain-surface/1', 'elsemesh.ground-detail-field/1', 'elsemesh.static-vegetation/1', 'elsemesh.ground-cover-field/1', 'elsemesh.static-reef/1', 'elsemesh.static-fish-props/1', 'elsemesh.example-island-wildlife/1', 'elsemesh.humpback-whale/1', 'elsemesh.island-ocean/1', 'elsemesh.downeast-boat/1', 'elsemesh.local-light-set/1', 'elsemesh.ambient-audio/1', 'elsemesh.portal-handoff/1', 'elsemesh.portal-preview-static/1' ],
 		maxPackageBytes: canonicalSource.rules.maxPackageBytes ?? 128 * 1024 * 1024,
 	},
 	hosts: [],
@@ -388,7 +389,23 @@ const source = {
 	} ],
 	components: [
 		{ id: 'elsemesh-component:island-lights', type: 'elsemesh.local-light-set/1', priority: 'visible', assets: [], data: { lights: generated.localLights } },
-		{ id: 'elsemesh-component:island-vegetation', type: 'elsemesh.static-vegetation/1', priority: 'portal-preview', assets: [ { assetId: vegetationAssetId, kind: 'vegetation-placement/1' }, { assetId: grassDensityAssetId, kind: 'grass-density/1' } ], data: { placementAssetId: vegetationAssetId, grassMaskAssetId: grassDensityAssetId, seed: 7 } },
+		{ id: 'elsemesh-component:island-vegetation', type: 'elsemesh.static-vegetation/1', priority: 'portal-preview', assets: [ { assetId: vegetationAssetId, kind: 'vegetation-placement/1' } ], data: { placementAssetId: vegetationAssetId, seed: 7 } },
+		{
+			id: 'elsemesh-component:island-ground-cover', type: 'elsemesh.ground-cover-field/1', priority: 'visible',
+			assets: [ { assetId: grassDensityAssetId, kind: 'grass-density/1' }, ...groundCoverPatchSet.lods.map( lod => ( { assetId: lod.assetId, kind: 'glb' } ) ) ],
+			data: {
+				densityAssetId: grassDensityAssetId, seed: groundCoverPatchSet.seed, cellSize: GROUND_COVER_CELL, pointsPerCell: 1, placementAlgorithm: 'fixed-cell-patch/1',
+				distanceBands: [ { maxDistance: 18, cellCapacity: 48 }, { maxDistance: 46, cellCapacity: 160 }, { maxDistance: 88, cellCapacity: 420 } ],
+				species: [ {
+					id: 'tidewater-ground-cover',
+					densityExpression: { op: 'max', left: { op: 'max', left: { op: 'channel', index: 0 }, right: { op: 'channel', index: 1 } }, right: { op: 'max', left: { op: 'channel', index: 2 }, right: { op: 'channel', index: 3 } } },
+					densityThreshold: 8,
+					modelAssetIds: [ groundCoverPatchSet.lods[ 2 ].assetId, groundCoverPatchSet.lods[ 1 ].assetId, groundCoverPatchSet.lods[ 0 ].assetId ],
+					bounds: { center: [ 4, 0.65, 4 ], radius: Math.hypot( 4, 1.15, 4 ) }, geometryMirrorX: false,
+					drawMaxDistance: 88, drawFadeStartDistance: 87, castsShadow: false, shadowMaxDistance: 0,
+				} ],
+			},
+		},
 		...( generated.fishProps.length ? [ { id: 'elsemesh-component:island-fish-props', type: 'elsemesh.static-fish-props/1', priority: 'visible', streamingBounds: fishPropsBounds, assets: [ { assetId: fishPropsAssetId, kind: 'fish-props-placement/1' } ], data: { placementAssetId: fishPropsAssetId } } ] : [] ),
 		{ id: 'elsemesh-component:island-terrain', type: 'elsemesh.terrain-surface/1', priority: 'visible', assets: [ { assetId: terrainSurfaceAssetId, kind: 'terrain-surface/1' } ], data: { ...terrainSurfaceSource.data, profile: 'example-island-v1', objectId: 'elsemesh-object:island-terrain', dataAssetId: terrainSurfaceAssetId } },
 		{ id: 'elsemesh-component:scanned-debris', type: 'elsemesh.static-model-instance-set/1', priority: 'visible', streamingBounds: scannedDebrisBounds, assets: [ { assetId: scannedSetAssetId, kind: 'static-model-instance-set/1' }, ...[ ...scannedStaticModelSet.assets.keys() ].map( hash => ( { assetId: `sha256:${hash}`, kind: 'glb' } ) ), ...[ ...scannedStaticModelSet.textureAssets.keys() ].map( hash => ( { assetId: `sha256:${hash}`, kind: 'image/jpeg' } ) ) ], data: {} },
