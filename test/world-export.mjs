@@ -30,6 +30,7 @@ import { compileWorldMaterialGraph } from '../../../src/materials/WorldMaterialG
 import { validateWorldLocalLightSet } from '../../../src/network/WorldLocalLightSet.js';
 import { TIDEWATER_PALM_MATERIAL_GRAPH } from '../vegetation/VegetationMaterialGraph.js';
 import { TIDEWATER_SCANNED_DEBRIS_MATERIAL_GRAPH } from '../debris/ScannedMaterialGraph.js';
+import { SCANNED_DEBRIS_ASSETS } from '../debris/ScannedAssets.js';
 
 const temporaryRoot = process.env.PREFIX ? path.join( process.env.PREFIX, 'tmp' ) : '/var/tmp';
 const output = await mkdtemp( path.join( temporaryRoot, 'elsemesh-island-export-' ) );
@@ -167,6 +168,7 @@ try {
 	assert.equal( scannedSet.instances.length, 141, 'scanned-debris migration artifact contains the complete generated population' );
 	assert.equal( scannedSet.models.length, 4, 'scanned-debris migration artifact keeps the four source asset classes distinct' );
 	assert.deepEqual( scannedSet.models[ 0 ].lodThresholds, [ 70, 22 ], 'the shared planner receives the authored coarse-to-fine distance handoffs' );
+	assert.equal( scannedSet.models[ 0 ].lodMetric, 'world-distance-offset', 'the shared planner supports Tidewater radius-adjusted LOD distances' );
 	assert.equal( scannedSet.models[ 0 ].shadowLod, 2, 'near source geometry is selected for shadows in coarse-to-fine ordering' );
 	assert.equal( scannedSet.models[ 0 ].drawMaxDistance, 260, 'the shared model set retains the current far cull distance' );
 	assert.deepEqual( scannedSetBytes, scannedSetBytesFirst, 'the renderer-neutral scanned-debris descriptor is deterministic' );
@@ -203,6 +205,10 @@ try {
 		assert.deepEqual( instance.position, sourceObject.transform.position, 'the shared instance keeps the exact authored position' );
 		assert.deepEqual( instance.rotation, sourceObject.transform.rotation, 'the shared instance keeps the exact authored orientation' );
 		assert.deepEqual( instance.scale, sourceObject.scale, 'the shared instance keeps the exact authored scale' );
+		const sourceAsset = SCANNED_DEBRIS_ASSETS.find( asset => asset.id.replaceAll( '_', ' ' ) === sourceObject.label );
+		assert.ok( sourceAsset, 'scanned source object resolves its original size record' );
+		const expectedOffset = Math.hypot( sourceAsset.size[ 0 ] * instance.scale[ 0 ], sourceAsset.size[ 1 ] * instance.scale[ 1 ], sourceAsset.size[ 2 ] * instance.scale[ 2 ] ) * 3;
+		assert.equal( instance.lodDistanceOffset, expectedOffset, 'the authored LOD offset matches the original six-times-radius calculation' );
 	}
 	const sourceBytes = await readFile( sourcePath );
 	const terrainReportSecond = await readFile( terrainReportPath );
