@@ -37,8 +37,8 @@ let original, runtime, detailTexture, terrainGPU;
 try {
 	terrainGPU = new TerrainGPU( terrain, terrainMaps.shoreField, { normal: terrainMaps.normal, splat: terrainMaps.splat, detailWidth: terrainMaps.detailWidth, detailHeight: terrainMaps.detailHeight, detail: terrainMaps.detail } );
 	const spawn = worldSource.spawn.position;
-	L.camera.position.set( spawn[ 0 ], terrain.heightAt( spawn[ 0 ], spawn[ 2 ] ) + 2, spawn[ 2 ] );
-	L.camera.lookAt( spawn[ 0 ], terrain.heightAt( spawn[ 0 ], spawn[ 2 ] + 24 ) + 1, spawn[ 2 ] + 24 );
+	L.camera.position.set( spawn[ 0 ], terrain.heightAt( spawn[ 0 ], spawn[ 2 ] ) + 1.7, spawn[ 2 ] );
+	L.camera.lookAt( spawn[ 0 ], terrain.heightAt( spawn[ 0 ], spawn[ 2 ] - 10 ) + 0.5, spawn[ 2 ] - 10 );
 
 	// This is Tidewater's existing pre-migration WebGPU presenter. Hold its
 	// geometry, placement, signed density, packaged terrain, camera, and frame time fixed.
