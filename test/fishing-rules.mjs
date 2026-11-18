@@ -52,6 +52,16 @@ for ( const [ hour, expected ] of [
 	assert.equal( runtime.bite.t, initialTime - expected, `bite wait rate at ${hour} hours` );
 }
 
+// Pre-split Bites.biteDelay returned Infinity for barren water. The Worker
+// serializes that non-finite timer as null, and the wait remains indefinite
+// even if a later frame reports fishable habitat, matching the old Game path.
+await runtime.startBite( {}, 12, 12345 );
+assert.equal( runtime.bite.phase, 'wait', 'a barren cast stays in the waiting phase' );
+assert.equal( runtime.bite.t, null, 'the Worker snapshot serializes the inherited infinite wait as null' );
+const barrenStep = await runtime.stepBite( 1, { habitat: { shallows: 1 }, hour: 12 } );
+assert.equal( barrenStep.bite.t, null, 'later fishable habitat does not reset the inherited barren-water wait' );
+assert.equal( barrenStep.event, null, 'a barren-water wait does not emit a fish event' );
+
 assert.throws( () => runFishingRulesExtension( { type: 'initialize', behaviorData: { fishCatalog: fishingBehavior.data.fishCatalog, biteRateSchedule: { defaultMultiplier: 1, windows: [ { startHour: 4, endHour: 6, multiplier: 1.2 }, { startHour: 5, endHour: 7, multiplier: 1.3 } ] } } } ), /invalid bite-rate schedule window/ );
 assert.throws( () => runFishingRulesExtension( { type: 'initialize', behaviorData: { fishCatalog: fishingBehavior.data.fishCatalog, biteRateSchedule: { defaultMultiplier: 1, windows: [ { startHour: 5.05, endHour: 6, multiplier: 1 } ] } } } ), /invalid bite-rate schedule window/ );
 
