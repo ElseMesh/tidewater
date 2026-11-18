@@ -7,6 +7,7 @@ import { GPU } from '../../../src/engine/gpu/GPU.js';
 import { Texture } from '../../../src/engine/gpu/Texture.js';
 import { Group } from '../../../src/engine/scene/Group.js';
 import { TerrainGPU } from '../../../src/world/TerrainGPU.js';
+import { Terrain } from '../../../src/world/Terrain.js';
 import { HeightfieldTerrainData } from '../../../src/world/HeightfieldTerrainData.js';
 import { decodeGrassDensityAsset } from '../../../src/network/GrassDensityAsset.js';
 import { decodeTerrainSurfaceAsset } from '../../../src/network/TerrainSurfaceAsset.js';
@@ -33,9 +34,10 @@ const terrain = new HeightfieldTerrainData( terrainMaps );
 const captureDir = process.env.ELSEMESH_GROUND_COVER_CAPTURE_DIR || null;
 if ( captureDir ) await mkdir( captureDir, { recursive: true } );
 const L = await setupLife( { W: 256, H: 192, shadowSplits: [ 12 ] } );
-let original, runtime, detailTexture, terrainGPU;
+let original, runtime, detailTexture, terrainGPU, terrainSurface;
 try {
 	terrainGPU = new TerrainGPU( terrain, terrainMaps.shoreField, { normal: terrainMaps.normal, splat: terrainMaps.splat, detailWidth: terrainMaps.detailWidth, detailHeight: terrainMaps.detailHeight, detail: terrainMaps.detail } );
+	terrainSurface = new Terrain( { scene: L.scene, terrainData: terrain, terrainGPU, surfaceProfile: terrainComponent.data.surfaceProfile } );
 	const spawn = worldSource.spawn.position;
 	L.camera.position.set( spawn[ 0 ], terrain.heightAt( spawn[ 0 ], spawn[ 2 ] ) + 1.7, spawn[ 2 ] );
 	L.camera.lookAt( spawn[ 0 ], terrain.heightAt( spawn[ 0 ], spawn[ 2 ] - 10 ) + 0.5, spawn[ 2 ] - 10 );
@@ -44,9 +46,9 @@ try {
 	// geometry, placement, signed density, packaged terrain, camera, and frame time fixed.
 	original = new GrassField( { terrain, mask: density } );
 	for ( const mesh of original.meshes ) L.scene.add( mesh );
-	await L.run( 2, () => original.update( L.camera ), 0 );
+	await L.run( 2, () => { terrainSurface.update( L.camera, true ); original.update( L.camera ); }, 0 );
 	await GPU.pipelinesReady();
-	await L.run( 2, () => original.update( L.camera ), 0 );
+	await L.run( 2, () => { terrainSurface.update( L.camera, true ); original.update( L.camera ); }, 0 );
 	const reference = new Uint8Array( ( await readFrame() ).data );
 	const sourceForegroundPixels = countForegroundPixels( reference );
 	assert.ok( sourceForegroundPixels > 20, `the source presenter draws visible foliage into the comparison view (${sourceForegroundPixels} foreground pixels)` );
@@ -79,13 +81,13 @@ try {
 	L.scene.add( root );
 	const deadline = Date.now() + 10000;
 	while ( ! runtime.isCoarseReadyForView() && Date.now() < deadline ) {
-		await L.run( 1, () => runtime.update( 0, L.camera ), 0 );
+	await L.run( 1, () => { terrainSurface.update( L.camera, true ); runtime.update( 0, L.camera ); }, 0 );
 		await new Promise( resolve => setTimeout( resolve, 10 ) );
 	}
 	assert.equal( runtime.isCoarseReadyForView(), true, 'the Tidewater graph LODs reach coarse coverage' );
-	await L.run( 2, () => runtime.update( 0, L.camera ), 0 );
+	await L.run( 2, () => { terrainSurface.update( L.camera, true ); runtime.update( 0, L.camera ); }, 0 );
 	await GPU.pipelinesReady();
-	await L.run( 2, () => runtime.update( 0, L.camera ), 0 );
+	await L.run( 2, () => { terrainSurface.update( L.camera, true ); runtime.update( 0, L.camera ); }, 0 );
 	const graphFrame = new Uint8Array( ( await readFrame() ).data );
 	const graphForegroundPixels = countForegroundPixels( graphFrame );
 	assert.ok( graphForegroundPixels > 20, `the generic graph draws visible foliage into the comparison view (${graphForegroundPixels} foreground pixels)` );
@@ -108,6 +110,7 @@ try {
 	original?.dispose();
 	runtime?.dispose();
 	detailTexture?.destroy();
+	if ( terrainSurface ) { L.scene.remove( terrainSurface.mesh ); terrainSurface.mesh.geometry.dispose(); terrainSurface.mesh.material.dispose(); }
 	terrainGPU?.dispose();
 	GPU.device?.destroy();
 }
