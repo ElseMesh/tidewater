@@ -48,9 +48,10 @@ const contactAO = op( 'contactAO', 'subtract', constant( 'oneForAO', 1 ), aoRamp
 const contactAOAmount = op( 'contactAOAmount', 'multiply', contactAO, constant( 'contactAOScale', 0.4 ) );
 const aoFactor = op( 'aoFactor', 'subtract', constant( 'oneForAOFactor', 1 ), contactAOAmount );
 const occlusion = op( 'occlusion', 'multiply', armOcclusion, aoFactor );
+const metalness = constant( 'metalness', 0 );
 
 export const TIDEWATER_SCANNED_DEBRIS_MATERIAL_GRAPH = Object.freeze( {
 	format: 'elsemesh.material-graph/1',
 	nodes: Object.freeze( nodes ),
-	outputs: Object.freeze( { baseColor, roughness, metalness: constant( 'metalness', 0 ), occlusion } ),
+	outputs: Object.freeze( { baseColor, roughness, metalness, occlusion } ),
 } );
