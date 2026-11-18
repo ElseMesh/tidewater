@@ -41,8 +41,10 @@ try {
 	terrainGPU = new TerrainGPU( terrain, terrainMaps.shoreField, { normal: terrainMaps.normal, splat: terrainMaps.splat, detailWidth: terrainMaps.detailWidth, detailHeight: terrainMaps.detailHeight, detail: terrainMaps.detail } );
 	terrainSurface = new Terrain( { scene: L.scene, terrainData: terrain, terrainGPU, surfaceProfile: terrainComponent.data.surfaceProfile } );
 	const viewX = - 52, viewZ = - 184, viewY = terrain.heightAt( viewX, viewZ );
-	L.camera.position.set( viewX, viewY + 20, viewZ );
-	L.camera.lookAt( viewX, viewY, viewZ );
+	L.camera.fov = 55;
+	L.camera.position.set( viewX, viewY + 3, viewZ + 8 );
+	L.camera.lookAt( viewX, viewY + 0.5, viewZ );
+	L.camera.updateProjectionMatrix();
 	await L.run( 2, () => terrainSurface.update( L.camera, true ), 0 );
 	await GPU.pipelinesReady();
 	await L.run( 2, () => terrainSurface.update( L.camera, true ), 0 );
@@ -112,6 +114,8 @@ try {
 	const meanAbsoluteError = totalError / ( reference.length / 4 * 3 );
 	console.log( `Tidewater signed ground-cover parity: source/graph MAE ${ meanAbsoluteError.toFixed( 3 )}/255; changed pixels ${changedPixels}; foliage pixels ${sourceChangedPixels}/${graphChangedPixels}; foreground pixels ${sourceForegroundPixels}/${graphForegroundPixels}; visible instance counts ${sourceCounts.join( '/' )}/${graphCounts.join( '/' )}` );
 	assert.ok( meanAbsoluteError <= 10, `the Tidewater material graph stays close to the source WebGPU presenter with signed density and terrain assets (MAE ${ meanAbsoluteError.toFixed( 3 )}/255)` );
+	assert.deepEqual( graphCells, sourceCells, 'shared cell-height padding and frustum selection preserve the pre-migration WebGPU cell set' );
+	assert.deepEqual( graphCounts.slice().reverse(), sourceCounts, 'the shared package selects the same near/mid/far LOD counts as pre-migration WebGPU' );
 	console.log( `Tidewater WebGPU ground-cover source/graph selected cells: ${ sourceCells.length }/${ graphCells.length }; source LOD ${ sourceCounts.join( '/' ) }; graph LOD ${ graphCounts.join( '/' ) }` );
 } finally {
 	original?.dispose();

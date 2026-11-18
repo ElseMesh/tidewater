@@ -394,7 +394,7 @@ const source = {
 			id: 'elsemesh-component:island-ground-cover', type: 'elsemesh.ground-cover-field/1', priority: 'visible',
 			assets: [ { assetId: grassDensityAssetId, kind: 'grass-density/1' }, ...groundCoverPatchSet.lods.map( lod => ( { assetId: lod.assetId, kind: 'glb' } ) ) ],
 			data: {
-				densityAssetId: grassDensityAssetId, seed: groundCoverPatchSet.seed, cellSize: GROUND_COVER_CELL, pointsPerCell: 1, placementAlgorithm: 'fixed-cell-patch/1',
+				densityAssetId: grassDensityAssetId, seed: groundCoverPatchSet.seed, cellSize: GROUND_COVER_CELL, pointsPerCell: 1, placementAlgorithm: 'fixed-cell-patch/1', cellHeightPadding: { below: 0.5, above: 1.8 },
 				distanceBands: [ { maxDistance: 18, cellCapacity: 48 }, { maxDistance: 46, cellCapacity: 160 }, { maxDistance: 88, cellCapacity: 420 } ],
 				species: [ {
 					id: 'tidewater-ground-cover',

@@ -15372,6 +15372,10 @@
         "cellSize": 8,
         "pointsPerCell": 1,
         "placementAlgorithm": "fixed-cell-patch/1",
+        "cellHeightPadding": {
+          "below": 0.5,
+          "above": 1.8
+        },
         "distanceBands": [
           {
             "maxDistance": 18,

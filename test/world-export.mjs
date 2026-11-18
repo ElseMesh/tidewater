@@ -351,6 +351,7 @@ try {
 	assert.ok( groundCoverComponent, 'dense vegetation uses the renderer-neutral ground-cover contract' );
 	assert.deepEqual( groundCoverComponent.data.species[ 0 ].modelAssetIds, groundCoverPatchSet.lods.map( lod => lod.assetId ).reverse(), 'ground-cover LODs use one shared coarsest-to-finest signed asset list' );
 	assert.equal( groundCoverComponent.data.placementAlgorithm, 'fixed-cell-patch/1', 'ground cover uses its authored fixed-cell patch arrangement' );
+	assert.deepEqual( groundCoverComponent.data.cellHeightPadding, { below: 0.5, above: 1.8 }, 'cell visibility bounds match the source vegetation height range' );
 	assert.deepEqual( groundCoverComponent.assets.filter( asset => asset.kind === 'glb' ).map( asset => asset.assetId ).sort(), groundCoverComponent.data.species[ 0 ].modelAssetIds.slice().sort(), 'every shared patch LOD is declared as a signed GLB asset' );
 	assert.match( groundCoverComponent.data.densityAssetId, /^sha256:[0-9a-f]{64}$/, 'ground-cover density data is content addressed' );
 	const grassMask = decodeGrassDensityAsset( new Uint8Array( firstAssets.get( groundCoverComponent.data.densityAssetId ) ) );

@@ -87,7 +87,7 @@ try {
 		id: 'elsemesh-component:ground-cover', type: 'elsemesh.ground-cover-field/1', priority: 'visible',
 		assets: [ { assetId: grassAssetID, kind: 'grass-density/1' }, { assetId: groundCoverModelID, kind: 'glb' } ],
 		data: {
-			densityAssetId: grassAssetID, seed: 7, cellSize: 8, pointsPerCell: 1, placementAlgorithm: 'fixed-cell-patch/1',
+			densityAssetId: grassAssetID, seed: 7, cellSize: 8, pointsPerCell: 1, placementAlgorithm: 'fixed-cell-patch/1', cellHeightPadding: { below: 0.5, above: 1.8 },
 			distanceBands: [ { maxDistance: 88, cellCapacity: 48 } ], species: [ {
 				id: 'ground-cover-test', densityExpression: { op: 'channel', index: 0 }, densityThreshold: 8,
 				modelAssetIds: [ groundCoverModelID ], bounds: { center: [ 4, 0.65, 4 ], radius: 6 }, geometryMirrorX: false,
