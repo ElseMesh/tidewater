@@ -111,8 +111,9 @@ try {
 		if ( difference > 24 ) changedPixels ++;
 	}
 	const meanAbsoluteError = totalError / ( reference.length / 4 * 3 );
+	console.log( `Tidewater signed ground-cover diagnostic: source/graph MAE ${ meanAbsoluteError.toFixed( 3 )}/255; changed pixels ${changedPixels}; foliage pixels beyond empty background ${sourceChangedPixels}/${graphChangedPixels}; foreground pixels ${sourceForegroundPixels}/${graphForegroundPixels}; visible instance counts ${sourceCounts.join( '/' )}/${graphCounts.join( '/' )}` );
 	assert.ok( meanAbsoluteError <= 10, `the Tidewater material graph stays close to the source WebGPU presenter with signed density and terrain assets (MAE ${ meanAbsoluteError.toFixed( 3 )}/255)` );
-	console.log( `Tidewater WebGPU ground-cover graph versus source presenter using signed density ${vegetation.data.grassMaskAssetId} and terrain ${terrainComponent.data.dataAssetId}: MAE ${ meanAbsoluteError.toFixed( 3 )}/255; ${ changedPixels } source/graph difference pixels; candidate foliage pixels beyond empty background ${sourceChangedPixels}/${graphChangedPixels}; source/graph foreground pixels ${sourceForegroundPixels}/${graphForegroundPixels}; source LOD counts ${ sourceCounts.join( '/' ) }; graph LOD counts ${ graphCounts.join( '/' ) }; source cells ${ sourceCells.join( ';' ) }; graph cells ${ graphCells.join( ';' ) }` );
+	console.log( `Tidewater WebGPU ground-cover source/graph selected cells: ${ sourceCells.length }/${ graphCells.length }; source LOD ${ sourceCounts.join( '/' ) }; graph LOD ${ graphCounts.join( '/' ) }` );
 } finally {
 	original?.dispose();
 	runtime?.dispose();
