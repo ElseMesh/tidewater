@@ -74,7 +74,9 @@ try {
 	if ( glError !== gl.NO_ERROR ) throw new Error( `Built-in Tidewater debris render reported WebGL error 0x${glError.toString( 16 )}` );
 	if ( programs.some( program => program.diagnostics?.runnable === false ) ) throw new Error( 'Built-in Tidewater debris compiled an invalid WebGL program' );
 	const selectedLOD = lodGroups.findIndex( group => group.indices.subarray( 0, group.count ).includes( trunkIndex ) );
-	result.textContent = JSON.stringify( { status: 'complete', placements: placementCount, visibleMeshes: visibleMeshes.length, textureAssets: textureAssets.length, changedPixels, programCount: programs.length, selectedLOD, glError } );
+	const selectedAsset = runtime.document.models[ modelIndex ].lods[ selectedLOD ].assetId;
+	if ( ! connector.assets.has( selectedAsset ) ) throw new Error( `Built-in WebGL did not load the selected signed LOD ${selectedAsset}` );
+	result.textContent = JSON.stringify( { status: 'complete', placements: placementCount, visibleMeshes: visibleMeshes.length, textureAssets: textureAssets.length, changedPixels, programCount: programs.length, selectedLOD, selectedAsset, glError } );
 	result.dataset.status = 'complete';
 } catch ( error ) {
 	result.textContent = `FAIL ${ error.stack || error }`;

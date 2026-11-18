@@ -84,7 +84,7 @@ try {
 	assert( metrics.changedPixels >= 30, `the selected beach trunk renders visible pixels (${metrics.changedPixels})` );
 	assert( metrics.programCount > 0, 'WebGL compiles the signed debris material programs' );
 	assert.equal( metrics.glError, 0, 'built-in WebGL reports no graphics error' );
-	console.log( `Tidewater signed debris WebGL render passed: ${metrics.changedPixels} pixels, ${metrics.placements} placements, ${metrics.textureAssets} textures, LOD ${metrics.selectedLOD}, ${metrics.programCount} programs; no GL errors` );
+	console.log( `Tidewater signed debris WebGL render passed: ${metrics.changedPixels} pixels, ${metrics.placements} placements, ${metrics.textureAssets} textures, LOD ${metrics.selectedLOD} (${metrics.selectedAsset}), ${metrics.programCount} programs; no GL errors` );
 } finally {
 	socket?.close();
 	if ( browser ) await stopBrowser( browser );

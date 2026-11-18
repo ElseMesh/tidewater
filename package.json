@@ -16,6 +16,7 @@
 		"test:pier-colliders": "node --preserve-symlinks test/pier-surface.mjs",
 		"test:webgl-beach-debris": "node --preserve-symlinks test/webgl-beach-debris.mjs",
 		"test:webgl-scanned-debris-package": "node --preserve-symlinks test/webgl-scanned-debris-package-render.mjs",
+		"test:webgpu-scanned-debris-package": "node --preserve-symlinks test/webgpu-scanned-debris-package-render.mjs",
 		"test:webgl-builtin-material-route": "node --preserve-symlinks test/webgl-builtin-material-route.mjs",
 		"test:webgl-shore-query-parity": "node test/webgl-shore-query-parity.mjs",
 		"test:live-fishing-extension-browser": "node --preserve-symlinks test/live-fishing-extension-browser.mjs"
