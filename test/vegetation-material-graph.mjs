@@ -13,6 +13,9 @@ for ( const [ name, compiled ] of [ [ 'WebGPU', webgpu ], [ 'WebGL', webgl ] ] )
 }
 assert.match( webgpu.surface, /s\.thinTransmission =/ );
 assert.match( webgl.glsl.thinTransmission, /emgThinTransmission =/ );
+assert.ok( TIDEWATER_PALM_MATERIAL_GRAPH.nodes.some( node => node.op === 'valueNoise2' ), 'palm bark variation uses portable value noise' );
+assert.match( webgpu.wgslHelpers, /fn emgValueNoise2/ );
+assert.match( webgl.glsl.fragmentHelpers, /float emgValueNoise2/ );
 assert.equal( TIDEWATER_PALM_MATERIAL_GRAPH.nodes.length <= 1024, true, 'palm material remains inside the signed graph node limit' );
 
 console.log( 'Tidewater renderer-neutral palm material graph: ok' );

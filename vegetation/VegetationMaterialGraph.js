@@ -61,6 +61,20 @@ const barkSilver = constant( 'barkSilver', linearColor( 0xa49a88 ) );
 const barkBase = op( 'barkBase', 'mix', barkDark, barkSilver, weather );
 const bark = op( 'bark', 'multiply', barkBase, barkLight );
 
+// Use the same portable value-noise definition on both engine backends for
+// palm bark mottling. The signed GLBs retain these inputs for the generic
+// static-model material path.
+const barkNoiseX = op( 'barkNoiseX', 'multiply', around, constant( 'barkNoiseXScale', 90 ) );
+const barkNoiseY = op( 'barkNoiseYBase', 'multiply', trunkHeight, constant( 'barkNoiseYScale', 80 ) );
+const barkNoiseYSeed = op( 'barkNoiseYSeed', 'multiply', seed, constant( 'barkNoiseSeedScale', 7 ) );
+const barkNoiseYCombined = op( 'barkNoiseYCombined', 'add', barkNoiseY, barkNoiseYSeed );
+const barkNoiseUV = op( 'barkNoiseUV', 'vec2', barkNoiseX, barkNoiseYCombined );
+const barkMottle = op( 'barkMottle', 'valueNoise2', barkNoiseUV );
+const barkMottleLow = constant( 'barkMottleLow', 0.78 );
+const barkMottleHigh = constant( 'barkMottleHigh', 1.08 );
+const barkMottleGain = op( 'barkMottleGain', 'mix', barkMottleLow, barkMottleHigh, barkMottle );
+const barkDetailed = op( 'barkDetailed', 'multiply', bark, barkMottleGain );
+
 // Frond color ages from fresh green through olive to yellowed lower leaves.
 const ageScale = constant( 'ageScale', 0.55 );
 const ageRatio = op( 'ageRatio', 'divide', age, ageScale );
@@ -96,7 +110,7 @@ const afterNutStart = op( 'afterNutStart', 'greaterThan', part, constant( 'nutPa
 const beforeNutEnd = op( 'beforeNutEnd', 'lessThan', part, constant( 'nutPartEnd', 5.5 ) );
 const isNut = op( 'isNut', 'and', afterNutStart, beforeNutEnd );
 const foliageOrNut = op( 'foliageOrNut', 'select', isFrond, leaf, nut );
-const baseColor = op( 'baseColor', 'select', isStem, bark, foliageOrNut );
+const baseColor = op( 'baseColor', 'select', isStem, barkDetailed, foliageOrNut );
 const isLeafTransmission = op( 'isLeafTransmission', 'select', isFrond, op( 'leafTransmission', 'multiply', leafUpper, constant( 'transmissionStrength', 0.3 ) ), constant( 'noTransmission', [ 0, 0, 0 ] ) );
 const leafRoughness = op( 'leafRoughness', 'select', isFrond, constant( 'frondRoughness', 0.62 ), constant( 'nutRoughness', 0.7 ) );
 const foliageRoughness = op( 'foliageRoughness', 'select', isNut, constant( 'nutSurfaceRoughness', 0.7 ), leafRoughness );
