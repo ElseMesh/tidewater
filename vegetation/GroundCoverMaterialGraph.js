@@ -131,7 +131,7 @@ export function createTidewaterGroundCoverMaterialGraph( { densityOrigin, densit
 	const spread = select( isGrass, mix( c( 1.35 ), c( 1.3 ), duneFraction ), one );
 
 	// Source tier fade: category identity and tier metadata are in the signed patch.
-	const distanceDelta = sub( xz, op( 'xy', cameraPosition ) );
+	const distanceDelta = sub( xz, vec2( x( cameraPosition ), z( cameraPosition ) ) );
 	const distance = vertexPositionMode === 'lodNear' ? zero : op( 'length', distanceDelta );
 	const tierFromBlade = select( less( kind, c( 2.5 ) ), w( blade ), zero );
 	const tier = op( 'max', tierFromBlade, w( slots ) );
