@@ -237,7 +237,7 @@ export function createTidewaterGroundCoverMaterialGraph( { densityOrigin, densit
 	const specularIntensity = c( 0.4 );
 	const restPosition = sub( add( add( base, o0 ), mul( sideRotated, wideScale ) ), cellOrigin );
 	const sizedO0 = mul( localRotated, heightScale );
-	const sizedWidth = mul( mul( widthScale, op( 'min', mul( heightScale, two ), op( 'max', heightScale, c( 0.5 ) ) ) ), sideRotated );
+	const sizedWidth = mul( sideRotated, mul( widthScale, op( 'min', mul( heightScale, two ), op( 'max', heightScale, c( 0.5 ) ) ) ) );
 	const sizedPosition = sub( add( add( base, sizedO0 ), sizedWidth ), cellOrigin );
 	const vertexPosition = vertexPositionMode === 'unscaled' ? sub( add( base, position ), cellOrigin ) : vertexPositionMode === 'rest' ? restPosition : vertexPositionMode === 'sized' ? sizedPosition : worldBentPosition;
 
