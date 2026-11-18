@@ -39,8 +39,9 @@ try {
 	terrainGPU = new TerrainGPU( terrain, terrainMaps.shoreField, { normal: terrainMaps.normal, splat: terrainMaps.splat, detailWidth: terrainMaps.detailWidth, detailHeight: terrainMaps.detailHeight, detail: terrainMaps.detail } );
 	terrainSurface = new Terrain( { scene: L.scene, terrainData: terrain, terrainGPU, surfaceProfile: terrainComponent.data.surfaceProfile } );
 	const spawn = worldSource.spawn.position;
-	L.camera.position.set( spawn[ 0 ], terrain.heightAt( spawn[ 0 ], spawn[ 2 ] ) + 1.7, spawn[ 2 ] );
-	L.camera.lookAt( spawn[ 0 ], terrain.heightAt( spawn[ 0 ], spawn[ 2 ] - 10 ) + 0.5, spawn[ 2 ] - 10 );
+	const viewX = spawn[ 0 ], viewZ = - 140, viewY = terrain.heightAt( viewX, viewZ );
+	L.camera.position.set( viewX, viewY + 12, viewZ );
+	L.camera.lookAt( viewX, viewY, viewZ );
 	await L.run( 2, () => terrainSurface.update( L.camera, true ), 0 );
 	await GPU.pipelinesReady();
 	await L.run( 2, () => terrainSurface.update( L.camera, true ), 0 );
