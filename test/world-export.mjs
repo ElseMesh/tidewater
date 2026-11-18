@@ -182,7 +182,7 @@ try {
 			assert.equal( parsed.images.length, 3, `${model.id} GLB embeds albedo, normal, and ARM source maps` );
 			for ( const [ index, map ] of [ 'albedo', 'normal', 'arm' ].entries() ) {
 				const sourceMap = await readFile( path.join( checkedInDir, 'source', 'models', 'debris', `${model.id}_${map}.jpg` ) );
-				assert.deepEqual( parsed.images[ index ].bytes, sourceMap, `${model.id} ${map} map bytes remain identical to the source asset` );
+				assert.deepEqual( Buffer.from( parsed.images[ index ].bytes ), sourceMap, `${model.id} ${map} map bytes remain identical to the source asset` );
 			}
 		}
 	}
