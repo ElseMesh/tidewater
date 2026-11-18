@@ -31,9 +31,10 @@ function linearColor( hex ) {
 }
 
 /** Build the authored Tidewater patch graph using the signed density grid's world mapping. */
-export function createTidewaterGroundCoverMaterialGraph( { densityOrigin, densitySize, vertexPositionMode = 'authored' } ) {
+export function createTidewaterGroundCoverMaterialGraph( { densityOrigin, densitySize, vertexPositionMode = 'authored', forcePresence = false } ) {
 	if ( ! Number.isFinite( densityOrigin ) || ! Number.isFinite( densitySize ) || densitySize <= 0 ) throw new Error( 'Tidewater ground-cover material requires valid density-grid world bounds' );
 	if ( ! [ 'authored', 'unscaled' ].includes( vertexPositionMode ) ) throw new Error( 'Tidewater ground-cover material has an unknown vertex position mode' );
+	if ( typeof forcePresence !== 'boolean' ) throw new Error( 'Tidewater ground-cover material presence mode must be boolean' );
 	const b = new GraphBuilder(), c = value => b.constant( value ), op = ( name, ...args ) => b.call( name, ...args );
 	const zero = c( 0 ), one = c( 1 ), half = c( 0.5 ), two = c( 2 );
 	const add = ( a, d ) => op( 'add', a, d ), sub = ( a, d ) => op( 'subtract', a, d ), mul = ( a, d ) => op( 'multiply', a, d ), div = ( a, d ) => op( 'divide', a, d );
@@ -90,7 +91,7 @@ export function createTidewaterGroundCoverMaterialGraph( { densityOrigin, densit
 	const hashPosition2 = add( mul( xz, c( 2.11 ) ), constantVec2( 7.3, 7.3 ) );
 	const densityHash = hash12( hashPosition1 ), flowerHash = hash12( hashPosition2 );
 	const flowerAllowed = select( greater( kind, c( 3.5 ) ), select( less( flowerHash, c( 0.35 ) ), one, zero ), one );
-	const present = mul( select( less( densityHash, slotDensity ), one, zero ), flowerAllowed );
+	const present = forcePresence ? one : mul( select( less( densityHash, slotDensity ), one, zero ), flowerAllowed );
 
 	// The same two terrain-detail samples drive meadow color and gust response.
 	const rotateDetail = ( angle, point ) => {
