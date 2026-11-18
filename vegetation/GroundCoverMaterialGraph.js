@@ -234,6 +234,7 @@ export function createTidewaterGroundCoverMaterialGraph( { densityOrigin, densit
 	const backLight = op( 'pow', clamp( op( 'dot', mul( viewDirection, c( -1 ) ), sunDirection ), zero, one ), c( 4 ) );
 	const translucency = mul( mul( mul( colorBeforeGrass, constantVec3( 1.1, 1.3, 0.6 ) ), mul( backLight, c( 0.3 ) ) ), mul( smooth( 0.2, 1, hf ), sub( one, night ) ) );
 	const specularIntensity = c( 0.4 );
+	const vertexPosition = vertexPositionMode === 'unscaled' ? sub( add( base, position ), cellOrigin ) : worldBentPosition;
 
 	return Object.freeze( {
 		format: 'elsemesh.material-graph/1',
@@ -242,7 +243,7 @@ export function createTidewaterGroundCoverMaterialGraph( { densityOrigin, densit
 			baseColor: colorBeforeGrass,
 			roughness,
 			metalness: zero,
-			vertexPosition: vertexPositionMode === 'unscaled' ? sub( add( base, position ), cellOrigin ) : worldBentPosition,
+			vertexPosition,
 			vertexNormal,
 		surfaceNormal: shadedNormal,
 			translucency,
