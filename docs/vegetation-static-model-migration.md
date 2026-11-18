@@ -7,9 +7,10 @@ vegetation component and renderer paths.
 
 The first exported category is coconut palms. The far mesh is low detail and
 the near mesh is high detail; both come from the same `buildPalmNear()` and
-`buildPalmFar()` builders used by Tidewater's WebGPU path. ElseMesh's current
-generic model-set contract orders assets from coarsest to finest, so the
-sidecar stores far then near and points `shadowLod` at the near mesh. The GLBs retain the three VEC4
+`buildPalmFar()` builders used by Tidewater's WebGPU path. The generic model-set
+contract follows the common convention: LOD0 is highest detail, with increasing
+indices becoming coarser. The sidecar stores near then far and follows the same
+shadow LOD family with zero extra coarsening bias. The GLBs retain the three VEC4
 per-vertex streams (`aVeg`, `aMat`, and `aLobe`) and each instance retains the
 existing `iPos`/`iDat` values in the generic eight-float `materialData` field.
 Placements are copied after scatter has applied the palm group-lean adjustment.

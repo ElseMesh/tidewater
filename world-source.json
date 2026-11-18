@@ -15420,9 +15420,9 @@
             },
             "densityThreshold": 8,
             "modelAssetIds": [
-              "sha256:ca1bb40bb05291f7a73b0cf2e506ce5c7cbb9bd45e393f2e2a8c8cd822bd9da9",
+              "sha256:deddfb428ef28061a661a6878d1ac0be812308b8e9dcde9227fe57714d1b3aa7",
               "sha256:0da5735c58ef617c3276ea6710b6b26acb61840b316a161e0ac226afbf0c19eb",
-              "sha256:deddfb428ef28061a661a6878d1ac0be812308b8e9dcde9227fe57714d1b3aa7"
+              "sha256:ca1bb40bb05291f7a73b0cf2e506ce5c7cbb9bd45e393f2e2a8c8cd822bd9da9"
             ],
             "bounds": {
               "center": [
@@ -15436,6 +15436,7 @@
             "drawMaxDistance": 88,
             "drawFadeStartDistance": 87,
             "castsShadow": false,
+            "shadowLodBias": 0,
             "shadowMaxDistance": 0
           }
         ]
@@ -15506,7 +15507,7 @@
       },
       "assets": [
         {
-          "assetId": "sha256:62ec585249ddfa755da499df7c245a124e7519292f8388b6b0aa92afc178b76a",
+          "assetId": "sha256:31ebe7436e9b1ddbceb180761050b8425f2e6ec4d7e9667e4c6d3dc35660f706",
           "kind": "static-model-instance-set/1"
         },
         {

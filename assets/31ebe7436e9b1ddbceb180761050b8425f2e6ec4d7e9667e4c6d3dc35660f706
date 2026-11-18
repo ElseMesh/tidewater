@@ -14,22 +14,22 @@
       "geometryMirrorX": false,
       "lods": [
         {
-          "assetId": "sha256:5cfe47573e93f1704d6c28255fdb8b75a6f16a6bf53100c5dcee27288c83dcc6"
+          "assetId": "sha256:416b79f7e408d37089535dfb65e3ded7239f332534ea65e793be8b2c52386333"
         },
         {
           "assetId": "sha256:c8f140e2d89d3dbf158fff079cbe428271ad3280d72ab313c1b60ea5ccbf11db"
         },
         {
-          "assetId": "sha256:416b79f7e408d37089535dfb65e3ded7239f332534ea65e793be8b2c52386333"
+          "assetId": "sha256:5cfe47573e93f1704d6c28255fdb8b75a6f16a6bf53100c5dcee27288c83dcc6"
         }
       ],
       "lodThresholds": [
-        70,
-        22
+        22,
+        70
       ],
       "lodMetric": "world-distance-offset",
       "lodFadeFraction": 0.12,
-      "shadowLod": 2,
+      "shadowLodBias": 0,
       "shadowMaxDistance": 22,
       "drawMaxDistance": 260,
       "drawFadeStartDistance": 228.8
@@ -47,22 +47,22 @@
       "geometryMirrorX": false,
       "lods": [
         {
-          "assetId": "sha256:603c054ddb00c11e020fa0a25cf596a393e6f0104aa04dc209b680c97ffeaf15"
+          "assetId": "sha256:906c8811968e3d80f1574eb5670f56c260d5f15d367ec4c3a5dfadceecc18860"
         },
         {
           "assetId": "sha256:149666d8e73cf3bfbf2abedb52a39d7da3ecaf5210828556343ebb42b37bd467"
         },
         {
-          "assetId": "sha256:906c8811968e3d80f1574eb5670f56c260d5f15d367ec4c3a5dfadceecc18860"
+          "assetId": "sha256:603c054ddb00c11e020fa0a25cf596a393e6f0104aa04dc209b680c97ffeaf15"
         }
       ],
       "lodThresholds": [
-        70,
-        22
+        22,
+        70
       ],
       "lodMetric": "world-distance-offset",
       "lodFadeFraction": 0.12,
-      "shadowLod": 2,
+      "shadowLodBias": 0,
       "shadowMaxDistance": 22,
       "drawMaxDistance": 260,
       "drawFadeStartDistance": 228.8
@@ -80,22 +80,22 @@
       "geometryMirrorX": false,
       "lods": [
         {
-          "assetId": "sha256:ad2ea79fd849a651e71add8beb3af0309e148841c9d4c5cd34fb332327c2ff45"
+          "assetId": "sha256:79ed458f658f60a5d729aee35825256bf8277746779e31e4a43dbb7f90ad3f71"
         },
         {
           "assetId": "sha256:a8dcf226bb056f8be093934bde97e6df52b8434da7348123c6ae8fb552e118e1"
         },
         {
-          "assetId": "sha256:79ed458f658f60a5d729aee35825256bf8277746779e31e4a43dbb7f90ad3f71"
+          "assetId": "sha256:ad2ea79fd849a651e71add8beb3af0309e148841c9d4c5cd34fb332327c2ff45"
         }
       ],
       "lodThresholds": [
-        70,
-        22
+        22,
+        70
       ],
       "lodMetric": "world-distance-offset",
       "lodFadeFraction": 0.12,
-      "shadowLod": 2,
+      "shadowLodBias": 0,
       "shadowMaxDistance": 22,
       "drawMaxDistance": 260,
       "drawFadeStartDistance": 228.8
@@ -113,22 +113,22 @@
       "geometryMirrorX": false,
       "lods": [
         {
-          "assetId": "sha256:5c34c59fce09513f7310088b614252923f9ca2f7de01e9202ffc571642347ad2"
+          "assetId": "sha256:99f2f19d4bb7c7fb86d7f93f85f4b04ad60ba68f0335ae4c2b2ac8c14ce0c4c0"
         },
         {
           "assetId": "sha256:02f95507781603ca07123ad14c9c928fed04b78b5c5b9a0d15e77b16b05ae881"
         },
         {
-          "assetId": "sha256:99f2f19d4bb7c7fb86d7f93f85f4b04ad60ba68f0335ae4c2b2ac8c14ce0c4c0"
+          "assetId": "sha256:5c34c59fce09513f7310088b614252923f9ca2f7de01e9202ffc571642347ad2"
         }
       ],
       "lodThresholds": [
-        70,
-        22
+        22,
+        70
       ],
       "lodMetric": "world-distance-offset",
       "lodFadeFraction": 0.12,
-      "shadowLod": 2,
+      "shadowLodBias": 0,
       "shadowMaxDistance": 22,
       "drawMaxDistance": 260,
       "drawFadeStartDistance": 228.8

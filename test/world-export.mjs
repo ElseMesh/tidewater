@@ -152,11 +152,11 @@ try {
 	assert.equal( vegetationSet.models[ 0 ].lodMetric, 'world-distance', 'palm artifact uses scale-independent world-space distance' );
 	assert.equal( vegetationSet.models[ 0 ].lodFadeFraction, 1 - PALM_LOD.fadeStart / PALM_LOD.fadeEnd, 'palm artifact covers the authored cross-fade interval' );
 	assert.equal( vegetationSet.models[ 0 ].shadowMaxDistance, PALM_LOD.shadowMaxDistance, 'palm near LOD retains the authored shadow distance' );
-	assert.equal( vegetationSet.models[ 0 ].shadowLod, 1, 'palm shadows use the near geometry' );
+	assert.equal( vegetationSet.models[ 0 ].shadowLodBias, 0, 'palm shadows follow the same LOD thresholds as color' );
 	assert.deepEqual( [ vegetationSet.models[ 0 ].drawFadeStartDistance, vegetationSet.models[ 0 ].drawMaxDistance ], CANOPY_FAR_FADE, 'palm far fade uses the authored canopy range' );
 	const lodMeasure = distance => writeInstanceLODSelection( new Float64Array( 4 ), 'world-distance', distance, 1, 1, 1, vegetationSet.models[ 0 ].lodThresholds, vegetationSet.models[ 0 ].lodFadeFraction, 0 )[ 0 ];
-	assert.equal( lodMeasure( 50 ), 1, 'near palm views choose the high-detail near model' );
-	assert.equal( lodMeasure( 200 ), 0, 'far palm views choose the low-detail far model' );
+	assert.equal( lodMeasure( 50 ), 0, 'near palm views choose LOD0, the high-detail near model' );
+	assert.equal( lodMeasure( 200 ), 1, 'far palm views choose the higher-index low-detail model' );
 	assert.deepEqual( vegetationSet.models[ 0 ].bounds.center, [ 0, 0, 0 ], 'palm culling and draw-distance origin matches the authored placement origin' );
 	assert.equal( vegetationSet.models[ 0 ].drawMaxDistance, 2800, 'palm artifact preserves the authored far fade end' );
 	const generatedVegetationComponent = firstDocument.components.find( component => component.type === 'elsemesh.static-vegetation/1' );
@@ -175,7 +175,7 @@ try {
 		assert.equal( `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`, assetId, 'palm GLB filename and bytes match its content address' );
 		const parsed = parseGLB( bytes );
 		const lodIndex = vegetationSet.models[ 0 ].lods.findIndex( lod => lod.assetId === assetId );
-		assert.equal( parsed.nodes[ 0 ].name, lodIndex === 0 ? 'palm-far' : 'palm-near', 'palm GLB order matches the coarse-to-fine shared LOD contract' );
+		assert.equal( parsed.nodes[ 0 ].name, lodIndex === 0 ? 'palm-near' : 'palm-far', 'palm GLB order follows LOD0-highest-detail convention' );
 		const primitive = parsed.meshes[ 0 ][ 0 ];
 		const graphMaterial = parsed.materials[ 0 ].extras?.elsemeshMaterial;
 		assert.equal( graphMaterial?.profile, 'elsemesh.material-graph/1', 'palm GLB carries the world-authored renderer-neutral material graph' );
@@ -220,9 +220,9 @@ try {
 		assert.ok( bytes?.length > 0, `signed scanned-debris component asset exists: ${asset.assetId}` );
 		assert.equal( `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`, asset.assetId, 'signed scanned-debris component asset matches its content hash' );
 	}
-	assert.deepEqual( scannedSet.models[ 0 ].lodThresholds, [ 70, 22 ], 'the shared planner receives the authored coarse-to-fine distance handoffs' );
+	assert.deepEqual( scannedSet.models[ 0 ].lodThresholds, [ 22, 70 ], 'distance handoffs ascend as model detail decreases across LOD indices' );
 	assert.equal( scannedSet.models[ 0 ].lodMetric, 'world-distance-offset', 'the shared planner supports Tidewater radius-adjusted LOD distances' );
-	assert.equal( scannedSet.models[ 0 ].shadowLod, 2, 'near source geometry is selected for shadows in coarse-to-fine ordering' );
+	assert.equal( scannedSet.models[ 0 ].shadowLodBias, 0, 'scanned-debris shadows follow the same LOD thresholds as color' );
 	assert.equal( scannedSet.models[ 0 ].drawMaxDistance, 260, 'the shared model set retains the current far cull distance' );
 	assert.deepEqual( scannedSetBytes, scannedSetBytesFirst, 'the renderer-neutral scanned-debris descriptor is deterministic' );
 	const scannedSetFiles = await readdir( path.join( output, 'scanned-debris-static-models' ) );
@@ -360,7 +360,7 @@ try {
 	assert.equal( componentData( vegetationComponent ).grassMaskAssetId, undefined, 'finite vegetation does not carry dense grass data' );
 	const groundCoverComponent = source.components.find( component => component.type === 'elsemesh.ground-cover-field/1' );
 	assert.ok( groundCoverComponent, 'dense vegetation uses the renderer-neutral ground-cover contract' );
-	assert.deepEqual( groundCoverComponent.data.species[ 0 ].modelAssetIds, groundCoverPatchSet.lods.map( lod => lod.assetId ).reverse(), 'ground-cover LODs use one shared coarsest-to-finest signed asset list' );
+	assert.deepEqual( groundCoverComponent.data.species[ 0 ].modelAssetIds, groundCoverPatchSet.lods.map( lod => lod.assetId ), 'ground-cover LODs share the near-to-far signed asset order' );
 	assert.equal( groundCoverComponent.data.placementAlgorithm, 'fixed-cell-patch/1', 'ground cover uses its authored fixed-cell patch arrangement' );
 	assert.deepEqual( groundCoverComponent.data.cellHeightPadding, { below: 0.5, above: 1.8 }, 'cell visibility bounds match the source vegetation height range' );
 	assert.deepEqual( groundCoverComponent.assets.filter( asset => asset.kind === 'glb' ).map( asset => asset.assetId ).sort(), groundCoverComponent.data.species[ 0 ].modelAssetIds.slice().sort(), 'every shared patch LOD is declared as a signed GLB asset' );
@@ -591,12 +591,12 @@ try {
 	const scannedLODAssetIDs = new Set( scannedSet.models.flatMap( model => model.lods.map( lod => lod.assetId ) ) );
 	assert.equal( scannedLODAssetIDs.size, 12, 'each scanned debris type shares all three authored LOD assets across its placements' );
 	for ( const model of scannedSet.models ) {
-		const parsed = parseGLB( firstAssets.get( model.lods[ 2 ].assetId ) );
+		const parsed = parseGLB( firstAssets.get( model.lods[ 0 ].assetId ) );
 		assert.equal( parsed.meshes.length, 1, 'scanned base asset contains only its near-detail mesh' );
 		assert.ok( parsed.materials[ 0 ]?.pbrMetallicRoughness?.baseColorTexture, 'scanned asset has a base-color texture' );
 		assert.equal( parsed.images[ 0 ]?.mimeType, 'image/jpeg', 'scanned albedo remains a JPEG source asset' );
 		assert.match( parsed.images[ 0 ]?.assetId || '', /^sha256:[0-9a-f]{64}$/, 'scanned GLB points to a signed shared image asset' );
-		for ( const lodRecord of model.lods.slice( 0, - 1 ) ) {
+		for ( const lodRecord of model.lods.slice( 1 ) ) {
 			const lod = parseGLB( firstAssets.get( lodRecord.assetId ) );
 			assert.ok( triangleCount( lod ) < triangleCount( parsed ) * 0.3, 'the authored scanned LOD removes at least 70% of its near-detail triangles' );
 			assert.deepEqual( lod.images.map( image => image.assetId ), parsed.images.map( image => image.assetId ), 'scanned LODs reference the same source texture assets' );

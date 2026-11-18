@@ -401,9 +401,9 @@ const source = {
 					id: 'tidewater-ground-cover',
 					densityExpression: { op: 'max', left: { op: 'max', left: { op: 'channel', index: 0 }, right: { op: 'channel', index: 1 } }, right: { op: 'max', left: { op: 'channel', index: 2 }, right: { op: 'channel', index: 3 } } },
 					densityThreshold: 8,
-					modelAssetIds: [ groundCoverPatchSet.lods[ 2 ].assetId, groundCoverPatchSet.lods[ 1 ].assetId, groundCoverPatchSet.lods[ 0 ].assetId ],
+					modelAssetIds: groundCoverPatchSet.lods.map( lod => lod.assetId ),
 					bounds: { center: [ 4, 0.65, 4 ], radius: Math.hypot( 4, 1.15, 4 ) }, geometryMirrorX: false,
-					drawMaxDistance: 88, drawFadeStartDistance: 87, castsShadow: false, shadowMaxDistance: 0,
+					drawMaxDistance: 88, drawFadeStartDistance: 87, castsShadow: false, shadowLodBias: 0, shadowMaxDistance: 0,
 				} ],
 			},
 		},
@@ -663,7 +663,7 @@ function exportFishPropStaticModelSet( records, presentation ) {
 	for ( const entry of classes.values() ) {
 		const lodAssets = [];
 		let radius = 0;
-		for ( const lod of [ 1, 0 ] ) {
+		for ( const lod of [ 0, 1 ] ) {
 			const geometry = fishPropGeometry( entry.kind, entry.species, lod, presentation );
 			const position = geometry.attributes.position.array;
 			const vdata = geometry.attributes.aData.array;
@@ -682,7 +682,7 @@ function exportFishPropStaticModelSet( records, presentation ) {
 			lodThresholds: [ 28 ],
 			lodMetric: 'scaled-distance',
 			lodFadeFraction: 0.12,
-			shadowLod: 0,
+			shadowLodBias: 0,
 			shadowMaxDistance: 22,
 			drawMaxDistance: 90,
 			drawFadeStartDistance: 81,
@@ -757,9 +757,8 @@ function exportPalmStaticModelSet( records ) {
 	let bounds = null;
 	// Match the values consumed at runtime from the signed float32 placement asset.
 	const placements = records.map( record => Object.fromEntries( Object.entries( record ).map( ( [ key, value ] ) => [ key, Math.fround( value ) ] ) ) );
-	// ElseMesh's current generic model-set contract orders assets coarse-to-fine.
-	// Far is low detail; near is high detail.
-	for ( const [ name, build ] of [ [ 'palm-far', buildPalmFar ], [ 'palm-near', buildPalmNear ] ] ) {
+	// LOD0 is the highest-detail near mesh; higher indices are progressively coarser.
+	for ( const [ name, build ] of [ [ 'palm-near', buildPalmNear ], [ 'palm-far', buildPalmFar ] ] ) {
 		const { geometry } = build( 11 );
 		const glb = exportVegetationGLB( name, geometry );
 		const assetId = `sha256:${createHash( 'sha256' ).update( glb ).digest( 'hex' )}`;
@@ -774,7 +773,7 @@ function exportPalmStaticModelSet( records ) {
 			models: [ {
 				id: 'coconut-palm', bounds, geometryMirrorX: false, lods,
 				lodThresholds: [ PALM_LOD.fadeStart ], lodMetric: 'world-distance', lodFadeFraction: 1 - PALM_LOD.fadeStart / PALM_LOD.fadeEnd,
-				shadowLod: 1, shadowMaxDistance: PALM_LOD.shadowMaxDistance, drawMaxDistance: CANOPY_FAR_FADE[ 1 ], drawFadeStartDistance: CANOPY_FAR_FADE[ 0 ],
+				shadowLodBias: 0, shadowMaxDistance: PALM_LOD.shadowMaxDistance, drawMaxDistance: CANOPY_FAR_FADE[ 1 ], drawFadeStartDistance: CANOPY_FAR_FADE[ 0 ],
 			} ],
 			instances: placements.map( record => ( {
 				model: 'coconut-palm',
@@ -1339,17 +1338,17 @@ async function exportScannedStaticModelSet( instances ) {
 			lodBytes.push( glb );
 		}
 		const bounds = boundsForGLB( ...lodBytes );
-		// Distance LOD runs coarse-to-fine, matching the shared planner's descending
-		// distance thresholds. The near source mesh is selected for shadows.
+		// LOD0 is the near source mesh; larger indices are progressively farther
+		// meshes. The shared planner uses ascending distance thresholds.
 		models.push( {
 			id: name,
 			bounds,
 			geometryMirrorX: false,
-			lods: lodAssets.slice().reverse().map( ( { assetId } ) => ( { assetId } ) ),
-			lodThresholds: [ 70, 22 ],
+			lods: lodAssets.map( ( { assetId } ) => ( { assetId } ) ),
+			lodThresholds: [ 22, 70 ],
 			lodMetric: 'world-distance-offset',
 			lodFadeFraction: 0.12,
-			shadowLod: 2,
+			shadowLodBias: 0,
 			shadowMaxDistance: 22,
 			drawMaxDistance: 260,
 			drawFadeStartDistance: 228.8,
