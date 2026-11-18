@@ -25,8 +25,11 @@ import { BANK } from '../../../src/audio/soundBank.js';
 import { transformBoundsCenter } from '../../../src/network/WorldStreaming.js';
 import { Vector3 } from '../../../src/engine/math/Vector3.js';
 import { validateStaticModelInstanceSet } from '../../../src/network/StaticModelInstanceSet.js';
+import { validateWorldMaterialGraph } from '../../../src/network/WorldMaterialGraph.js';
+import { compileWorldMaterialGraph } from '../../../src/materials/WorldMaterialGraphCompiler.js';
 import { validateWorldLocalLightSet } from '../../../src/network/WorldLocalLightSet.js';
 import { TIDEWATER_PALM_MATERIAL_GRAPH } from '../vegetation/VegetationMaterialGraph.js';
+import { TIDEWATER_SCANNED_DEBRIS_MATERIAL_GRAPH } from '../debris/ScannedMaterialGraph.js';
 
 const temporaryRoot = process.env.PREFIX ? path.join( process.env.PREFIX, 'tmp' ) : '/var/tmp';
 const output = await mkdtemp( path.join( temporaryRoot, 'elsemesh-island-export-' ) );
@@ -179,6 +182,14 @@ try {
 			const parsed = parseGLB( bytes );
 			const material = parsed.materials[ 0 ];
 			assert.ok( material.pbrMetallicRoughness.baseColorTexture && material.pbrMetallicRoughness.metallicRoughnessTexture && material.normalTexture && material.occlusionTexture, `${model.id} GLB keeps all three portable PBR maps` );
+			const graph = validateWorldMaterialGraph( material.extras?.elsemeshMaterial?.graph );
+			assert.deepEqual( graph, TIDEWATER_SCANNED_DEBRIS_MATERIAL_GRAPH, `${model.id} GLB signs the Tidewater-authored renderer-neutral material graph` );
+			const webgpuGraph = compileWorldMaterialGraph( graph, 'webgpu' ), webglGraph = compileWorldMaterialGraph( graph, 'webgl' );
+			for ( const input of [ 'worldPosition', 'instanceMaterial0' ] ) {
+				assert.ok( webgpuGraph.inputs.includes( input ) && webglGraph.inputs.includes( input ), `${model.id} graph shares ${input} across both renderer compilers` );
+			}
+			assert.ok( webgpuGraph.textureSlots.includes( 'baseColor' ) && webgpuGraph.textureSlots.includes( 'metallicRoughness' ) && webgpuGraph.textureSlots.includes( 'occlusion' ), `${model.id} graph uses the same portable PBR slots in WebGPU` );
+			assert.ok( webglGraph.textureSlots.includes( 'baseColor' ) && webglGraph.textureSlots.includes( 'metallicRoughness' ) && webglGraph.textureSlots.includes( 'occlusion' ), `${model.id} graph uses the same portable PBR slots in WebGL` );
 			assert.equal( parsed.images.length, 3, `${model.id} GLB embeds albedo, normal, and ARM source maps` );
 			for ( const [ index, map ] of [ 'albedo', 'normal', 'arm' ].entries() ) {
 				const sourceMap = await readFile( path.join( checkedInDir, 'source', 'models', 'debris', `${model.id}_${map}.jpg` ) );

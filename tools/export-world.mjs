@@ -21,6 +21,7 @@ import { TIDEWATER_NET_MATERIAL_GRAPH, TIDEWATER_WOOD_MATERIAL_GRAPH, TIDEWATER_
 import { InstancedProps } from '../Props.js';
 import { DebrisPlacer } from '../DebrisPlacement.js';
 import { SCANNED_DEBRIS_ASSETS } from '../debris/ScannedAssets.js';
+import { TIDEWATER_SCANNED_DEBRIS_MATERIAL_GRAPH } from '../debris/ScannedMaterialGraph.js';
 import { createVegetationPlacement, buildGrassMask } from '../vegetation/Scatter.js';
 import { encodeVegetationPlacements } from '../VegetationPlacements.js';
 import { encodeGrassDensityAsset } from '../../../src/network/GrassDensityAsset.js';
@@ -261,10 +262,11 @@ for ( const { id: assetName } of SCANNED_DEBRIS_ASSETS ) {
 }
 
 // Renderer-neutral migration fixture for the live scanned-debris population.
-// It carries all three source meshes and all source PBR maps, but is not yet
-// installed in the signed package: the shared material contract still needs
-// to express the WebGPU debris contact/wet/bleaching treatment in both engines.
-const scannedStaticModelSet = await exportScannedStaticModelSet( debris );
+// It carries all three source meshes, all source PBR maps, and portable graph
+// data, but stays outside the signed package until rendered parity checks prove
+// the center-sampled contact height and shared LOD/fade policy preserve the
+// current terrain-query-driven appearance.
+const scannedStaticModelSet = await exportScannedStaticModelSet( debris, terrain );
 await writeFile( path.join( output, 'scanned-debris-static-model-instance-set.json' ), JSON.stringify( scannedStaticModelSet.document, null, 2 ) + '\n' );
 const scannedStaticModelsPath = path.join( output, 'scanned-debris-static-models' );
 await mkdir( scannedStaticModelsPath, { recursive: true } );
@@ -1240,7 +1242,7 @@ function exportBatchGLB( batches, sceneName, villageMaterials = false ) {
 	return Buffer.concat( [ header, jsonHeader, jsonPadded, binHeader, binPadded ] );
 }
 
-function exportScannedLOD( sourceBytes, textureMaps, name, meshIndex ) {
+function exportScannedLOD( sourceBytes, textureMaps, name, meshIndex, materialGraph = null ) {
 	const parsed = parseGLB( sourceBytes.buffer.slice( sourceBytes.byteOffset, sourceBytes.byteOffset + sourceBytes.byteLength ) );
 	const primitive = parsed.meshes[ meshIndex ]?.[ 0 ];
 	if ( ! primitive?.attributes?.POSITION || ! primitive.attributes.NORMAL || ! primitive.attributes.TEXCOORD_0 || ! primitive.indices ) throw new Error( `Scanned asset ${name} has no supported LOD${meshIndex} triangle mesh` );
@@ -1290,7 +1292,7 @@ function exportScannedLOD( sourceBytes, textureMaps, name, meshIndex ) {
 		asset: { version: '2.0', generator: 'ElseMesh island scanned asset exporter/1' },
 		scene: 0, scenes: [ { nodes: [ 0 ] } ], nodes: [ { name, mesh: 0 } ],
 		meshes: [ { name, primitives: [ { attributes: { POSITION: position, NORMAL: normal, TEXCOORD_0: uv }, indices, material: 0, mode: 4 } ] } ],
-		materials: [ { name: mapNames.length === 1 ? `${name} albedo` : `${name} portable PBR`, pbrMetallicRoughness: { baseColorTexture: textureInfo.albedo, metallicRoughnessTexture: textureInfo.arm, metallicFactor: 0, roughnessFactor: 1 }, ...( textureInfo.normal ? { normalTexture: textureInfo.normal } : {} ), ...( textureInfo.arm ? { occlusionTexture: { ...textureInfo.arm, strength: 1 } } : {} ) } ],
+		materials: [ { name: mapNames.length === 1 ? `${name} albedo` : `${name} portable PBR`, pbrMetallicRoughness: { baseColorTexture: textureInfo.albedo, metallicRoughnessTexture: textureInfo.arm, metallicFactor: 0, roughnessFactor: 1 }, ...( textureInfo.normal ? { normalTexture: textureInfo.normal } : {} ), ...( textureInfo.arm ? { occlusionTexture: { ...textureInfo.arm, strength: 1 } } : {} ), ...( materialGraph ? { extras: { elsemeshMaterial: { profile: 'elsemesh.material-graph/1', role: 'graph', graph: materialGraph } } } : {} ) } ],
 		textures: mapNames.map( ( _map, index ) => ( { sampler: 0, source: index } ) ), samplers: [ { magFilter: 9729, minFilter: 9987, wrapS: 10497, wrapT: 10497 } ],
 		images: mapNames.map( ( map, index ) => ( { bufferView: imageViews[ index ], mimeType: 'image/jpeg', name: `${name} ${map}` } ) ),
 		accessors, bufferViews, buffers: [ { byteLength: binary.length } ],
@@ -1306,7 +1308,7 @@ function exportScannedLOD( sourceBytes, textureMaps, name, meshIndex ) {
 	return Buffer.concat( [ header, jsonHeader, jsonPadded, binHeader, binPadded ] );
 }
 
-async function exportScannedStaticModelSet( instances ) {
+async function exportScannedStaticModelSet( instances, terrain ) {
 	const assets = new Map();
 	const models = [];
 	for ( const { id: name } of SCANNED_DEBRIS_ASSETS ) {
@@ -1317,7 +1319,7 @@ async function exportScannedStaticModelSet( instances ) {
 		const lodAssets = [];
 		const lodBytes = [];
 		for ( const meshIndex of [ 0, 1, 2 ] ) {
-			const glb = exportScannedLOD( sourceGLB, resolvedMaps, name, meshIndex );
+			const glb = exportScannedLOD( sourceGLB, resolvedMaps, name, meshIndex, TIDEWATER_SCANNED_DEBRIS_MATERIAL_GRAPH );
 			const assetId = `sha256:${createHash( 'sha256' ).update( glb ).digest( 'hex' )}`;
 			assets.set( assetId.slice( 'sha256:'.length ), glb );
 			lodAssets.push( { assetId, meshIndex } );
@@ -1349,7 +1351,7 @@ async function exportScannedStaticModelSet( instances ) {
 			rotation: new Quaternion().setFromEuler( new Euler( instance.roll || 0, instance.yaw, instance.pitch || 0, 'YXZ' ) ).toArray(),
 			scale: [ instance.sx, instance.sy, instance.sz ],
 			placementId: `elsemesh-object:scanned-debris-${index}`,
-			materialData: [ instance.asset, instance.rnd, instance.x, instance.y, instance.z, instance.sx, instance.sy, instance.sz ],
+			materialData: [ instance.asset, instance.rnd, terrain.heightAt( instance.x, instance.z ), 0, 0, 0, 0, 0 ],
 		} ) ),
 	};
 	return { document, assets };
