@@ -80,6 +80,10 @@ root.userData.worldPackage = {
 
 try {
 	life = await setupLife( { W: 192, H: 144, fov: 55, near: 0.1, far: 1000, shadowSplits: [ 12 ] } );
+	// This fixture measures package geometry and material coverage. Compare color
+	// shadows in a separate paired fixture rather than letting WebGPU's shadow map
+	// affect an RGB-derived silhouette while WebGL has no shadow pass enabled.
+	life.shadowsOn = false;
 	GPU.device.addEventListener( 'uncapturederror', event => errors.push( event.error?.message || 'unknown WebGPU error' ) );
 	const install = worldComponentBackendAdapter( 'webgpu', component.type );
 	assert.equal( typeof install, 'function', 'ElseMesh registers the generic WebGPU static-model adapter' );
@@ -102,14 +106,17 @@ try {
 	const deadline = Date.now() + 30000;
 	while ( Date.now() < deadline ) {
 		await life.run( 1, dt => runtime.update( dt, life.camera ) );
-		const lodIndex = runtime.planner._groupsByModel[ modelIndex ].findIndex( group => group.indices.subarray( 0, group.count ).includes( trunkIndex ) );
-		const targetColorLOD = lodIndex >= 0 && runtime.batches[ batchOffset + lodIndex ]?.some( batch => batch.mesh.count > 0 && batch.mesh.material.colorWrite && ! batch.mesh.userData.shadowOnly );
+		const desiredLOD = runtime.desiredLods[ modelIndex ];
+		const desiredLoaded = desiredLOD >= 0 && runtime.loadedLods[ modelIndex ].has( desiredLOD );
+		const targetColorLOD = desiredLoaded && runtime.batches[ batchOffset + desiredLOD ]?.some( batch => batch.mesh.count > 0 && batch.mesh.material.colorWrite && ! batch.mesh.userData.shadowOnly );
 		if ( targetColorLOD && requestedAssets.size > 1 ) break;
 		await new Promise( resolve => setTimeout( resolve, 10 ) );
 	}
 	const lodGroups = runtime.planner._groupsByModel[ modelIndex ];
 	const selectedLOD = lodGroups.findIndex( group => group.indices.subarray( 0, group.count ).includes( trunkIndex ) );
 	assert( selectedLOD >= 0, 'shared WebGPU LOD planner selects the same target trunk' );
+	assert.equal( selectedLOD, runtime.desiredLods[ modelIndex ], 'WebGPU renders the camera-selected LOD after its residency request completes' );
+	assert.equal( selectedLOD, 0, 'the close beach-trunk view selects LOD0, the highest-detail model' );
 	const selectedAsset = runtime.document.models[ modelIndex ].lods[ selectedLOD ].assetId;
 	assert( requestedAssets.has( selectedAsset ), `the selected WebGPU LOD loads its signed GLB ${selectedAsset}` );
 	assert( runtime.batches[ batchOffset + selectedLOD ]?.some( batch => batch.mesh.count > 0 && batch.mesh.material.colorWrite && ! batch.mesh.userData.shadowOnly ), 'the selected beach trunk enters a WebGPU color LOD' );

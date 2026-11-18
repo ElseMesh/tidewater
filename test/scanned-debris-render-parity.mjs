@@ -29,6 +29,22 @@ function rgbaImage( path ) {
 	return { width, height, pixels };
 }
 
+function foregroundCoverageWithinOnePixel( source, target, width, height ) {
+	let matched = 0, total = 0;
+	for ( let pixel = 0; pixel < source.length; pixel ++ ) {
+		if ( ! source[ pixel ] ) continue;
+		total ++;
+		const x = pixel % width, y = Math.floor( pixel / width );
+		let found = false;
+		for ( let dy = - 1; dy <= 1 && ! found; dy ++ ) for ( let dx = - 1; dx <= 1; dx ++ ) {
+			const nx = x + dx, ny = y + dy;
+			if ( nx >= 0 && nx < width && ny >= 0 && ny < height && target[ ny * width + nx ] ) { found = true; break; }
+		}
+		if ( found ) matched ++;
+	}
+	return { matched, total, coverage: matched / total };
+}
+
 try {
 	const results = outputs.map( runFixture );
 	assert.equal( results[ 0 ].placements, results[ 1 ].placements, 'both renderers consume the same authored placements' );
@@ -56,8 +72,12 @@ try {
 		for ( let channel = 0; channel < 3; channel ++ ) colorError += Math.abs( webgpu.pixels[ offset + channel ] - webgl.pixels[ offset + channel ] );
 	}
 	const iou = intersection / union, rgbMae = colorError / ( intersection * 3 );
-	assert( iou >= 0.9, `same-LOD debris foreground silhouette overlaps (IoU ${iou.toFixed( 3 )})` );
-	console.log( `Tidewater scanned-debris matched view: ${intersection}/${union} foreground overlap (IoU ${iou.toFixed( 3 )}); overlapping foreground RGB MAE ${rgbMae.toFixed( 2 )}/255; textures loaded WebGPU/WebGL ${results[ 0 ].textures}/${results[ 1 ].textures}` );
+	const coverageGPU = foregroundCoverageWithinOnePixel( masks[ 0 ], masks[ 1 ], webgpu.width, webgpu.height );
+	const coverageGL = foregroundCoverageWithinOnePixel( masks[ 1 ], masks[ 0 ], webgpu.width, webgpu.height );
+	const onePixelCoverage = ( coverageGPU.matched + coverageGL.matched ) / ( coverageGPU.total + coverageGL.total );
+	assert( iou >= 0.9, `same-LOD debris foreground silhouettes overlap (IoU ${iou.toFixed( 3 )})` );
+	assert( onePixelCoverage >= 0.97, `same-LOD debris silhouette coverage within one pixel (${onePixelCoverage.toFixed( 3 )})` );
+	console.log( `Tidewater scanned-debris matched view: exact foreground IoU ${iou.toFixed( 3 )}, symmetric coverage within one pixel ${onePixelCoverage.toFixed( 3 )}; overlapping foreground RGB MAE ${rgbMae.toFixed( 2 )}/255; textures loaded WebGPU/WebGL ${results[ 0 ].textures}/${results[ 1 ].textures}` );
 } finally {
 	rmSync( scratch, { recursive: true, force: true } );
 }

@@ -42,10 +42,13 @@ material feature has a WebGL equivalent.
 `webgl-scanned-debris-package-render.mjs` at the same authored beach-trunk pose
 and 192×144 resolution. The WebGPU fixture decodes the full-resolution signed
 JPEGs and uses the software Dawn adapter; WebGL runs in isolated headless
-Chromium. Both report their selected signed trunk LOD asset. The combined check
-compares foreground silhouette masks and reports RGB difference separately; it
-does not establish full-scene, material, lighting, shadow, or pre-split image
-parity.
+Chromium. Both wait for the camera-selected near LOD0 to become resident and
+assert the same signed trunk asset, after matching camera pose/projection,
+background, numeric lighting, and disabling shadows for this geometry-focused
+pass. The combined check requires at least 0.90 exact foreground-mask IoU and
+0.97 symmetric foreground coverage within one pixel; it reports RGB MAE
+separately. It does not establish full-scene, material, lighting, shadow, or
+pre-split image parity.
 
 `webgl-shore-query-parity.mjs` compares WebGPU and WebGL against Tidewater's
 packaged terrain and shoreline field, then records two 18-second underway boat

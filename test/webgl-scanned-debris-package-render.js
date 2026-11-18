@@ -11,16 +11,19 @@ canvas.hidden = true;
 document.body.append( canvas );
 const renderer = new THREE.WebGLRenderer( { canvas, antialias: false, preserveDrawingBuffer: true } );
 renderer.setSize( canvas.width, canvas.height, false );
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.6;
 let runtime;
 
 try {
 	const component = defaultWorldPackage.source.components.find( entry => entry.id === 'elsemesh-component:scanned-debris' );
 	if ( ! component ) throw new Error( 'The built-in world package has no signed scanned-debris component' );
 	const scene = new THREE.Scene();
-	scene.background = new THREE.Color( 0x101820 );
-	const sun = new THREE.DirectionalLight( 0xffffff, 3 );
-	sun.position.set( - 2, 4, 3 );
-	scene.add( sun, new THREE.AmbientLight( 0xffffff, 0.5 ) );
+	scene.background = new THREE.Color( 0xaabccf );
+	const sun = new THREE.DirectionalLight( new THREE.Color().setRGB( 3.2, 3.0, 2.7, THREE.LinearSRGBColorSpace ), 1 );
+	sun.position.set( 0.45, 0.62, 0.35 );
+	const sky = new THREE.AmbientLight( new THREE.Color().setRGB( 0.22, 0.3, 0.42, THREE.LinearSRGBColorSpace ), 1 );
+	scene.add( sun, sky );
 	const camera = new THREE.PerspectiveCamera( 55, canvas.width / canvas.height, 0.1, 1000 );
 	const fallback = Object.assign( Object.create( WebGLFallback.prototype ), {
 		defaultWorldSource: { ...defaultWorldPackage.source, components: [ component ] },
@@ -52,12 +55,17 @@ try {
 	camera.position.set( x + 6, y + 1.7, z + 4.5 );
 	camera.lookAt( x, y, z );
 	camera.updateProjectionMatrix();
-	const deadline = Date.now() + 20000;
+	camera.updateMatrixWorld( true );
+	const deadline = Date.now() + 30000;
 	let visibleMeshes = [];
 	while ( Date.now() < deadline ) {
 		runtime.update( 1 / 60, camera, null, 0 );
-		visibleMeshes = runtime.batches.slice( batchStart, batchStart + lodGroups.length )
-			.flatMap( group => group.filter( batch => batch.mesh.count > 0 && batch.mesh.material.colorWrite && ! batch.mesh.userData.shadowOnly ).map( batch => batch.mesh ) );
+		const desiredLOD = runtime.desiredLods[ modelIndex ];
+		const desiredLoaded = desiredLOD >= 0 && runtime.loadedLods[ modelIndex ].has( desiredLOD );
+		visibleMeshes = desiredLoaded
+			? runtime.batches.slice( batchStart + desiredLOD, batchStart + desiredLOD + 1 )
+				.flatMap( group => group.filter( batch => batch.mesh.count > 0 && batch.mesh.material.colorWrite && ! batch.mesh.userData.shadowOnly ).map( batch => batch.mesh ) )
+			: [];
 		if ( visibleMeshes.length > 0 ) break;
 		await new Promise( resolve => setTimeout( resolve, 25 ) );
 	}
@@ -69,13 +77,16 @@ try {
 	const pixels = new Uint8Array( canvas.width * canvas.height * 4 );
 	const gl = renderer.getContext();
 	gl.readPixels( 0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels );
+	const background = pixels.subarray( 0, 3 );
 	let changedPixels = 0;
-	for ( let offset = 0; offset < pixels.length; offset += 4 ) if ( Math.abs( pixels[ offset ] - 16 ) + Math.abs( pixels[ offset + 1 ] - 24 ) + Math.abs( pixels[ offset + 2 ] - 32 ) > 24 ) changedPixels ++;
+	for ( let offset = 0; offset < pixels.length; offset += 4 ) if ( Math.abs( pixels[ offset ] - background[ 0 ] ) + Math.abs( pixels[ offset + 1 ] - background[ 1 ] ) + Math.abs( pixels[ offset + 2 ] - background[ 2 ] ) > 24 ) changedPixels ++;
 	if ( changedPixels < 30 ) throw new Error( `The signed Tidewater beach trunk rendered too few pixels: ${changedPixels}` );
 	const glError = gl.getError(), programs = renderer.info.programs || [];
 	if ( glError !== gl.NO_ERROR ) throw new Error( `Built-in Tidewater debris render reported WebGL error 0x${glError.toString( 16 )}` );
 	if ( programs.some( program => program.diagnostics?.runnable === false ) ) throw new Error( 'Built-in Tidewater debris compiled an invalid WebGL program' );
 	const selectedLOD = lodGroups.findIndex( group => group.indices.subarray( 0, group.count ).includes( trunkIndex ) );
+	if ( selectedLOD !== runtime.desiredLods[ modelIndex ] ) throw new Error( `Built-in WebGL rendered fallback LOD ${selectedLOD}; expected camera-selected LOD ${runtime.desiredLods[ modelIndex ]}` );
+	if ( selectedLOD !== 0 ) throw new Error( `Close beach-trunk view selected LOD${selectedLOD}; expected LOD0, the highest-detail model` );
 	const selectedAsset = runtime.document.models[ modelIndex ].lods[ selectedLOD ].assetId;
 	if ( ! connector.assets.has( selectedAsset ) ) throw new Error( `Built-in WebGL did not load the selected signed LOD ${selectedAsset}` );
 	result.textContent = JSON.stringify( { status: 'complete', placements: placementCount, visibleMeshes: visibleMeshes.length, textureAssets: textureAssets.length, changedPixels, programCount: programs.length, selectedLOD, selectedAsset, glError } );
