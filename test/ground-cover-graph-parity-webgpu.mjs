@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { GPU } from '../../../src/engine/gpu/GPU.js';
 import { Texture } from '../../../src/engine/gpu/Texture.js';
 import { Group } from '../../../src/engine/scene/Group.js';
+import { Material } from '../../../src/engine/render/Material.js';
 import { TerrainGPU } from '../../../src/world/TerrainGPU.js';
 import { Terrain } from '../../../src/world/Terrain.js';
 import { HeightfieldTerrainData } from '../../../src/world/HeightfieldTerrainData.js';
@@ -104,6 +105,17 @@ try {
 	const graphCounts = graphMeshes.map( mesh => mesh.count );
 	const graphCells = graphMeshes.flatMap( mesh => Array.from( { length: mesh.count }, ( _, index ) => `${mesh.instanceMatrix.array[ index * 16 + 12 ]},${mesh.instanceMatrix.array[ index * 16 + 14 ]}` ) ).sort();
 	assert.ok( graphCells.length > 0, 'the generic Tidewater graph renders visible ground-cover instances from the signed density field' );
+	const originalMaterials = graphMeshes.map( mesh => mesh.material );
+	const geometryDiagnosticMaterial = new Material( { name: 'ground-cover-geometry-diagnostic', lit: false, side: 'double', output: 'r.color = vec4f( 0.0, 1.0, 0.0, 1.0 );' } );
+	for ( const mesh of graphMeshes ) mesh.material = geometryDiagnosticMaterial;
+	await L.run( 2, () => { terrainSurface.update( L.camera, true ); runtime.update( 0, L.camera ); }, 0 );
+	await GPU.pipelinesReady();
+	await L.run( 2, () => { terrainSurface.update( L.camera, true ); runtime.update( 0, L.camera ); }, 0 );
+	const geometryDiagnostic = new Uint8Array( ( await readFrame() ).data );
+	const graphGeometryPixels = changedPixelsFrom( geometryDiagnostic, emptyFrame );
+	if ( captureDir ) await L.save( path.join( captureDir, 'graph-geometry-only.png' ) );
+	for ( let index = 0; index < graphMeshes.length; index ++ ) graphMeshes[ index ].material = originalMaterials[ index ];
+	geometryDiagnosticMaterial.dispose();
 	let totalError = 0, changedPixels = 0;
 	for ( let offset = 0; offset < reference.length; offset += 4 ) {
 		const difference = Math.abs( reference[ offset ] - graphFrame[ offset ] ) + Math.abs( reference[ offset + 1 ] - graphFrame[ offset + 1 ] ) + Math.abs( reference[ offset + 2 ] - graphFrame[ offset + 2 ] );
@@ -111,7 +123,7 @@ try {
 		if ( difference > 24 ) changedPixels ++;
 	}
 	const meanAbsoluteError = totalError / ( reference.length / 4 * 3 );
-	console.log( `Tidewater signed ground-cover diagnostic: source/graph MAE ${ meanAbsoluteError.toFixed( 3 )}/255; changed pixels ${changedPixels}; foliage pixels beyond empty background ${sourceChangedPixels}/${graphChangedPixels}; foreground pixels ${sourceForegroundPixels}/${graphForegroundPixels}; visible instance counts ${sourceCounts.join( '/' )}/${graphCounts.join( '/' )}` );
+	console.log( `Tidewater signed ground-cover diagnostic: source/graph MAE ${ meanAbsoluteError.toFixed( 3 )}/255; changed pixels ${changedPixels}; foliage pixels beyond empty background ${sourceChangedPixels}/${graphChangedPixels}; geometry-only graph pixels ${graphGeometryPixels}; foreground pixels ${sourceForegroundPixels}/${graphForegroundPixels}; visible instance counts ${sourceCounts.join( '/' )}/${graphCounts.join( '/' )}` );
 	assert.ok( meanAbsoluteError <= 10, `the Tidewater material graph stays close to the source WebGPU presenter with signed density and terrain assets (MAE ${ meanAbsoluteError.toFixed( 3 )}/255)` );
 	console.log( `Tidewater WebGPU ground-cover source/graph selected cells: ${ sourceCells.length }/${ graphCells.length }; source LOD ${ sourceCounts.join( '/' ) }; graph LOD ${ graphCounts.join( '/' ) }` );
 } finally {
