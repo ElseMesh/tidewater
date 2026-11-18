@@ -7,6 +7,7 @@ import { GPU } from '../../../src/engine/gpu/GPU.js';
 import { Texture } from '../../../src/engine/gpu/Texture.js';
 import { Group } from '../../../src/engine/scene/Group.js';
 import { Material } from '../../../src/engine/render/Material.js';
+import { ShaderModule } from '../../../src/engine/gpu/Shader.js';
 import { TerrainGPU } from '../../../src/world/TerrainGPU.js';
 import { Terrain } from '../../../src/world/Terrain.js';
 import { HeightfieldTerrainData } from '../../../src/world/HeightfieldTerrainData.js';
@@ -68,10 +69,13 @@ try {
 	original = null;
 
 	// Render the exported GLBs and the renderer-neutral graph in the same scene.
+	const graphTerrainHeightModule = process.env.ELSEMESH_GROUND_COVER_FLAT_HEIGHT === '1'
+		? new ShaderModule( { name: 'groundCoverParityFlatTerrainHeight', code: 'fn terrainHeightAt( xz: vec2f ) -> f32 { return 8.0; }' } )
+		: terrainGPU.heightModule;
 	const fixture = await groundCoverFieldRenderFixture( {
 		density,
 		terrain,
-		terrainHeightModule: terrainGPU.heightModule,
+		terrainHeightModule: graphTerrainHeightModule,
 		terrainDetail: { width: terrainMaps.detailWidth, height: terrainMaps.detailHeight, data: terrainMaps.detail },
 	} );
 	detailTexture = new Texture( { label: 'tidewater-ground-cover-parity-detail', width: fixture.terrainDetail.width, height: fixture.terrainDetail.height, format: 'rgba8unorm', data: fixture.terrainDetail.data, sampler: 'aniso4Repeat' } );
