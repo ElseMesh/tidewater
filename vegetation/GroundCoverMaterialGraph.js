@@ -33,7 +33,7 @@ function linearColor( hex ) {
 /** Build the authored Tidewater patch graph using the signed density grid's world mapping. */
 export function createTidewaterGroundCoverMaterialGraph( { densityOrigin, densitySize, vertexPositionMode = 'authored', forcePresence = false } ) {
 	if ( ! Number.isFinite( densityOrigin ) || ! Number.isFinite( densitySize ) || densitySize <= 0 ) throw new Error( 'Tidewater ground-cover material requires valid density-grid world bounds' );
-	if ( ! [ 'authored', 'unscaled' ].includes( vertexPositionMode ) ) throw new Error( 'Tidewater ground-cover material has an unknown vertex position mode' );
+	if ( ! [ 'authored', 'unscaled', 'rest' ].includes( vertexPositionMode ) ) throw new Error( 'Tidewater ground-cover material has an unknown vertex position mode' );
 	if ( typeof forcePresence !== 'boolean' ) throw new Error( 'Tidewater ground-cover material presence mode must be boolean' );
 	const b = new GraphBuilder(), c = value => b.constant( value ), op = ( name, ...args ) => b.call( name, ...args );
 	const zero = c( 0 ), one = c( 1 ), half = c( 0.5 ), two = c( 2 );
@@ -235,7 +235,8 @@ export function createTidewaterGroundCoverMaterialGraph( { densityOrigin, densit
 	const backLight = op( 'pow', clamp( op( 'dot', mul( viewDirection, c( -1 ) ), sunDirection ), zero, one ), c( 4 ) );
 	const translucency = mul( mul( mul( colorBeforeGrass, constantVec3( 1.1, 1.3, 0.6 ) ), mul( backLight, c( 0.3 ) ) ), mul( smooth( 0.2, 1, hf ), sub( one, night ) ) );
 	const specularIntensity = c( 0.4 );
-	const vertexPosition = vertexPositionMode === 'unscaled' ? sub( add( base, position ), cellOrigin ) : worldBentPosition;
+	const restPosition = sub( add( add( base, o0 ), mul( sideRotated, wideScale ) ), cellOrigin );
+	const vertexPosition = vertexPositionMode === 'unscaled' ? sub( add( base, position ), cellOrigin ) : vertexPositionMode === 'rest' ? restPosition : worldBentPosition;
 
 	return Object.freeze( {
 		format: 'elsemesh.material-graph/1',
