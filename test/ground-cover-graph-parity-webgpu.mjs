@@ -1,34 +1,48 @@
 import assert from 'node:assert/strict';
-import { mkdir } from 'node:fs/promises';
+import { readFile, mkdir } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { GPU } from '../../../src/engine/gpu/GPU.js';
 import { Texture } from '../../../src/engine/gpu/Texture.js';
 import { Group } from '../../../src/engine/scene/Group.js';
-import { Mesh } from '../../../src/engine/scene/Mesh.js';
-import { PlaneGeometry } from '../../../src/engine/geometry/PrimitiveGeometries.js';
-import { standard } from '../../../src/materials/Materials.js';
+import { TerrainGPU } from '../../../src/world/TerrainGPU.js';
+import { HeightfieldTerrainData } from '../../../src/world/HeightfieldTerrainData.js';
+import { decodeGrassDensityAsset } from '../../../src/network/GrassDensityAsset.js';
+import { decodeTerrainSurfaceAsset } from '../../../src/network/TerrainSurfaceAsset.js';
 import { worldComponentBackendAdapter } from '../../../src/network/WorldComponentBackendRegistry.js';
 import '../../../src/network/WebGPUWorldComponentAdapters.js';
 import { setupLife } from '../../../test/life-harness.mjs';
 import { groundCoverFieldRenderFixture } from '../../../test/helpers/ground-cover-field-render-fixture.mjs';
 import { GrassField } from '../renderers/webgpu-vegetation/GrassField.js';
 
-const fixture = await groundCoverFieldRenderFixture();
+const worldRoot = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..' );
+const worldSource = JSON.parse( await readFile( path.join( worldRoot, 'world-source.json' ), 'utf8' ) );
+const assetBytes = async assetId => {
+	const bytes = new Uint8Array( await readFile( path.join( worldRoot, 'assets', assetId.slice( 'sha256:'.length ) ) ) );
+	assert.equal( createHash( 'sha256' ).update( bytes ).digest( 'hex' ), assetId.slice( 'sha256:'.length ), `signed asset ${assetId} matches its content hash` );
+	return bytes;
+};
+const vegetation = worldSource.components.find( component => component.type === 'elsemesh.static-vegetation/1' );
+const terrainComponent = worldSource.components.find( component => component.type === 'elsemesh.terrain-surface/1' );
+assert.ok( vegetation?.data?.grassMaskAssetId && terrainComponent?.data?.dataAssetId, 'Tidewater declares its authored vegetation density and terrain surface' );
+const [ densityBytes, terrainBytes ] = await Promise.all( [ assetBytes( vegetation.data.grassMaskAssetId ), assetBytes( terrainComponent.data.dataAssetId ) ] );
+const density = decodeGrassDensityAsset( densityBytes );
+const terrainMaps = await decodeTerrainSurfaceAsset( terrainBytes );
+const terrain = new HeightfieldTerrainData( terrainMaps );
 const captureDir = process.env.ELSEMESH_GROUND_COVER_CAPTURE_DIR || null;
 if ( captureDir ) await mkdir( captureDir, { recursive: true } );
 const L = await setupLife( { W: 256, H: 192, shadowSplits: [ 12 ] } );
-let original, runtime, detailTexture;
+let original, runtime, detailTexture, terrainGPU;
 try {
-	const ground = new Mesh( new PlaneGeometry( 32, 32 ).rotateX( - Math.PI / 2 ), standard( { name: 'tidewater-ground-cover-parity-ground', color: 0xc3b895, roughness: 1 } ) );
-	ground.position.y = - 0.02;
-	ground.receiveShadow = true;
-	L.scene.add( ground );
-	L.camera.position.set( 0, 3, 8 );
-	L.camera.lookAt( 0, 0.5, 0 );
+	terrainGPU = new TerrainGPU( terrain, terrainMaps.shoreField, { normal: terrainMaps.normal, splat: terrainMaps.splat, detailWidth: terrainMaps.detailWidth, detailHeight: terrainMaps.detailHeight, detail: terrainMaps.detail } );
+	const spawn = worldSource.spawn.position;
+	L.camera.position.set( spawn[ 0 ], terrain.heightAt( spawn[ 0 ], spawn[ 2 ] ) + 2, spawn[ 2 ] );
+	L.camera.lookAt( spawn[ 0 ], terrain.heightAt( spawn[ 0 ], spawn[ 2 ] + 24 ) + 1, spawn[ 2 ] + 24 );
 
 	// This is Tidewater's existing pre-migration WebGPU presenter. Hold its
-	// geometry, placement, source density, terrain, camera, and frame time fixed.
-	original = new GrassField( { terrain: fixture.terrain, mask: fixture.grassMask } );
+	// geometry, placement, signed density, packaged terrain, camera, and frame time fixed.
+	original = new GrassField( { terrain, mask: density } );
 	for ( const mesh of original.meshes ) L.scene.add( mesh );
 	await L.run( 2, () => original.update( L.camera ), 0 );
 	const reference = new Uint8Array( ( await readFrame() ).data );
@@ -40,6 +54,12 @@ try {
 	original = null;
 
 	// Render the exported GLBs and the renderer-neutral graph in the same scene.
+	const fixture = await groundCoverFieldRenderFixture( {
+		density,
+		terrain,
+		terrainHeightModule: terrainGPU.heightModule,
+		terrainDetail: { width: terrainMaps.detailWidth, height: terrainMaps.detailHeight, data: terrainMaps.detail },
+	} );
 	detailTexture = new Texture( { label: 'tidewater-ground-cover-parity-detail', width: fixture.terrainDetail.width, height: fixture.terrainDetail.height, format: 'rgba8unorm', data: fixture.terrainDetail.data, sampler: 'aniso4Repeat' } );
 	const root = new Group();
 	root.userData.terrainData = fixture.terrain;
@@ -73,12 +93,13 @@ try {
 		if ( difference > 24 ) changedPixels ++;
 	}
 	const meanAbsoluteError = totalError / ( reference.length / 4 * 3 );
-	assert.ok( meanAbsoluteError <= 10, `the Tidewater material graph stays close to the source WebGPU presenter in the matched flat-field fixture (MAE ${ meanAbsoluteError.toFixed( 3 )}/255)` );
-	console.log( `Tidewater WebGPU ground-cover graph versus source presenter: MAE ${ meanAbsoluteError.toFixed( 3 )}/255; ${ changedPixels } changed pixels; source LOD counts ${ sourceCounts.join( '/' ) }; graph LOD counts ${ graphCounts.join( '/' ) }; source cells ${ sourceCells.join( ';' ) }; graph cells ${ graphCells.join( ';' ) }` );
+	assert.ok( meanAbsoluteError <= 10, `the Tidewater material graph stays close to the source WebGPU presenter with signed density and terrain assets (MAE ${ meanAbsoluteError.toFixed( 3 )}/255)` );
+	console.log( `Tidewater WebGPU ground-cover graph versus source presenter using signed density ${vegetation.data.grassMaskAssetId} and terrain ${terrainComponent.data.dataAssetId}: MAE ${ meanAbsoluteError.toFixed( 3 )}/255; ${ changedPixels } changed pixels; source LOD counts ${ sourceCounts.join( '/' ) }; graph LOD counts ${ graphCounts.join( '/' ) }; source cells ${ sourceCells.join( ';' ) }; graph cells ${ graphCells.join( ';' ) }` );
 } finally {
 	original?.dispose();
 	runtime?.dispose();
 	detailTexture?.destroy();
+	terrainGPU?.dispose();
 	GPU.device?.destroy();
 }
 await new Promise( resolve => setTimeout( resolve, 200 ) );
