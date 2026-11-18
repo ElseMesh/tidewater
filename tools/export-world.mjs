@@ -245,8 +245,8 @@ const debrisAssetBounds = new Map();
 for ( const { id: assetName } of SCANNED_DEBRIS_ASSETS ) {
 	const originalGLB = await readFile( path.join( REPO, 'public', 'models', 'debris', `${assetName}.glb` ) );
 	const albedo = await readFile( path.join( REPO, 'public', 'models', 'debris', `${assetName}_albedo.jpg` ) );
-	const packagedGLB = exportScannedLOD( originalGLB, albedo, assetName, 1 );
-	const packagedLODGLB = exportScannedLOD( originalGLB, albedo, assetName, 2 );
+	const packagedGLB = exportScannedLOD( originalGLB, { albedo }, assetName, 1 );
+	const packagedLODGLB = exportScannedLOD( originalGLB, { albedo }, assetName, 2 );
 	const packagedID = `sha256:${createHash( 'sha256' ).update( packagedGLB ).digest( 'hex' )}`;
 	const packagedLODID = `sha256:${createHash( 'sha256' ).update( packagedLODGLB ).digest( 'hex' )}`;
 	const packagedData = parseGLB( packagedGLB.buffer.slice( packagedGLB.byteOffset, packagedGLB.byteOffset + packagedGLB.byteLength ) );
@@ -259,6 +259,17 @@ for ( const { id: assetName } of SCANNED_DEBRIS_ASSETS ) {
 	staticAssets.set( packagedID, packagedGLB );
 	staticAssets.set( packagedLODID, packagedLODGLB );
 }
+
+// Renderer-neutral migration fixture for the live scanned-debris population.
+// It carries all three source meshes and all source PBR maps, but is not yet
+// installed in the signed package: the shared material contract still needs
+// to express the WebGPU debris contact/wet/bleaching treatment in both engines.
+const scannedStaticModelSet = await exportScannedStaticModelSet( debris );
+await writeFile( path.join( output, 'scanned-debris-static-model-instance-set.json' ), JSON.stringify( scannedStaticModelSet.document, null, 2 ) + '\n' );
+const scannedStaticModelsPath = path.join( output, 'scanned-debris-static-models' );
+await mkdir( scannedStaticModelsPath, { recursive: true } );
+for ( const entry of await readdir( scannedStaticModelsPath, { withFileTypes: true } ) ) if ( entry.isFile() && /^[0-9a-f]{64}\.glb$/.test( entry.name ) && ! scannedStaticModelSet.assets.has( entry.name.slice( 0, 64 ) ) ) await rm( path.join( scannedStaticModelsPath, entry.name ) );
+for ( const [ hash, bytes ] of scannedStaticModelSet.assets ) await writeFile( path.join( scannedStaticModelsPath, `${hash}.glb` ), bytes );
 const ambientBeds = [];
 const ambientBedSpecs = [
 	{ name: 'surf_far', target: MIX.surfFar, condition: 'always' },
@@ -1229,7 +1240,7 @@ function exportBatchGLB( batches, sceneName, villageMaterials = false ) {
 	return Buffer.concat( [ header, jsonHeader, jsonPadded, binHeader, binPadded ] );
 }
 
-function exportScannedLOD( sourceBytes, albedoBytes, name, meshIndex ) {
+function exportScannedLOD( sourceBytes, textureMaps, name, meshIndex ) {
 	const parsed = parseGLB( sourceBytes.buffer.slice( sourceBytes.byteOffset, sourceBytes.byteOffset + sourceBytes.byteLength ) );
 	const primitive = parsed.meshes[ meshIndex ]?.[ 0 ];
 	if ( ! primitive?.attributes?.POSITION || ! primitive.attributes.NORMAL || ! primitive.attributes.TEXCOORD_0 || ! primitive.indices ) throw new Error( `Scanned asset ${name} has no supported LOD${meshIndex} triangle mesh` );
@@ -1271,15 +1282,17 @@ function exportScannedLOD( sourceBytes, albedoBytes, name, meshIndex ) {
 	const uvArray = Float32Array.from( sourceUV.array, ( value ) => Math.min( 0.998, Math.max( 0.002, value ) ) );
 	const uv = addAccessor( { ...sourceUV, array: uvArray, componentType: 5126, normalized: false }, 'VEC2', 34962 );
 	const indices = addAccessor( { array: primitive.indices, itemSize: 1, componentType: primitive.indices instanceof Uint32Array ? 5125 : 5123 }, 'SCALAR', 34963 );
-	const imageView = append( albedoBytes, { mimeType: 'image/jpeg' } );
+	const mapNames = [ 'albedo', 'normal', 'arm' ].filter( map => textureMaps[ map ] );
+	const imageViews = mapNames.map( map => append( textureMaps[ map ], { mimeType: 'image/jpeg' } ) );
 	const binary = Buffer.concat( chunks );
+	const textureInfo = Object.fromEntries( mapNames.map( ( map, index ) => [ map, { index } ] ) );
 	const gltf = {
 		asset: { version: '2.0', generator: 'ElseMesh island scanned asset exporter/1' },
 		scene: 0, scenes: [ { nodes: [ 0 ] } ], nodes: [ { name, mesh: 0 } ],
 		meshes: [ { name, primitives: [ { attributes: { POSITION: position, NORMAL: normal, TEXCOORD_0: uv }, indices, material: 0, mode: 4 } ] } ],
-		materials: [ { name: `${name} albedo`, pbrMetallicRoughness: { baseColorTexture: { index: 0 }, metallicFactor: 0, roughnessFactor: 1 } } ],
-		textures: [ { sampler: 0, source: 0 } ], samplers: [ { magFilter: 9729, minFilter: 9987, wrapS: 10497, wrapT: 10497 } ],
-		images: [ { bufferView: imageView, mimeType: 'image/jpeg', name: `${name} albedo` } ],
+		materials: [ { name: `${name} portable PBR`, pbrMetallicRoughness: { baseColorTexture: textureInfo.albedo, metallicRoughnessTexture: textureInfo.arm, metallicFactor: 0, roughnessFactor: 1 }, ...( textureInfo.normal ? { normalTexture: textureInfo.normal } : {} ), ...( textureInfo.arm ? { occlusionTexture: { ...textureInfo.arm, strength: 1 } } : {} ) } ],
+		textures: mapNames.map( ( _map, index ) => ( { sampler: 0, source: index } ) ), samplers: [ { magFilter: 9729, minFilter: 9987, wrapS: 10497, wrapT: 10497 } ],
+		images: mapNames.map( ( map, index ) => ( { bufferView: imageViews[ index ], mimeType: 'image/jpeg', name: `${name} ${map}` } ) ),
 		accessors, bufferViews, buffers: [ { byteLength: binary.length } ],
 	};
 	const json = Buffer.from( JSON.stringify( gltf ) );
@@ -1291,6 +1304,55 @@ function exportScannedLOD( sourceBytes, albedoBytes, name, meshIndex ) {
 	const jsonHeader = Buffer.alloc( 8 ); jsonHeader.writeUInt32LE( jsonPadded.length, 0 ); jsonHeader.writeUInt32LE( 0x4e4f534a, 4 );
 	const binHeader = Buffer.alloc( 8 ); binHeader.writeUInt32LE( binPadded.length, 0 ); binHeader.writeUInt32LE( 0x004e4942, 4 );
 	return Buffer.concat( [ header, jsonHeader, jsonPadded, binHeader, binPadded ] );
+}
+
+async function exportScannedStaticModelSet( instances ) {
+	const assets = new Map();
+	const models = [];
+	for ( const { id: name } of SCANNED_DEBRIS_ASSETS ) {
+		const sourceBytes = readFile( path.join( REPO, 'public', 'models', 'debris', `${name}.glb` ) );
+		const textureMaps = Object.fromEntries( [ 'albedo', 'normal', 'arm' ].map( map => [ map, readFile( path.join( REPO, 'public', 'models', 'debris', `${name}_${map}.jpg` ) ) ] ) );
+		const [ sourceGLB, maps ] = await Promise.all( [ sourceBytes, Promise.all( Object.entries( textureMaps ).map( async ( [ map, bytes ] ) => [ map, await bytes ] ) ) ] );
+		const resolvedMaps = Object.fromEntries( maps );
+		const lodAssets = [];
+		const lodBytes = [];
+		for ( const meshIndex of [ 0, 1, 2 ] ) {
+			const glb = exportScannedLOD( sourceGLB, resolvedMaps, name, meshIndex );
+			const assetId = `sha256:${createHash( 'sha256' ).update( glb ).digest( 'hex' )}`;
+			assets.set( assetId.slice( 'sha256:'.length ), glb );
+			lodAssets.push( { assetId, meshIndex } );
+			lodBytes.push( glb );
+		}
+		const bounds = boundsForGLB( ...lodBytes );
+		// Distance LOD runs coarse-to-fine, matching the shared planner's descending
+		// distance thresholds. The near source mesh is selected for shadows.
+		models.push( {
+			id: name,
+			bounds,
+			geometryMirrorX: false,
+			lods: lodAssets.slice().reverse().map( ( { assetId } ) => ( { assetId } ) ),
+			lodThresholds: [ 70, 22 ],
+			lodMetric: 'world-distance',
+			lodFadeFraction: 0.12,
+			shadowLod: 2,
+			shadowMaxDistance: 22,
+			drawMaxDistance: 260,
+			drawFadeStartDistance: 228.8,
+		} );
+	}
+	const document = {
+		format: 'elsemesh.static-model-instance-set/1',
+		models,
+		instances: instances.map( ( instance, index ) => ( {
+			model: SCANNED_DEBRIS_ASSETS[ instance.asset ].id,
+			position: [ instance.x, instance.y, instance.z ],
+			rotation: new Quaternion().setFromEuler( new Euler( instance.roll || 0, instance.yaw, instance.pitch || 0, 'YXZ' ) ).toArray(),
+			scale: [ instance.sx, instance.sy, instance.sz ],
+			placementId: `elsemesh-object:scanned-debris-${index}`,
+			materialData: [ instance.asset, instance.rnd, instance.x, instance.y, instance.z, instance.sx, instance.sy, instance.sz ],
+		} ) ),
+	};
+	return { document, assets };
 }
 
 function boundsForGLB( ...assets ) {

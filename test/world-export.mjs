@@ -94,6 +94,7 @@ try {
 	const firstExportOutput = execFileSync( process.execPath, [ 'worlds/tidewater/tools/export-world.mjs', '--out', output ], { cwd: repositoryRoot, encoding: 'utf8' } );
 	const fishSetBytesFirst = await readFile( path.join( output, 'fish-static-model-instance-set.json' ) );
 	const vegetationSetBytesFirst = await readFile( path.join( output, 'vegetation-static-model-instance-set.json' ) );
+	const scannedSetBytesFirst = await readFile( path.join( output, 'scanned-debris-static-model-instance-set.json' ) );
 	const sourceFirst = await readFile( sourcePath );
 	const terrainReportPath = path.join( output, 'terrain-validation.json' );
 	const terrainReportFirst = await readFile( terrainReportPath );
@@ -106,6 +107,7 @@ try {
 	const secondExportOutput = execFileSync( process.execPath, [ 'worlds/tidewater/tools/export-world.mjs', '--out', output ], { cwd: repositoryRoot, encoding: 'utf8' } );
 	const fishSetBytes = await readFile( path.join( output, 'fish-static-model-instance-set.json' ) );
 	const vegetationSetBytes = await readFile( path.join( output, 'vegetation-static-model-instance-set.json' ) );
+	const scannedSetBytes = await readFile( path.join( output, 'scanned-debris-static-model-instance-set.json' ) );
 	const vegetationSet = validateStaticModelInstanceSet( JSON.parse( vegetationSetBytes ) );
 	assert.equal( vegetationSet.models.length, 1, 'vegetation migration artifact exports the coconut-palm model' );
 	assert.equal( vegetationSet.models[ 0 ].id, 'coconut-palm', 'vegetation migration artifact identifies its first supported category' );
@@ -156,6 +158,41 @@ try {
 		}
 	}
 	assert.deepEqual( fishSetBytes, fishSetBytesFirst, 'the generic fish model-set descriptor is deterministic' );
+	const scannedSet = validateStaticModelInstanceSet( JSON.parse( scannedSetBytes ) );
+	const scannedSetSourceObjects = firstDocument.objects.filter( object => object.id.startsWith( 'elsemesh-object:scanned-debris-' ) );
+	assert.equal( scannedSet.instances.length, scannedSetSourceObjects.length, 'scanned-debris migration artifact preserves every authored placement' );
+	assert.equal( scannedSet.instances.length, 141, 'scanned-debris migration artifact contains the complete generated population' );
+	assert.equal( scannedSet.models.length, 4, 'scanned-debris migration artifact keeps the four source asset classes distinct' );
+	assert.deepEqual( scannedSet.models[ 0 ].lodThresholds, [ 70, 22 ], 'the shared planner receives the authored coarse-to-fine distance handoffs' );
+	assert.equal( scannedSet.models[ 0 ].shadowLod, 2, 'near source geometry is selected for shadows in coarse-to-fine ordering' );
+	assert.equal( scannedSet.models[ 0 ].drawMaxDistance, 260, 'the shared model set retains the current far cull distance' );
+	assert.deepEqual( scannedSetBytes, scannedSetBytesFirst, 'the renderer-neutral scanned-debris descriptor is deterministic' );
+	const scannedSetFiles = await readdir( path.join( output, 'scanned-debris-static-models' ) );
+	const scannedSetAssetIDs = new Set( scannedSet.models.flatMap( model => model.lods.map( lod => lod.assetId ) ) );
+	assert.equal( scannedSetFiles.length, 12, 'scanned-debris artifact exports all three LODs for all four source models' );
+	assert.equal( scannedSetFiles.length, scannedSetAssetIDs.size, 'each scanned-debris LOD has a unique content address' );
+	for ( const model of scannedSet.models ) {
+		assert.equal( model.lods.length, 3, `${model.id} preserves all three source LOD meshes` );
+		for ( const { assetId } of model.lods ) {
+			const bytes = await readFile( path.join( output, 'scanned-debris-static-models', `${assetId.slice( 'sha256:'.length )}.glb` ) );
+			assert.equal( `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`, assetId, 'scanned-debris GLB filename and bytes match its content address' );
+			const parsed = parseGLB( bytes );
+			const material = parsed.materials[ 0 ];
+			assert.ok( material.pbrMetallicRoughness.baseColorTexture && material.pbrMetallicRoughness.metallicRoughnessTexture && material.normalTexture && material.occlusionTexture, `${model.id} GLB keeps all three portable PBR maps` );
+			assert.equal( parsed.images.length, 3, `${model.id} GLB embeds albedo, normal, and ARM source maps` );
+			for ( const [ index, map ] of [ 'albedo', 'normal', 'arm' ].entries() ) {
+				const sourceMap = await readFile( path.join( checkedInDir, 'source', 'models', 'debris', `${model.id}_${map}.jpg` ) );
+				assert.deepEqual( parsed.images[ index ].bytes, sourceMap, `${model.id} ${map} map bytes remain identical to the source asset` );
+			}
+		}
+	}
+	for ( let index = 0; index < scannedSetSourceObjects.length; index ++ ) {
+		const sourceObject = scannedSetSourceObjects[ index ], instance = scannedSet.instances[ index ];
+		assert.equal( instance.placementId, sourceObject.id, 'the shared instance retains the source placement identity' );
+		assert.deepEqual( instance.position, sourceObject.transform.position, 'the shared instance keeps the exact authored position' );
+		assert.deepEqual( instance.rotation, sourceObject.transform.rotation, 'the shared instance keeps the exact authored orientation' );
+		assert.deepEqual( instance.scale, sourceObject.scale, 'the shared instance keeps the exact authored scale' );
+	}
 	const sourceBytes = await readFile( sourcePath );
 	const terrainReportSecond = await readFile( terrainReportPath );
 	const source = validateWorldSource( JSON.parse( sourceBytes ) );
