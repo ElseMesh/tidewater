@@ -44,7 +44,9 @@ try {
 	await L.run( 2, () => terrainSurface.update( L.camera, true ), 0 );
 	await GPU.pipelinesReady();
 	await L.run( 2, () => terrainSurface.update( L.camera, true ), 0 );
-	const terrainOnly = new Uint8Array( ( await readFrame() ).data );
+	terrainSurface.mesh.visible = false;
+	await L.run( 1, () => terrainSurface.update( L.camera, true ), 0 );
+	const emptyFrame = new Uint8Array( ( await readFrame() ).data );
 
 	// This is Tidewater's existing pre-migration WebGPU presenter. Hold its
 	// geometry, placement, signed density, packaged terrain, camera, and frame time fixed.
@@ -55,7 +57,7 @@ try {
 	await L.run( 2, () => { terrainSurface.update( L.camera, true ); original.update( L.camera ); }, 0 );
 	const reference = new Uint8Array( ( await readFrame() ).data );
 	const sourceForegroundPixels = countForegroundPixels( reference );
-	const sourceChangedPixels = changedPixelsFrom( reference, terrainOnly );
+	const sourceChangedPixels = changedPixelsFrom( reference, emptyFrame );
 	if ( captureDir ) await L.save( path.join( captureDir, 'source-webgpu.png' ) );
 	assert.ok( sourceChangedPixels > 20, `the source presenter contributes foliage beyond the packaged terrain (${sourceChangedPixels} changed pixels)` );
 	const sourceCounts = original.levels.map( level => level.count );
@@ -95,7 +97,7 @@ try {
 	await L.run( 2, () => { terrainSurface.update( L.camera, true ); runtime.update( 0, L.camera ); }, 0 );
 	const graphFrame = new Uint8Array( ( await readFrame() ).data );
 	const graphForegroundPixels = countForegroundPixels( graphFrame );
-	const graphChangedPixels = changedPixelsFrom( graphFrame, terrainOnly );
+	const graphChangedPixels = changedPixelsFrom( graphFrame, emptyFrame );
 	assert.ok( graphChangedPixels > 20, `the generic graph contributes foliage beyond the packaged terrain (${graphChangedPixels} changed pixels)` );
 	if ( captureDir ) await L.save( path.join( captureDir, 'graph-webgpu.png' ) );
 	const graphMeshes = [];
