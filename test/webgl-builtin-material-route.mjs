@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 const fallbackPath = new URL( '../../../src/fallback/WebGLFallback.js', import.meta.url );
 const source = await readFile( fallbackPath, 'utf8' );
 const start = source.indexOf( 'async _loadIsland( progress )' );
-const end = source.indexOf( 'async _loadBuiltinBatchComponents()', start );
+const end = source.indexOf( 'async _loadBuiltinComponents()', start );
 assert.ok( start >= 0 && end > start, 'the built-in WebGL world loader is present' );
 
 const loadIsland = source.slice( start, end );

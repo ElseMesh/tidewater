@@ -2,14 +2,16 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import * as THREE from 'three';
 import '../register-components.js';
+import '../../../src/fallback/WebGLComponentSupport.js';
 import { reefLODAtDistance } from '../Reef.js';
 import { WebGLReefAdapter } from '../renderers/WebGLReefAdapter.js';
-import { worldComponentBackendBatchAdapter } from '../../../src/network/WorldComponentBackendRegistry.js';
+import { worldComponentBackendAdapter, worldComponentBackendBatchAdapter } from '../../../src/network/WorldComponentBackendRegistry.js';
 
 assert.equal( typeof worldComponentBackendBatchAdapter( 'webgl', 'elsemesh.static-reef/1' ), 'function', 'Tidewater registers its WebGL reef batch adapter' );
+assert.equal( typeof worldComponentBackendAdapter( 'webgl', 'elsemesh.static-model-instance-set/1' ), 'function', 'ElseMesh registers the generic WebGL static-model adapter' );
 const fallbackSource = await readFile( new URL( '../../../src/fallback/WebGLFallback.js', import.meta.url ), 'utf8' );
 assert.doesNotMatch( fallbackSource, /WebGLReefAdapter|decodeReefPlacements|elsemesh\.static-reef\/1/, 'the generic WebGL fallback loads registered component batches without naming reef content' );
-assert.match( fallbackSource, /async _loadBuiltinBatchComponents\(\)[\s\S]*?worldComponentBackendBatchAdapter\( 'webgl', component\.type \)/, 'built-in WebGL resolves batch renderers through the component registry' );
+assert.match( fallbackSource, /async _loadBuiltinComponents\(\)[\s\S]*?worldComponentBackendBatchAdapter\( 'webgl', component\.type \)[\s\S]*?worldComponentBackendAdapter\( 'webgl', component\.type \)/, 'built-in WebGL resolves single and batch renderers through the component registry' );
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera( 65, 1, 0.1, 200 );
