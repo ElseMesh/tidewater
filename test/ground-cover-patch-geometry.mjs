@@ -34,6 +34,7 @@ for ( const patch of levels ) {
 assert.equal( slotSet( levels[ 0 ], 1 ).size, OATS, 'near patch retains all authored oat positions' );
 assert.equal( slotSet( levels[ 1 ], 1 ).size, OATS, 'mid patch retains the same authored oat positions' );
 assert.equal( slotSet( levels[ 0 ], 2 ).size, VINES, 'near patch retains all authored creeper positions' );
+assert.deepEqual( levels.map( patch => patch.triangles ), [ 17560, 4716, 768 ], 'portable streams retain the source near/mid/far triangle counts' );
 assert.ok( levels[ 0 ].triangles > levels[ 1 ].triangles && levels[ 1 ].triangles > levels[ 2 ].triangles, 'the three source LODs reduce topology progressively' );
 
 console.log( 'Tidewater ground-cover authoring recipe preserves source slots, categories, and LOD geometry' );
