@@ -91,6 +91,11 @@ try {
 	};
 	const installed = await worldComponentBackendAdapter( 'webgpu', component.type )( { app: {}, root, connector: fixture.connector }, component );
 	assert.equal( installed?.installed, true, 'Tidewater patch GLBs install through the generic WebGPU ground-cover adapter' );
+	if ( process.env.ELSEMESH_GROUND_COVER_FORCE_DENSITY === '1' ) {
+		const texture = root.userData.worldPackage.textureAssets.get( `component:${component.id}:densityField` )?.texture;
+		assert.ok( texture, 'the signed density graph binding is available for the occupancy diagnostic' );
+		texture.upload( new Uint8Array( fixture.density.res * fixture.density.res * 4 ).fill( 255 ) );
+	}
 	runtime = installed.runtime;
 	L.scene.add( root );
 	const deadline = Date.now() + 10000;
