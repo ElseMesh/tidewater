@@ -41,6 +41,10 @@ try {
 	const spawn = worldSource.spawn.position;
 	L.camera.position.set( spawn[ 0 ], terrain.heightAt( spawn[ 0 ], spawn[ 2 ] ) + 1.7, spawn[ 2 ] );
 	L.camera.lookAt( spawn[ 0 ], terrain.heightAt( spawn[ 0 ], spawn[ 2 ] - 10 ) + 0.5, spawn[ 2 ] - 10 );
+	await L.run( 2, () => terrainSurface.update( L.camera, true ), 0 );
+	await GPU.pipelinesReady();
+	await L.run( 2, () => terrainSurface.update( L.camera, true ), 0 );
+	const terrainOnly = new Uint8Array( ( await readFrame() ).data );
 
 	// This is Tidewater's existing pre-migration WebGPU presenter. Hold its
 	// geometry, placement, signed density, packaged terrain, camera, and frame time fixed.
@@ -51,7 +55,8 @@ try {
 	await L.run( 2, () => { terrainSurface.update( L.camera, true ); original.update( L.camera ); }, 0 );
 	const reference = new Uint8Array( ( await readFrame() ).data );
 	const sourceForegroundPixels = countForegroundPixels( reference );
-	assert.ok( sourceForegroundPixels > 20, `the source presenter draws visible foliage into the comparison view (${sourceForegroundPixels} foreground pixels)` );
+	const sourceChangedPixels = changedPixelsFrom( reference, terrainOnly );
+	assert.ok( sourceChangedPixels > 20, `the source presenter contributes foliage beyond the packaged terrain (${sourceChangedPixels} changed pixels)` );
 	if ( captureDir ) await L.save( path.join( captureDir, 'source-webgpu.png' ) );
 	const sourceCounts = original.levels.map( level => level.count );
 	const sourceCells = original.levels.flatMap( level => Array.from( { length: level.count }, ( _, index ) => `${level.arr[ index * 4 ]},${level.arr[ index * 4 + 1 ]}` ) ).sort();
@@ -90,7 +95,8 @@ try {
 	await L.run( 2, () => { terrainSurface.update( L.camera, true ); runtime.update( 0, L.camera ); }, 0 );
 	const graphFrame = new Uint8Array( ( await readFrame() ).data );
 	const graphForegroundPixels = countForegroundPixels( graphFrame );
-	assert.ok( graphForegroundPixels > 20, `the generic graph draws visible foliage into the comparison view (${graphForegroundPixels} foreground pixels)` );
+	const graphChangedPixels = changedPixelsFrom( graphFrame, terrainOnly );
+	assert.ok( graphChangedPixels > 20, `the generic graph contributes foliage beyond the packaged terrain (${graphChangedPixels} changed pixels)` );
 	if ( captureDir ) await L.save( path.join( captureDir, 'graph-webgpu.png' ) );
 	const graphMeshes = [];
 	root.traverse( object => { if ( object.isInstancedMesh && ! object.userData.shadowOnly ) graphMeshes.push( object ); } );
@@ -105,7 +111,7 @@ try {
 	}
 	const meanAbsoluteError = totalError / ( reference.length / 4 * 3 );
 	assert.ok( meanAbsoluteError <= 10, `the Tidewater material graph stays close to the source WebGPU presenter with signed density and terrain assets (MAE ${ meanAbsoluteError.toFixed( 3 )}/255)` );
-	console.log( `Tidewater WebGPU ground-cover graph versus source presenter using signed density ${vegetation.data.grassMaskAssetId} and terrain ${terrainComponent.data.dataAssetId}: MAE ${ meanAbsoluteError.toFixed( 3 )}/255; ${ changedPixels } changed pixels; source/graph foreground pixels ${sourceForegroundPixels}/${graphForegroundPixels}; source LOD counts ${ sourceCounts.join( '/' ) }; graph LOD counts ${ graphCounts.join( '/' ) }; source cells ${ sourceCells.join( ';' ) }; graph cells ${ graphCells.join( ';' ) }` );
+	console.log( `Tidewater WebGPU ground-cover graph versus source presenter using signed density ${vegetation.data.grassMaskAssetId} and terrain ${terrainComponent.data.dataAssetId}: MAE ${ meanAbsoluteError.toFixed( 3 )}/255; ${ changedPixels } source/graph difference pixels; foliage pixels changed from terrain ${sourceChangedPixels}/${graphChangedPixels}; source/graph foreground pixels ${sourceForegroundPixels}/${graphForegroundPixels}; source LOD counts ${ sourceCounts.join( '/' ) }; graph LOD counts ${ graphCounts.join( '/' ) }; source cells ${ sourceCells.join( ';' ) }; graph cells ${ graphCells.join( ';' ) }` );
 } finally {
 	original?.dispose();
 	runtime?.dispose();
@@ -124,5 +130,11 @@ async function readFrame() {
 function countForegroundPixels( pixels ) {
 	let count = 0;
 	for ( let offset = 4; offset < pixels.length; offset += 4 ) if ( pixels[ offset ] !== pixels[ 0 ] || pixels[ offset + 1 ] !== pixels[ 1 ] || pixels[ offset + 2 ] !== pixels[ 2 ] ) count ++;
+	return count;
+}
+
+function changedPixelsFrom( pixels, reference ) {
+	let count = 0;
+	for ( let offset = 0; offset < pixels.length; offset += 4 ) if ( Math.abs( pixels[ offset ] - reference[ offset ] ) + Math.abs( pixels[ offset + 1 ] - reference[ offset + 1 ] ) + Math.abs( pixels[ offset + 2 ] - reference[ offset + 2 ] ) > 24 ) count ++;
 	return count;
 }
