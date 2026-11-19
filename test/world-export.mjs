@@ -105,6 +105,9 @@ try {
 	const firstExportOutput = execFileSync( process.execPath, [ 'worlds/tidewater/tools/export-world.mjs', '--out', output ], { cwd: repositoryRoot, encoding: 'utf8' } );
 	const fishSetBytesFirst = await readFile( path.join( output, 'fish-static-model-instance-set.json' ) );
 	const vegetationSetBytesFirst = await readFile( path.join( output, 'vegetation-static-model-instance-set.json' ) );
+	const canopyAtlasSetBytesFirst = await readFile( path.join( output, 'vegetation-canopy-atlas-set.json' ) );
+	const canopyAtlasFilesFirst = await readdir( path.join( output, 'vegetation-canopy-atlases' ) );
+	const canopyAtlasBytesFirst = new Map( await Promise.all( canopyAtlasFilesFirst.map( async file => [ file, await readFile( path.join( output, 'vegetation-canopy-atlases', file ) ) ] ) ) );
 	const groundCoverPatchSetBytesFirst = await readFile( path.join( output, 'ground-cover-patch-set.json' ) );
 	const scannedSetBytesFirst = await readFile( path.join( output, 'scanned-debris-static-model-instance-set.json' ) );
 	const sourceFirst = await readFile( sourcePath );
@@ -119,6 +122,9 @@ try {
 	const secondExportOutput = execFileSync( process.execPath, [ 'worlds/tidewater/tools/export-world.mjs', '--out', output ], { cwd: repositoryRoot, encoding: 'utf8' } );
 	const fishSetBytes = await readFile( path.join( output, 'fish-static-model-instance-set.json' ) );
 	const vegetationSetBytes = await readFile( path.join( output, 'vegetation-static-model-instance-set.json' ) );
+	const canopyAtlasSetBytes = await readFile( path.join( output, 'vegetation-canopy-atlas-set.json' ) );
+	const canopyAtlasFiles = await readdir( path.join( output, 'vegetation-canopy-atlases' ) );
+	const canopyAtlasBytes = new Map( await Promise.all( canopyAtlasFiles.map( async file => [ file, await readFile( path.join( output, 'vegetation-canopy-atlases', file ) ) ] ) ) );
 	const groundCoverPatchSetBytes = await readFile( path.join( output, 'ground-cover-patch-set.json' ) );
 	const scannedSetBytes = await readFile( path.join( output, 'scanned-debris-static-model-instance-set.json' ) );
 	const vegetationSet = validateStaticModelInstanceSet( JSON.parse( vegetationSetBytes ) );
@@ -184,6 +190,21 @@ try {
 		for ( const name of [ '_ELSEMESH_VDATA', '_ELSEMESH_VDATA1', '_ELSEMESH_VDATA2' ] ) assert.equal( primitive.attributes[ name ]?.itemSize, 4, `palm GLB preserves ${name} as a VEC4 renderer-neutral input` );
 	}
 	assert.deepEqual( vegetationSetBytes, vegetationSetBytesFirst, 'the generic palm model-set descriptor is deterministic' );
+	assert.deepEqual( canopyAtlasSetBytes, canopyAtlasSetBytesFirst, 'the inactive canopy atlas sidecar is deterministic' );
+	assert.deepEqual( canopyAtlasFiles.sort(), canopyAtlasFilesFirst.sort(), 'the canopy atlas export has a stable content-addressed file set' );
+	assert.equal( canopyAtlasFiles.length, 2, 'canopy export writes the material and normal/exposure atlases' );
+	for ( const file of canopyAtlasFiles ) assert.deepEqual( canopyAtlasBytes.get( file ), canopyAtlasBytesFirst.get( file ), 'canopy atlas PNG bytes are deterministic' );
+	const canopyAtlasSet = JSON.parse( canopyAtlasSetBytes );
+	assert.equal( canopyAtlasSet.format, 'tidewater.canopy-atlas-source/1' );
+	assert.equal( canopyAtlasSet.atlasDataFormat, 'rgba8unorm-data/1' );
+	assert.deepEqual( [ canopyAtlasSet.frameGrid.columns, canopyAtlasSet.frameGrid.rows, canopyAtlasSet.frameGrid.frameWidth, canopyAtlasSet.frameGrid.frameHeight ], [ 30, 6, 128, 128 ], 'canopy atlas preserves five variants of the six-by-six source frame grid' );
+	assert.deepEqual( canopyAtlasSet.variantGroups.map( group => [ group.id, group.atlasVariantRange.start, group.atlasVariantRange.end ] ), [ [ 'trees', 0, 3 ], [ 'shrubs', 3, 5 ] ], 'tree and shrub atlas variants remain in separate authored ranges' );
+	for ( const atlas of canopyAtlasSet.atlases ) {
+		const bytes = canopyAtlasBytes.get( atlas.file );
+		assert.equal( `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`, atlas.assetId, `${atlas.role} atlas filename and bytes match its content address` );
+		assert.deepEqual( [ bytes.readUInt32BE( 16 ), bytes.readUInt32BE( 20 ) ], [ 3840, 768 ], `${atlas.role} atlas has the signed source dimensions` );
+		assert.equal( atlas.bytes, bytes.byteLength, `${atlas.role} atlas reports its exact encoded size` );
+	}
 	assert.deepEqual( groundCoverPatchSetBytes, groundCoverPatchSetBytesFirst, 'the renderer-neutral ground-cover patch sidecar is deterministic' );
 	const fishSet = validateStaticModelInstanceSet( JSON.parse( fishSetBytes ) );
 	assert.equal( fishSet.instances.length, 78, 'generic fish model set exports all 78 original placements' );

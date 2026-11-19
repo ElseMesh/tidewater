@@ -44,9 +44,12 @@ import { TIDEWATER_WHALE_PROFILE } from '../WhaleProfile.js';
 import { writeWorldAssetIndex } from '../../../tools/world-asset-index.mjs';
 import { generateTidewaterReefURLs } from './generate-reef-asset-urls.mjs';
 import { fishPropGeometry } from '../../../src/world/fish/FishProps.js';
-import { buildPalmFar, buildPalmNear } from '../vegetation/geometry/PlantGeometry.js';
+import { buildPalmFar, buildPalmNear, buildTreeNear, buildShrubNear, lobeVariantGeometry, TREE_VARIANTS, SHRUB_VARIANTS, LOBE_TABLE } from '../vegetation/geometry/PlantGeometry.js';
 import { CANOPY_FAR_FADE, PALM_LOD } from '../vegetation/LODRules.js';
 import { TIDEWATER_PALM_MATERIAL_GRAPH } from '../vegetation/VegetationMaterialGraph.js';
+import { LeafAtlas } from '../renderers/webgpu-vegetation/LeafTextures.js';
+import { createCanopyBakeMaterials } from '../renderers/webgpu-vegetation/VegMaterials.js';
+import { ImpostorAtlas } from '../renderers/webgpu-vegetation/Impostors.js';
 import { tidewaterLocalLightSet } from '../WorldLights.js';
 
 const REPO = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '../../..' );
@@ -119,6 +122,7 @@ GPU.submit();
 const villageMaps = {};
 for ( const [ name, texture ] of Object.entries( villageTextures.textures ) ) villageMaps[ name ] = new Uint8Array( ( await readTexture( texture ) ).data );
 villageTextures.dispose();
+const vegetationCanopyAtlasBake = await bakeVegetationCanopyAtlases();
 GPU.device.destroy();
 const whaleFiles = await Promise.all( [ 'humpback.json', 'humpback.bin', 'humpback_albedo.png', 'humpback_height.png' ].map( name => readFile( path.join( WORLD_ROOT, 'source', 'models', 'whale', name ) ) ) );
 const whaleAssetIDs = whaleFiles.map( bytes => `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}` );
@@ -217,6 +221,7 @@ const vegetationStaticModelsPath = path.join( output, 'vegetation-static-models'
 await mkdir( vegetationStaticModelsPath, { recursive: true } );
 for ( const entry of await readdir( vegetationStaticModelsPath, { withFileTypes: true } ) ) if ( entry.isFile() && /^[0-9a-f]{64}\.glb$/.test( entry.name ) && ! vegetationStaticModelSet.assets.has( entry.name.slice( 0, 64 ) ) ) await rm( path.join( vegetationStaticModelsPath, entry.name ) );
 for ( const [ hash, bytes ] of vegetationStaticModelSet.assets ) await writeFile( path.join( vegetationStaticModelsPath, `${hash}.glb` ), bytes );
+await writeVegetationCanopyAtlasSidecar( output, vegetationCanopyAtlasBake );
 const groundCoverPatchSet = { format: 'tidewater.ground-cover-patch-set/1', cellSize: GROUND_COVER_CELL, seed: 7, lods: [] }, groundCoverPatchAssets = new Map();
 const groundCoverMaterialGraph = createTidewaterGroundCoverMaterialGraph( { densityOrigin: terrain.origin, densitySize: terrain.size } );
 for ( const [ level, name ] of [ 'near', 'mid', 'far' ].entries() ) {
@@ -786,6 +791,87 @@ function exportPalmStaticModelSet( records ) {
 		},
 		assets,
 	};
+}
+
+// Cook the WebGPU source atlas into portable linear RGBA8 data PNGs. This is
+// an inactive migration artifact: runtime presentation still uses the
+// Tidewater vegetation presenters until both ElseMesh adapters consume the
+// signed canopy contract and matched parity passes.
+async function bakeVegetationCanopyAtlases() {
+	const tree = buildTreeNear().geometry;
+	const shrub = buildShrubNear().geometry;
+	const treeVariants = Array.from( { length: TREE_VARIANTS }, ( _, index ) => lobeVariantGeometry( tree, LOBE_TABLE, index * 8 ) );
+	const shrubVariants = Array.from( { length: SHRUB_VARIANTS }, ( _, index ) => lobeVariantGeometry( shrub, LOBE_TABLE, ( TREE_VARIANTS + index ) * 8 ) );
+	const treeBounds = canopyAtlasBounds( tree );
+	const shrubBounds = canopyAtlasBounds( shrub );
+	const leafAtlas = new LeafAtlas();
+	const atlas = new ImpostorAtlas( [
+		{ variants: treeVariants, ...treeBounds },
+		{ variants: shrubVariants, ...shrubBounds },
+	], createCanopyBakeMaterials( leafAtlas ) );
+	try {
+		leafAtlas.bake();
+		GPU.submit();
+		atlas.bake();
+		GPU.submit();
+		const [ material, normalExposure ] = await Promise.all( [ readTexture( atlas.rtA.texture ), readTexture( atlas.rtB.texture ) ] );
+		return {
+			frameGrid: { columns: atlas.variantCount * 6, rows: 6, frameWidth: 128, frameHeight: 128 },
+			variantGroups: [
+				{ id: 'trees', atlasVariantRange: { start: 0, end: TREE_VARIANTS }, bounds: { center: treeBounds.center.toArray(), radius: treeBounds.radius, horizontalRadius: treeBounds.rh, halfHeight: treeBounds.hv } },
+				{ id: 'shrubs', atlasVariantRange: { start: TREE_VARIANTS, end: TREE_VARIANTS + SHRUB_VARIANTS }, bounds: { center: shrubBounds.center.toArray(), radius: shrubBounds.radius, horizontalRadius: shrubBounds.rh, halfHeight: shrubBounds.hv } },
+			],
+			atlases: [
+				{ role: 'material', width: material.width, height: material.height, data: new Uint8Array( material.data ) },
+				{ role: 'normal-exposure', width: normalExposure.width, height: normalExposure.height, data: new Uint8Array( normalExposure.data ) },
+			],
+		};
+	} finally {
+		for ( const variant of [ ...treeVariants, ...shrubVariants ] ) variant.dispose();
+		tree.dispose(); shrub.dispose();
+		atlas.rtA.dispose(); atlas.rtB.dispose(); atlas.depth.destroy();
+		leafAtlas.texture.destroy();
+	}
+}
+
+function canopyAtlasBounds( geometry ) {
+	const position = geometry.attributes.position;
+	const point = new Vector3();
+	let y0 = Infinity, y1 = - Infinity;
+	for ( let index = 0; index < position.count; index ++ ) {
+		point.fromBufferAttribute( position, index );
+		y0 = Math.min( y0, point.y ); y1 = Math.max( y1, point.y );
+	}
+	const center = new Vector3( 0, ( y0 + y1 ) * 0.5, 0 );
+	let radius = 0, horizontalRadius = 0;
+	for ( let index = 0; index < position.count; index ++ ) {
+		point.fromBufferAttribute( position, index );
+		radius = Math.max( radius, point.distanceTo( center ) );
+		horizontalRadius = Math.max( horizontalRadius, Math.hypot( point.x, point.z ) );
+	}
+	return { center, radius: radius * 1.02, rh: horizontalRadius * 1.03, hv: ( y1 - y0 ) * 0.5 * 1.03 };
+}
+
+async function writeVegetationCanopyAtlasSidecar( output, bake ) {
+	const directory = path.join( output, 'vegetation-canopy-atlases' );
+	await mkdir( directory, { recursive: true } );
+	const assets = bake.atlases.map( atlas => {
+		const bytes = encodePNG( atlas.width, atlas.height, atlas.data );
+		const hash = createHash( 'sha256' ).update( bytes ).digest( 'hex' );
+		return { role: atlas.role, assetId: `sha256:${hash}`, file: `${hash}.png`, width: atlas.width, height: atlas.height, bytes };
+	} );
+	const keep = new Set( assets.map( asset => asset.file ) );
+	for ( const entry of await readdir( directory, { withFileTypes: true } ) ) if ( entry.isFile() && /^[0-9a-f]{64}\.png$/.test( entry.name ) && ! keep.has( entry.name ) ) await rm( path.join( directory, entry.name ) );
+	for ( const asset of assets ) await writeFile( path.join( directory, asset.file ), asset.bytes );
+	const sidecar = {
+		format: 'tidewater.canopy-atlas-source/1',
+		atlasDataFormat: 'rgba8unorm-data/1',
+		projection: { type: 'hemi-octahedral/1', framesPerSide: 6 },
+		frameGrid: bake.frameGrid,
+		variantGroups: bake.variantGroups,
+		atlases: assets.map( ( { role, assetId, file, width, height, bytes } ) => ( { role, assetId, file, width, height, bytes: bytes.byteLength } ) ),
+	};
+	await writeFile( path.join( output, 'vegetation-canopy-atlas-set.json' ), `${JSON.stringify( sidecar, null, 2 )}\n` );
 }
 
 function exportVegetationGLB( name, geometry ) {
