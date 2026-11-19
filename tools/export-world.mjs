@@ -35,6 +35,7 @@ import { BANK } from '../../../src/audio/soundBank.js';
 import { MIX } from '../../../src/audio/SoundScape.js';
 import { bakeTerrainMaps } from '../../../src/world/terrain/TerrainBake.js';
 import { getDetailImage } from '../../../src/world/terrain/DetailTextureData.js';
+import { getDetailTexture } from '../../../src/world/terrain/DetailTextures.js';
 import { encodeTerrainSurfaceAsset } from '../../../src/network/TerrainSurfaceAsset.js';
 import '../../../test/headless.mjs';
 import { GPU } from '../../../src/engine/gpu/GPU.js';
@@ -798,6 +799,10 @@ function exportPalmStaticModelSet( records ) {
 // Tidewater vegetation presenters until both ElseMesh adapters consume the
 // signed canopy contract and matched parity passes.
 async function bakeVegetationCanopyAtlases() {
+	// VegNodes declares the shared detail binding even though the unlit atlas
+	// material does not sample it. Initialize that engine texture before the
+	// shader composer resolves all module bindings in headless export.
+	getDetailTexture();
 	const tree = buildTreeNear().geometry;
 	const shrub = buildShrubNear().geometry;
 	const treeVariants = Array.from( { length: TREE_VARIANTS }, ( _, index ) => lobeVariantGeometry( tree, LOBE_TABLE, index * 8 ) );
