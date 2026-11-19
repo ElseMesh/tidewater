@@ -40,6 +40,7 @@ import { encodeTerrainSurfaceAsset } from '../../../src/network/TerrainSurfaceAs
 import '../../../test/headless.mjs';
 import { GPU } from '../../../src/engine/gpu/GPU.js';
 import { readTexture } from '../../../src/engine/gpu/Readback.js';
+import { SunShadows } from '../../../src/engine/render/Shadows.js';
 import { VillageTextures } from '../renderers/webgpu-village/TextureBaker.js';
 import { TIDEWATER_WHALE_PROFILE } from '../WhaleProfile.js';
 import { writeWorldAssetIndex } from '../../../tools/world-asset-index.mjs';
@@ -803,6 +804,10 @@ async function bakeVegetationCanopyAtlases() {
 	// material does not sample it. Initialize that engine texture before the
 	// shader composer resolves all module bindings in headless export.
 	getDetailTexture();
+	// Mesh color pipelines include the shadow binding layout even for these
+	// unlit bake materials. A 1x1 map satisfies layout creation; the bake never
+	// renders or samples scene shadows.
+	const shadowLayout = new SunShadows( { size: 1, splits: [ 1 ], pcssCascades: 0 } );
 	const tree = buildTreeNear().geometry;
 	const shrub = buildShrubNear().geometry;
 	const treeVariants = Array.from( { length: TREE_VARIANTS }, ( _, index ) => lobeVariantGeometry( tree, LOBE_TABLE, index * 8 ) );
@@ -836,6 +841,7 @@ async function bakeVegetationCanopyAtlases() {
 		tree.dispose(); shrub.dispose();
 		atlas.rtA.dispose(); atlas.rtB.dispose(); atlas.depth.destroy();
 		leafAtlas.texture.destroy();
+		shadowLayout.texture.destroy();
 	}
 }
 
