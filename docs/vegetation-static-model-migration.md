@@ -32,29 +32,34 @@ The exporter now also emits an inactive near-model sidecar for trees and
 shrubs. It contains the three tree and two shrub lobe variants as content-
 addressed GLBs, preserves their three VEC4 source streams, and maps every
 authored placement to a model variant with the same fractional seed-bin rule
-used by the canopy atlas. The export now includes the source leaf-mask atlas as
-a content-addressed linear RGBA8 data PNG, with its 2×2 tile layout and channel
-semantics recorded beside the impostor atlases. This is still only geometry,
-placement, and texture evidence: these GLBs use a provisional glTF PBR
-material, are not referenced by a signed canopy component, and do not yet carry
-the renderer-neutral canopy material graph. Do not activate this sidecar.
+used by the canopy atlas. The export includes the source leaf-mask atlas as a
+content-addressed linear RGBA8 data PNG, with its 2×2 tile layout and channel
+semantics recorded beside the impostor atlases. Each near GLB now carries the
+same renderer-neutral material graph as the candidate canopy descriptor. It
+selects the authored species tile, samples leaf coverage from the shared linear mask,
+and uses the same alpha-mask cutoff for visible and shadow materials in both
+engine compilers. This graph covers card cutouts only: the GLB's uniform PBR
+base color is still provisional and does not reproduce the authored canopy
+palette, baked exposure, wind deformation, or far-impostor appearance. The
+candidate remains outside the signed world source until both engine adapters
+and matched appearance review pass.
 
 The exporter now joins the near set, both octahedral impostor atlases, the leaf
 mask, appearance inputs, and LOD rules into
 `vegetation-canopy-runtime-package.json`. Its component descriptor validates
 through the ElseMesh codec and asset loader against the actual content-addressed
-files. This package remains inactive and outside `world-source.json`: its near
-GLBs still use provisional PBR, the complete canopy material graph is absent,
-and neither engine backend consumes it. The far representation still requires
-the view-dependent octahedral atlas with view blending, ray reprojection, wind,
-and distance thinning. ElseMesh must implement both adapters and pass matched
-review before replacing either current presenter. The remaining finite
-vegetation categories also need their source meshes, distance fades, and
-material inputs exported and validated.
+files. This package remains inactive and outside `world-source.json`: the near
+GLBs still have provisional base color and no world-driven wind, and neither
+engine backend consumes the component. The far representation still needs its
+view-dependent atlas sampler, frame blending, reprojection, wind, and distance
+thinning. ElseMesh must implement both adapters and pass matched review before
+replacing either current presenter. The remaining finite vegetation categories
+also need their source meshes, distance fades, and material inputs exported and
+validated.
 
 The descriptor's renderer-neutral appearance payload now carries the source
 tree and shrub palettes and seed thresholds as well as color, lighting, and
 wind. ElseMesh validates the full payload, and the export integration check
 compares it with Tidewater's source profile. This only makes the missing
-appearance inputs available to future engine adapters; the near PBR graph is
-still provisional and the candidate remains inactive.
+appearance inputs available to future engine adapters; canopy shading and wind
+remain incomplete and the candidate remains inactive.

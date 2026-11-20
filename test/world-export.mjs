@@ -34,6 +34,7 @@ import { validateWorldMaterialGraph } from '../../../src/network/WorldMaterialGr
 import { compileWorldMaterialGraph } from '../../../src/materials/WorldMaterialGraphCompiler.js';
 import { validateWorldLocalLightSet } from '../../../src/network/WorldLocalLightSet.js';
 import { TIDEWATER_PALM_MATERIAL_GRAPH } from '../vegetation/VegetationMaterialGraph.js';
+import { TIDEWATER_CANOPY_MATERIAL_GRAPH, TIDEWATER_CANOPY_NEAR_PBR_BASE_COLOR, TIDEWATER_CANOPY_COVERAGE_CUTOFF } from '../vegetation/CanopyMaterialGraph.js';
 import { TIDEWATER_CANOPY_APPEARANCE, TIDEWATER_CANOPY_PROFILE } from '../vegetation/CanopyProfile.js';
 import { CANOPY_FAR_FADE, PALM_LOD } from '../vegetation/LODRules.js';
 import { writeInstanceLODSelection } from '../../../src/engine/render/InstanceDrawPlannerMath.js';
@@ -203,7 +204,14 @@ try {
 	assert.ok( runtimeDescriptorAsset, 'candidate component descriptor is listed as a content-addressed package asset' );
 	const runtimeDescriptor = JSON.parse( canopyRuntimeAssets.get( runtimeDescriptorAsset.file ) );
 	assert.equal( runtimeDescriptor.leafMask.assetId, canopyAtlasSet.leafMask.assetId, 'runtime descriptor points at Tidewater\'s source leaf-mask PNG' );
+	assert.deepEqual( runtimeDescriptor.materialGraph, TIDEWATER_CANOPY_MATERIAL_GRAPH, 'runtime descriptor carries Tidewater\'s authored cross-backend leaf-mask graph' );
 	assert.deepEqual( runtimeDescriptor.appearance, TIDEWATER_CANOPY_APPEARANCE, 'runtime descriptor carries the same authored palette, lighting and wind inputs as the source atlas sidecar' );
+	const canopyGraphWebGPU = compileWorldMaterialGraph( runtimeDescriptor.materialGraph, 'webgpu' );
+	const canopyGraphWebGL = compileWorldMaterialGraph( runtimeDescriptor.materialGraph, 'webgl' );
+	assert.deepEqual( canopyGraphWebGPU.textureSlots, [ 'leafMask' ], 'the WebGPU near-model graph uses the signed raw leaf mask' );
+	assert.deepEqual( canopyGraphWebGL.textureSlots, canopyGraphWebGPU.textureSlots, 'both near-model compilers bind the same authored leaf mask' );
+	assert.match( canopyGraphWebGPU.surface, /textureSample\( emgTexture_leafMask, smpLinearClamp,/ );
+	assert.match( canopyGraphWebGL.glsl.alphaFragment, /texture2D\( emgTexture_leafMask,/ );
 	for ( const asset of canopyRuntimePackage.assetFiles ) {
 		const bytes = canopyRuntimeAssets.get( asset.file );
 		assert.ok( bytes, `runtime package asset ${asset.file} is written` );
@@ -248,7 +256,12 @@ try {
 		const bytes = canopyNearBytes.get( `${assetId.slice( 'sha256:'.length )}.glb` );
 		assert.ok( bytes, `${model.id} resolves to a near GLB in the inactive sidecar` );
 		assert.equal( `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`, assetId, `${model.id} GLB bytes match its content address` );
-		const primitive = parseGLB( bytes ).meshes[ 0 ][ 0 ];
+		const glb = parseGLB( bytes );
+		const primitive = glb.meshes[ 0 ][ 0 ];
+		assert.deepEqual( glb.materials[ 0 ].extras.elsemeshMaterial.graph, TIDEWATER_CANOPY_MATERIAL_GRAPH, `${model.id} embeds the same renderer-neutral leaf-mask graph` );
+		assert.equal( glb.materials[ 0 ].alphaMode, 'MASK', `${model.id} uses alpha masking for leaf coverage in both visible and shadow passes` );
+		assert.equal( glb.materials[ 0 ].alphaCutoff, TIDEWATER_CANOPY_COVERAGE_CUTOFF, `${model.id} uses the canopy source coverage threshold` );
+		assert.deepEqual( glb.materials[ 0 ].pbrMetallicRoughness.baseColorFactor, [ ...TIDEWATER_CANOPY_NEAR_PBR_BASE_COLOR, 1 ], `${model.id} keeps the graph's provisional base color in the GLB` );
 		assert.ok( primitive.attributes.POSITION && primitive.attributes.NORMAL && primitive.attributes.TEXCOORD_0, `${model.id} preserves portable geometry inputs` );
 		for ( const name of [ '_ELSEMESH_VDATA', '_ELSEMESH_VDATA1', '_ELSEMESH_VDATA2' ] ) assert.equal( primitive.attributes[ name ]?.itemSize, 4, `${model.id} preserves ${name} as a VEC4 source stream` );
 	}

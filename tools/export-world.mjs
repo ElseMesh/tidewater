@@ -54,6 +54,7 @@ import { buildPalmFar, buildPalmNear, buildTreeNear, buildShrubNear, lobeVariant
 import { selectFractionalBinVariant } from '../../../src/engine/render/OctahedralImpostorMath.js';
 import { CANOPY_FAR_FADE, PALM_LOD } from '../vegetation/LODRules.js';
 import { TIDEWATER_CANOPY_APPEARANCE, TIDEWATER_CANOPY_PROFILE } from '../vegetation/CanopyProfile.js';
+import { TIDEWATER_CANOPY_MATERIAL_GRAPH, TIDEWATER_CANOPY_NEAR_PBR_BASE_COLOR, TIDEWATER_CANOPY_COVERAGE_CUTOFF } from '../vegetation/CanopyMaterialGraph.js';
 import { TIDEWATER_PALM_MATERIAL_GRAPH } from '../vegetation/VegetationMaterialGraph.js';
 import { LeafAtlas, LEAF_ATLAS_SIZE, LEAF_TILES } from '../renderers/webgpu-vegetation/LeafTextures.js';
 import { createCanopyBakeMaterials } from '../renderers/webgpu-vegetation/VegMaterials.js';
@@ -827,8 +828,8 @@ function exportVegetationCanopyNearSet( vegetation ) {
 					const id = `${group.id}-${variant}`;
 					const glb = exportVegetationGLB( `Tidewater ${group.id} canopy near ${variant}`, geometry, {
 						materialName: `Tidewater ${group.id} canopy near`,
-						baseColorFactor: [ 0.38, 0.46, 0.28, 1 ],
-						materialGraph: null,
+						baseColorFactor: [ ...TIDEWATER_CANOPY_NEAR_PBR_BASE_COLOR, 1 ],
+						materialGraph: TIDEWATER_CANOPY_MATERIAL_GRAPH,
 					} );
 					const assetId = `sha256:${createHash( 'sha256' ).update( glb ).digest( 'hex' )}`;
 					assets.set( assetId.slice( 'sha256:'.length ), glb );
@@ -1047,13 +1048,7 @@ async function writeVegetationCanopyRuntimePackage( output, atlasSet, nearSet ) 
 			layout: atlasSet.leafMask.layout,
 			channels: atlasSet.leafMask.channels,
 		},
-		// This is a valid PBR fallback, not the final palette/wind graph; the
-		// package stays inactive until the complete shared appearance graph exists.
-		materialGraph: {
-			format: 'elsemesh.material-graph/1',
-			nodes: [ { id: 'baseColor', op: 'input', name: 'colorRGB' }, { id: 'roughness', op: 'constant', value: atlasSet.appearance.lighting.roughness } ],
-			outputs: { baseColor: 'baseColor', roughness: 'roughness' },
-		},
+		materialGraph: TIDEWATER_CANOPY_MATERIAL_GRAPH,
 		appearance: atlasSet.appearance,
 		projection: atlasSet.projection,
 		frameGrid: atlasSet.frameGrid,
@@ -1145,6 +1140,7 @@ function exportVegetationGLB( name, geometry, { materialName = 'Tidewater coconu
 			name: materialName,
 			pbrMetallicRoughness: { baseColorFactor, metallicFactor: 0, roughnessFactor: 0.8 },
 			doubleSided: true,
+			...( materialGraph?.outputs?.opacity ? { alphaMode: 'MASK', alphaCutoff: TIDEWATER_CANOPY_COVERAGE_CUTOFF } : {} ),
 			...( materialGraph ? { extras: { elsemeshMaterial: { profile: 'elsemesh.material-graph/1', role: 'graph', graph: materialGraph } } } : {} ),
 		} ],
 		accessors, bufferViews, buffers: [ { byteLength: binary.length } ],
