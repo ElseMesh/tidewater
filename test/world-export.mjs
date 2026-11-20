@@ -56,6 +56,7 @@ try {
 	const checkedInSourceBytes = await readFile( path.join( checkedInDir, 'world-source.json' ) );
 	const checkedInTerrainReportBytes = await readFile( path.join( checkedInDir, 'terrain-validation.json' ) );
 	const checkedInSource = validateWorldSource( JSON.parse( checkedInSourceBytes ) );
+	const checkedInAssetIndex = await readFile( path.join( checkedInDir, 'ASSET-INDEX.md' ), 'utf8' );
 	const builtInAliases = [
 		[ 'terrain-full.glb', checkedInSource.objects.find( object => object.id === 'elsemesh-object:island-terrain' )?.assetId ],
 		[ 'village-full.glb', checkedInSource.objects.find( object => object.id === 'elsemesh-object:island-village' )?.assetId ],
@@ -64,6 +65,8 @@ try {
 	for ( const [ name, assetId ] of builtInAliases ) assert.equal( await readlink( path.join( checkedInDir, 'lod-source', name ) ), `../assets/${assetId.slice( 'sha256:'.length )}`, `built-in ${name} alias points at the current signed asset` );
 	const referencedIDs = ( source ) => new Set( [ ...source.objects.flatMap( ( object ) => [ object.assetId, ...( object.lods || [] ).map( ( lod ) => lod.assetId ) ] ), ...source.components.flatMap( componentAssetRefs ), ...( source.experience?.extensions || [] ).map( extension => extension.assetId ) ] );
 	const checkedInIDs = referencedIDs( checkedInSource );
+	const indexedIDs = [ ...checkedInAssetIndex.matchAll( /\(assets\/([0-9a-f]{64})\)/g ) ].map( match => match[ 1 ] );
+	assert.deepEqual( [ ...new Set( indexedIDs ) ].sort(), [ ...checkedInIDs ].map( id => id.slice( 'sha256:'.length ) ).sort(), 'the checked-in asset index matches the signed world source references' );
 	const checkedInFiles = ( await readdir( checkedInAssetDir ) ).sort();
 	assert.deepEqual( checkedInFiles, [ ...checkedInIDs ].map( ( id ) => id.slice( 'sha256:'.length ) ).sort(), 'checked-in island package stores exactly its referenced assets' );
 	let checkedInBytes = 0;
@@ -376,6 +379,8 @@ try {
 	const localLights = validateWorldLocalLightSet( localLightComponent );
 	assert.ok( localLights.length > 0, 'Tidewater exports its static lantern, path, and window lights as renderer-neutral data' );
 	assert.ok( localLights.some( light => light.type === 'point' ) && localLights.some( light => light.type === 'spot' ), 'Tidewater exports both point lights and outward-facing window spots' );
+	const boatComponent = source.components.find( component => component.type === 'elsemesh.downeast-boat/1' );
+	assert.equal( localLights.filter( light => light.objectId === componentData( boatComponent ).objectId ).length, 6, 'Tidewater exports all six dynamic boat lights as object-local data' );
 	assert.equal( vegetationComponent.type, 'elsemesh.static-vegetation/1', 'portable island uses terrain-independent, authored world-space vegetation placements' );
 	assert.match( componentData( vegetationComponent ).placementAssetId, /^sha256:[0-9a-f]{64}$/, 'vegetation placement data is content addressed' );
 	assert.equal( componentData( vegetationComponent ).grassMaskAssetId, undefined, 'finite vegetation does not carry dense grass data' );
