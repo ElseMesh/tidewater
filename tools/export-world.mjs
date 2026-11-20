@@ -1086,6 +1086,16 @@ async function writeVegetationCanopyRuntimePackage( output, atlasSet, nearSet ) 
 	const packageDocument = {
 		format: 'tidewater.canopy-runtime-package-source/1',
 		activation: { state: 'inactive', required: [ 'complete-appearance-graph', 'webgpu-adapter', 'webgl-adapter', 'matched-appearance-review' ] },
+		nearComponent: {
+			id: 'elsemesh-component:island-vegetation-near-models',
+			type: 'elsemesh.static-model-instance-set/1',
+			priority: 'portal-preview',
+			assets: assetFiles.filter( asset => asset.assetId === nearSet.instanceSetAssetId || nearSet.models.some( model => model.assetId === asset.assetId ) || asset.assetId === atlasSet.leafMask.assetId ).map( ( { assetId, kind } ) => ( { assetId, kind } ) ),
+			data: {
+				contentRole: 'vegetation',
+				graphTextureBindings: [ { slot: 'leafMask', assetId: atlasSet.leafMask.assetId, dataFormat: 'rgba8unorm-data-png/1' } ],
+			},
+		},
 		component: {
 			id: 'elsemesh-component:island-vegetation-canopy',
 			type: OCTAHEDRAL_CANOPY_COMPONENT_TYPE,

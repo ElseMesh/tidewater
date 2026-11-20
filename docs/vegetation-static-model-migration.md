@@ -55,11 +55,17 @@ The exporter now joins the near set, both octahedral impostor atlases, the leaf
 mask, appearance inputs, and LOD rules into
 `vegetation-canopy-runtime-package.json`. Its component descriptor validates
 through the ElseMesh codec and asset loader against the actual content-addressed
-files. This package remains inactive and outside `world-source.json`: neither
-engine backend consumes the component. The far
-representation still needs its view-dependent atlas sampler, frame blending,
-reprojection, wind, and distance thinning. ElseMesh must implement both
-adapters and pass matched review before replacing either current presenter.
+files. The package also records a generic `elsemesh.static-model-instance-set/1`
+near-component candidate. It references the same signed instance set and near
+GLBs, declares the shared leaf-mask PNG through `data.graphTextureBindings`, and
+marks the authored content role as `vegetation` so the engine's vegetation
+visibility control includes it. The generic WebGPU and WebGL static-model
+adapters validate and bind this shared texture contract. Both candidates remain
+inactive and outside `world-source.json` until the complete near and far
+presenters pass matched appearance review. The far representation still needs
+its view-dependent atlas sampler, frame blending, reprojection, wind, and
+distance thinning. ElseMesh must implement both adapters and pass matched
+review before replacing either current presenter.
 The remaining finite vegetation categories also need their source meshes,
 distance fades, and material inputs exported and validated.
 
