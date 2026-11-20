@@ -51,3 +51,10 @@ and distance thinning. ElseMesh must implement both adapters and pass matched
 review before replacing either current presenter. The remaining finite
 vegetation categories also need their source meshes, distance fades, and
 material inputs exported and validated.
+
+The descriptor's renderer-neutral appearance payload now carries the source
+tree and shrub palettes and seed thresholds as well as color, lighting, and
+wind. ElseMesh validates the full payload, and the export integration check
+compares it with Tidewater's source profile. This only makes the missing
+appearance inputs available to future engine adapters; the near PBR graph is
+still provisional and the candidate remains inactive.

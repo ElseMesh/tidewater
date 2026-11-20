@@ -82,4 +82,6 @@ export const TIDEWATER_CANOPY_APPEARANCE = Object.freeze( {
 	color: TIDEWATER_CANOPY_PROFILE.color,
 	lighting: TIDEWATER_CANOPY_PROFILE.lighting,
 	wind: TIDEWATER_CANOPY_PROFILE.wind,
+	palette: TIDEWATER_CANOPY_PROFILE.palette,
+	species: TIDEWATER_CANOPY_PROFILE.species,
 } );
