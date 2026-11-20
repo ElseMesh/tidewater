@@ -210,6 +210,9 @@ try {
 	const canopyGraphWebGL = compileWorldMaterialGraph( runtimeDescriptor.materialGraph, 'webgl' );
 	assert.deepEqual( canopyGraphWebGPU.textureSlots, [ 'leafMask' ], 'the WebGPU near-model graph uses the signed raw leaf mask' );
 	assert.deepEqual( canopyGraphWebGL.textureSlots, canopyGraphWebGPU.textureSlots, 'both near-model compilers bind the same authored leaf mask' );
+	assert.ok( canopyGraphWebGPU.hasVertexOutput && canopyGraphWebGL.hasVertexOutput, 'both backend compilers apply the authored near-canopy wind deformation' );
+	assert.match( canopyGraphWebGPU.vertex, /frame\.windVelocityIntegral/ );
+	assert.match( canopyGraphWebGL.glsl.vertex, /emgWindVelocityIntegral/ );
 	assert.match( canopyGraphWebGPU.surface, /textureSample\( emgTexture_leafMask, smpLinearClamp,/ );
 	assert.match( canopyGraphWebGL.glsl.alphaFragment, /texture2D\( emgTexture_leafMask,/ );
 	for ( const asset of canopyRuntimePackage.assetFiles ) {
@@ -271,7 +274,7 @@ try {
 		const record = vegetationPlacement[ isTree ? 'trees' : 'shrubs' ][ isTree ? index : index - vegetationPlacement.trees.length ];
 		assert.deepEqual( instance.position, [ record.x, record.y, record.z ], 'near canopy placements match the exported world placement records' );
 		assert.deepEqual( instance.materialData.slice( 0, 4 ), [ record.la || 0, record.l || 0, record.H || 1, record.seed ], 'near canopy retains the original instance direction, scale, height, and seed inputs' );
-		assert.equal( instance.materialData[ 7 ], record.seed, 'near canopy keeps the authored per-instance seed' );
+		assert.deepEqual( instance.materialData.slice( 4, 8 ), [ Math.abs( record.sy ?? 1 ), record.yaw, record.s, record.seed ], 'near canopy exports vertical stretch, yaw, horizontal scale, and seed for the shared wind graph' );
 		assert.match( instance.model, isTree ? /^tree-[0-2]$/ : /^shrub-[0-1]$/, 'near geometry variant stays within the matching atlas group' );
 	}
 	assert.equal( vegetationSet.instances.length, vegetationPlacement.palms.length, 'palm artifact exports every post-scatter palm placement' );

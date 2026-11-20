@@ -863,7 +863,7 @@ function exportVegetationCanopyNearSet( vegetation ) {
 				rotation: [ 0, Math.sin( yaw * 0.5 ), 0, Math.cos( yaw * 0.5 ) ],
 				scale: [ scale, verticalScale, scale ],
 				placementId: `${group.id}:${index}`,
-				materialData: [ Math.fround( record.la || 0 ), Math.fround( record.l || 0 ), Math.fround( record.H || 1 ), seed, variant, 0, 0, seed ],
+				materialData: [ Math.fround( record.la || 0 ), Math.fround( record.l || 0 ), Math.fround( record.H || 1 ), seed, Math.fround( Math.abs( record.sy ?? 1 ) ), Math.fround( record.yaw ), Math.fround( record.s ), seed ],
 			} );
 		}
 	}
@@ -1063,7 +1063,7 @@ async function writeVegetationCanopyRuntimePackage( output, atlasSet, nearSet ) 
 			scaleCompensation: 'inverse-square-root-retained-density/1',
 		},
 	};
-	const descriptorBytes = Buffer.from( `${JSON.stringify( descriptor, null, 2 )}\n` );
+	const descriptorBytes = Buffer.from( `${JSON.stringify( descriptor )}\n` );
 	const descriptorHash = createHash( 'sha256' ).update( descriptorBytes ).digest( 'hex' );
 	const descriptorAssetId = `sha256:${descriptorHash}`;
 	const assetFiles = [

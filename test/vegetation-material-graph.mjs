@@ -24,14 +24,18 @@ assert.deepEqual( TIDEWATER_CANOPY_NEAR_PBR_BASE_COLOR, [ 1, 1, 1 ], 'the GLB ba
 const canopyWebGPU = compileWorldMaterialGraph( TIDEWATER_CANOPY_MATERIAL_GRAPH, 'webgpu', { doubleSided: true } );
 const canopyWebGL = compileWorldMaterialGraph( TIDEWATER_CANOPY_MATERIAL_GRAPH, 'webgl', { doubleSided: true } );
 for ( const [ name, compiled ] of [ [ 'WebGPU', canopyWebGPU ], [ 'WebGL', canopyWebGL ] ] ) {
-	for ( const input of [ 'uv', 'vdata', 'vdata1', 'instanceMaterial0', 'normal', 'cameraPosition', 'worldPosition', 'sunDirection', 'night' ] ) {
+	for ( const input of [ 'uv', 'position', 'worldVertexPosition', 'vdata', 'vdata1', 'instanceMaterial0', 'instanceMaterial1', 'normal', 'cameraPosition', 'worldPosition', 'sunDirection', 'night', 'windDirection', 'windSpeed', 'windVelocityIntegral', 'time' ] ) {
 		assert.ok( compiled.inputs.includes( input ), `${name} consumes authored canopy input ${input}` );
 	}
+	assert.ok( compiled.hasVertexOutput, `${name} applies the authored wind deformation in the material graph` );
+	assert.match( compiled.vertex, name === 'WebGPU' ? /v\.position = emg_n\d+;/ : /transformed = emg_n\d+;/, `${name} translates the same canopy deformation graph` );
+	assert.match( name === 'WebGPU' ? compiled.wgslHelpers : compiled.glsl.vertexHelpers, /emgValueNoise2/, `${name} compiles the shared traveling gust field` );
 	assert.deepEqual( compiled.textureSlots, [ 'leafMask' ], `${name} samples the signed linear leaf mask` );
 	assert.match( compiled.surface, /translucency/ );
 }
 assert.ok( TIDEWATER_CANOPY_MATERIAL_GRAPH.nodes.some( node => node.op === 'hash12' ), 'canopy species and instance tint use authored seed data' );
 assert.ok( TIDEWATER_CANOPY_MATERIAL_GRAPH.nodes.filter( node => node.op === 'valueNoise2' ).length >= 3, 'bark weathering and moss use portable value noise' );
+assert.ok( TIDEWATER_CANOPY_MATERIAL_GRAPH.nodes.some( node => node.id === TIDEWATER_CANOPY_MATERIAL_GRAPH.outputs.vertexPosition ), 'near canopy wind resolves to an authored vertex-position output' );
 assert.ok( TIDEWATER_CANOPY_MATERIAL_GRAPH.nodes.length <= 1024, 'canopy material remains within the signed graph node limit' );
 
 console.log( 'Tidewater renderer-neutral palm and canopy material graphs: ok' );

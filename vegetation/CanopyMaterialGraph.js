@@ -39,6 +39,61 @@ function buildCanopyMaterialGraph() {
 	const seed = unary( 'w', instanceData );
 	const heightData = input( 'vdata' );
 	const heightFraction = unary( 'x', heightData );
+	const branchFlex = unary( 'y', heightData );
+	const leafFlutter = unary( 'z', heightData );
+	const leafPhase = unary( 'w', heightData );
+
+	// Deform the portable near meshes from world wind inputs in the shared
+	// material graph. Instance yaw and scale are authored in materialData1 so
+	// this remains equivalent after the engine applies the instance transform.
+	const position = input( 'position' );
+	const worldVertexPosition = input( 'worldVertexPosition' );
+	const windDirection = input( 'windDirection' );
+	const windSpeed = input( 'windSpeed' );
+	const windVelocityIntegral = input( 'windVelocityIntegral' );
+	const time = input( 'time' );
+	const instanceTransform = input( 'instanceMaterial1' );
+	const yaw = unary( 'y', instanceTransform );
+	const instanceScale = unary( 'z', instanceTransform );
+	const verticalScale = unary( 'x', instanceTransform );
+	const cosYaw = unary( 'cos', yaw );
+	const sinYaw = unary( 'sin', yaw );
+	const windX = unary( 'x', windDirection );
+	const windZ = unary( 'y', windDirection );
+	const localWindX = binary( 'subtract', binary( 'multiply', windX, cosYaw ), binary( 'multiply', windZ, sinYaw ) );
+	const localWindZ = binary( 'add', binary( 'multiply', windX, sinYaw ), binary( 'multiply', windZ, cosYaw ) );
+	const worldX = unary( 'x', worldVertexPosition );
+	const worldZ = unary( 'z', worldVertexPosition );
+	const worldXZ = add( 'vec2', { args: [ worldX, worldZ ] } );
+	const gustPosition = binary( 'subtract', worldXZ, windVelocityIntegral );
+	const gustWide = unary( 'valueNoise2', binary( 'divide', gustPosition, constant( 140 ) ) );
+	const gustDetailPosition = binary( 'add', binary( 'divide', gustPosition, constant( 61 ) ), constant( [ 0.37, 0.37 ] ) );
+	const gustDetail = unary( 'valueNoise2', gustDetailPosition );
+	const gustNoise = binary( 'add', binary( 'multiply', gustWide, constant( 0.62 ) ), binary( 'multiply', gustDetail, constant( 0.38 ) ) );
+	const gust = ternary( 'smoothstep', constant( 0.46 ), constant( 0.6 ), gustNoise );
+	const windStrength = binary( 'max', binary( 'multiply', windSpeed, constant( 0.1 ) ), constant( 0.03 ) );
+	const seedPhase = binary( 'multiply', seed, constant( 6.2832 ) );
+	const heightSquared = binary( 'multiply', heightFraction, heightFraction );
+	const heightDataY = unary( 'z', instanceData );
+	const gustSway = binary( 'multiply', binary( 'multiply', windStrength, windStrength ), binary( 'multiply', constant( 0.009 ), binary( 'add', binary( 'multiply', gust, constant( 0.8 ) ), constant( 0.3 ) ) ) );
+	const waveSway = binary( 'multiply', unary( 'sin', binary( 'add', binary( 'multiply', time, constant( 0.9 ) ), seedPhase ) ), binary( 'multiply', windStrength, binary( 'multiply', constant( 0.0045 ), binary( 'add', gust, constant( 0.4 ) ) ) ) );
+	const sway = binary( 'multiply', binary( 'multiply', binary( 'add', gustSway, waveSway ), heightDataY ), heightSquared );
+	const perpendicularSway = binary( 'multiply', unary( 'sin', binary( 'add', binary( 'multiply', time, constant( 0.67 ) ), binary( 'multiply', seedPhase, constant( 1.3 ) ) ) ), binary( 'multiply', windStrength, binary( 'multiply', constant( 0.002 ), binary( 'multiply', heightDataY, heightSquared ) ) ) );
+	const branchWavePhase = binary( 'add', binary( 'multiply', time, binary( 'add', leafPhase, constant( 1.7 ) ) ), binary( 'add', binary( 'multiply', leafPhase, constant( 20 ) ), seedPhase ) );
+	const branchWave = binary( 'multiply', unary( 'sin', branchWavePhase ), binary( 'multiply', branchFlex, binary( 'multiply', windStrength, binary( 'multiply', instanceScale, binary( 'multiply', constant( 0.07 ), binary( 'add', gust, constant( 0.5 ) ) ) ) ) ) );
+	const branchSag = binary( 'multiply', branchFlex, binary( 'multiply', windStrength, binary( 'multiply', windStrength, binary( 'multiply', instanceScale, binary( 'multiply', constant( 0.04 ), binary( 'add', gust, constant( 0.3 ) ) ) ) ) ) );
+	const branch = binary( 'subtract', branchWave, branchSag );
+	const verticalInstanceScale = binary( 'multiply', instanceScale, verticalScale );
+	const flutterPhase = binary( 'add', binary( 'multiply', time, constant( 9.5 ) ), binary( 'add', binary( 'multiply', leafPhase, constant( 50 ) ), binary( 'add', binary( 'multiply', worldX, constant( 1.9 ) ), binary( 'multiply', worldZ, constant( 2.3 ) ) ) ) );
+	const flutter = binary( 'multiply', unary( 'sin', flutterPhase ), binary( 'multiply', leafFlutter, binary( 'multiply', instanceScale, binary( 'add', binary( 'multiply', windStrength, constant( 0.035 ) ), constant( 0.005 ) ) ) ) );
+	const localSwayX = binary( 'divide', binary( 'subtract', binary( 'multiply', localWindX, sway ), binary( 'multiply', localWindZ, perpendicularSway ) ), instanceScale );
+	const localSwayZ = binary( 'divide', binary( 'add', binary( 'multiply', localWindZ, sway ), binary( 'multiply', localWindX, perpendicularSway ) ), instanceScale );
+	const windNormal = input( 'normal' );
+	const flutterX = binary( 'divide', binary( 'multiply', unary( 'x', windNormal ), flutter ), instanceScale );
+	const flutterY = binary( 'divide', binary( 'multiply', unary( 'y', windNormal ), flutter ), verticalScale );
+	const flutterZ = binary( 'divide', binary( 'multiply', unary( 'z', windNormal ), flutter ), instanceScale );
+	const vertexOffset = add( 'vec3', { args: [ binary( 'add', localSwayX, flutterX ), binary( 'add', binary( 'divide', branch, verticalInstanceScale ), flutterY ), binary( 'add', localSwayZ, flutterZ ) ] } );
+	const deformedPosition = binary( 'add', position, vertexOffset );
 
 	const treeSeedMultiplier = constant( PROFILE.species.treeSeedMultiplier );
 	const treeSeedFraction = unary( 'fract', binary( 'multiply', seed, treeSeedMultiplier ) );
@@ -177,7 +232,7 @@ let leafColor = mix( leafPalette, color( 0x7a3a22 ), redVeinWeight );
 	return Object.freeze( {
 		format: 'elsemesh.material-graph/1',
 		nodes: Object.freeze( nodes.map( node => Object.freeze( node ) ) ),
-		outputs: Object.freeze( { baseColor, opacity, roughness, occlusion, specularIntensity, surfaceNormal, translucency } ),
+		outputs: Object.freeze( { baseColor, opacity, roughness, occlusion, specularIntensity, surfaceNormal, translucency, vertexPosition: deformedPosition } ),
 	} );
 }
 

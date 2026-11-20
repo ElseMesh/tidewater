@@ -40,18 +40,22 @@ selects the authored species tile, samples leaf coverage from the shared linear 
 and uses the same alpha-mask cutoff for visible and shadow materials in both
 engine compilers. The graph now supplies the authored species palette,
 instance/card color variation, leaf detail, bark weathering, roughness, ambient
-occlusion, normal bias, and leaf translucency to both compilers; the GLB keeps
-a neutral white base factor. Near wind deformation, edge-on card thinning, and
-view-dependent far-impostor presentation remain unimplemented. The candidate
-remains outside the signed world source until both engine adapters and matched
-appearance review pass.
+occlusion, normal bias, leaf translucency, and near-mesh wind deformation to
+both compilers; the GLB keeps a neutral white base factor. The exporter stores
+instance yaw and horizontal/vertical scale in the shared material-data record
+so the graph can express wind in local mesh space. Its traveling gust uses
+portable value-noise operators and shared world-wind inputs; matched rendered
+review against the source detail-texture gust is still required. Edge-on card
+thinning and view-dependent far-impostor presentation remain unimplemented.
+The candidate remains outside the signed world source until both engine
+adapters and matched appearance review pass.
 
 The exporter now joins the near set, both octahedral impostor atlases, the leaf
 mask, appearance inputs, and LOD rules into
 `vegetation-canopy-runtime-package.json`. Its component descriptor validates
 through the ElseMesh codec and asset loader against the actual content-addressed
-files. This package remains inactive and outside `world-source.json`: near
-wind is absent and neither engine backend consumes the component. The far
+files. This package remains inactive and outside `world-source.json`: neither
+engine backend consumes the component. The far
 representation still needs its view-dependent atlas sampler, frame blending,
 reprojection, wind, and distance thinning. ElseMesh must implement both
 adapters and pass matched review before replacing either current presenter.
@@ -61,6 +65,6 @@ distance fades, and material inputs exported and validated.
 The descriptor's renderer-neutral appearance payload now carries the source
 tree and shrub palettes and seed thresholds as well as color, lighting, and
 wind. ElseMesh validates the full payload, and the export integration check
-compares it with Tidewater's source profile. This only makes the missing
-appearance inputs available to future engine adapters; canopy shading and wind
-remain incomplete and the candidate remains inactive.
+compares it with Tidewater's source profile. The graph now uses this data for
+near-mesh color and wind; far-atlas shading and the complete canopy migration
+remain incomplete, and the candidate remains inactive.
