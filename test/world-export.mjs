@@ -136,6 +136,7 @@ try {
 	const fishSetBytes = await readFile( path.join( output, 'fish-static-model-instance-set.json' ) );
 	const vegetationSetBytes = await readFile( path.join( output, 'vegetation-static-model-instance-set.json' ) );
 	const canopyAtlasSetBytes = await readFile( path.join( output, 'vegetation-canopy-atlas-set.json' ) );
+	const canopyAtlasSet = JSON.parse( canopyAtlasSetBytes );
 	const canopyNearSetBytes = await readFile( path.join( output, 'vegetation-canopy-near-model-set.json' ) );
 	const canopyRuntimePackageBytes = await readFile( path.join( output, 'vegetation-canopy-runtime-package.json' ) );
 	const canopyRuntimePackage = JSON.parse( canopyRuntimePackageBytes );
@@ -272,7 +273,6 @@ try {
 	assert.deepEqual( canopyAtlasFiles.sort(), canopyAtlasFilesFirst.sort(), 'the canopy atlas export has a stable content-addressed file set' );
 	assert.equal( canopyAtlasFiles.length, 3, 'canopy export writes the material, normal/exposure, and leaf-mask atlases' );
 	for ( const file of canopyAtlasFiles ) assert.deepEqual( canopyAtlasBytes.get( file ), canopyAtlasBytesFirst.get( file ), 'canopy atlas PNG bytes are deterministic' );
-	const canopyAtlasSet = JSON.parse( canopyAtlasSetBytes );
 	assert.equal( canopyAtlasSet.format, 'tidewater.canopy-atlas-source/1' );
 	assert.equal( canopyAtlasSet.atlasDataFormat, 'rgba8unorm-data/1' );
 	assert.deepEqual( canopyAtlasSet.leafMask.layout, { type: 'row-major-atlas-uv/1', columns: 2, rows: 2, tileWidth: 512, tileHeight: 512 }, 'leaf mask sidecar specifies the packed 2x2 tile layout' );
