@@ -3,7 +3,7 @@
 This repository contains the authored Tidewater Example Island as data and
 content-addressed assets. It is not a standalone application or buildable game.
 ElseMesh imports it at `worlds/tidewater`, validates its
-`elsemesh.world-source/3` document, and serves its package assets to visitors.
+`elsemesh.world-source/1` document, and serves its package assets to visitors.
 
 ## Repository map
 

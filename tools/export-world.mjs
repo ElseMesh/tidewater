@@ -315,7 +315,7 @@ for ( const entry of await readdir( assetsPath, { withFileTypes: true } ) ) {
 for ( const [ id, bytes ] of staticAssets ) await writeFile( path.join( assetsPath, id.slice( 'sha256:'.length ) ), bytes );
 
 const source = {
-	protocol: 'elsemesh.world-source/3',
+	protocol: 'elsemesh.world-source/1',
 	worldId: 'elsemesh:example-island',
 	title: 'Example Island',
 	experience,
