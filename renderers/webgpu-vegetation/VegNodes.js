@@ -4,6 +4,7 @@ import { commonModule } from '../../../../src/engine/render/wgsl/common.js';
 import { lodFadeModule } from '../../../../src/materials/LODFade.js';
 import { getDetailTexture } from '../../../../src/world/terrain/DetailTextures.js';
 import { LOBE_TABLE, TREE_VARIANTS, SHRUB_VARIANTS } from '../../vegetation/geometry/PlantGeometry.js';
+import { TIDEWATER_CANOPY_PROFILE } from '../../vegetation/CanopyProfile.js';
 
 // Shared WGSL building blocks for all vegetation: hashing, value noise, wind and the
 // plant deformation used by palms, young palms, bananas and ferns.
@@ -49,7 +50,7 @@ export const uGustOffset = vegParams.fields.gustOffset;
 // LOD window factor for an instance at `base` (0 = hidden, 1 = full size). Hard switches (a window
 // that starts at x > 0, or ends with z - y < 5 cm) are widened by a cross-fade band where both
 // levels are drawn and dissolve into each other (lodDither, Bayer screen-door); soft windows shrink.
-export const LOD_BAND = 0.12; // share of the switch distance
+export const LOD_BAND = TIDEWATER_CANOPY_PROFILE.lod.bandFraction;
 
 // distance window (m) of the ferns inside the merged understory mesh
 export const UNDER_FERN_FADE = [ 42, 58 ];
@@ -126,7 +127,7 @@ fn vegInstanceNormal( m: mat4x4f, n: vec3f ) -> vec3f {
 // Crown variants: the per-instance variant picks a row of the lobe table (per-lobe size, 0 =
 // dropped). Shared by the near canopy geometry and the impostor bake, so near and far crowns match.
 fn vegVariantOf( seed: f32, isShrub: bool ) -> f32 {
-	return floor( fract( seed * 7.77 ) * select( ${ f( TREE_VARIANTS ) }, ${ f( SHRUB_VARIANTS ) }, isShrub ) );
+	return floor( fract( seed * ${ f( TIDEWATER_CANOPY_PROFILE.variantSelectionMultiplier ) } ) * select( ${ f( TREE_VARIANTS ) }, ${ f( SHRUB_VARIANTS ) }, isShrub ) );
 }
 fn vegLobeScale( seed: f32, li: f32, isShrub: bool ) -> f32 {
 	let row = vegVariantOf( seed, isShrub ) + select( 0.0, ${ f( TREE_VARIANTS ) }, isShrub );

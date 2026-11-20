@@ -48,6 +48,7 @@ import { generateTidewaterReefURLs } from './generate-reef-asset-urls.mjs';
 import { fishPropGeometry } from '../../../src/world/fish/FishProps.js';
 import { buildPalmFar, buildPalmNear, buildTreeNear, buildShrubNear, lobeVariantGeometry, TREE_VARIANTS, SHRUB_VARIANTS, LOBE_TABLE } from '../vegetation/geometry/PlantGeometry.js';
 import { CANOPY_FAR_FADE, PALM_LOD } from '../vegetation/LODRules.js';
+import { TIDEWATER_CANOPY_PROFILE } from '../vegetation/CanopyProfile.js';
 import { TIDEWATER_PALM_MATERIAL_GRAPH } from '../vegetation/VegetationMaterialGraph.js';
 import { LeafAtlas } from '../renderers/webgpu-vegetation/LeafTextures.js';
 import { createCanopyBakeMaterials } from '../renderers/webgpu-vegetation/VegMaterials.js';
@@ -827,7 +828,7 @@ async function bakeVegetationCanopyAtlases() {
 		GPU.submit();
 		const [ material, normalExposure ] = await Promise.all( [ readTexture( atlas.rtA.texture ), readTexture( atlas.rtB.texture ) ] );
 		return {
-			frameGrid: { columns: atlas.variantCount * 6, rows: 6, frameWidth: 128, frameHeight: 128 },
+			frameGrid: { columns: atlas.variantCount * TIDEWATER_CANOPY_PROFILE.framesPerSide, rows: TIDEWATER_CANOPY_PROFILE.framesPerSide, frameWidth: TIDEWATER_CANOPY_PROFILE.frameWidth, frameHeight: TIDEWATER_CANOPY_PROFILE.frameWidth },
 			variantGroups: [
 				{ id: 'trees', atlasVariantRange: { start: 0, end: TREE_VARIANTS }, bounds: { center: treeBounds.center.toArray(), radius: treeBounds.radius, horizontalRadius: treeBounds.rh, halfHeight: treeBounds.hv } },
 				{ id: 'shrubs', atlasVariantRange: { start: TREE_VARIANTS, end: TREE_VARIANTS + SHRUB_VARIANTS }, bounds: { center: shrubBounds.center.toArray(), radius: shrubBounds.radius, horizontalRadius: shrubBounds.rh, halfHeight: shrubBounds.hv } },
@@ -878,9 +879,10 @@ async function writeVegetationCanopyAtlasSidecar( output, bake ) {
 	const sidecar = {
 		format: 'tidewater.canopy-atlas-source/1',
 		atlasDataFormat: 'rgba8unorm-data/1',
-		projection: { type: 'hemi-octahedral/1', framesPerSide: 6 },
+		projection: { type: 'hemi-octahedral/1', framesPerSide: TIDEWATER_CANOPY_PROFILE.framesPerSide },
 		frameGrid: bake.frameGrid,
 		variantGroups: bake.variantGroups,
+		sourceProfile: TIDEWATER_CANOPY_PROFILE,
 		atlases: assets.map( ( { role, assetId, file, width, height, bytes } ) => ( { role, assetId, file, width, height, bytes: bytes.byteLength } ) ),
 	};
 	await writeFile( path.join( output, 'vegetation-canopy-atlas-set.json' ), `${JSON.stringify( sidecar, null, 2 )}\n` );

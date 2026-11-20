@@ -6,6 +6,7 @@ import { MeshRenderer } from '../../../../src/engine/render/MeshRenderer.js';
 import { createViewUniforms, setFrameCamera } from '../../../../src/engine/render/Frame.js';
 import { vegModule, f } from './VegNodes.js';
 import { canopyModule } from './VegMaterials.js';
+import { TIDEWATER_CANOPY_PROFILE as CANOPY } from '../../vegetation/CanopyProfile.js';
 
 // Octahedral impostors for the broadleaf trees and shrubs.
 //
@@ -19,12 +20,13 @@ import { canopyModule } from './VegMaterials.js';
 // around the view direction (barycentric blend) and re-projects the view ray onto each frame's
 // plane (exact for any view direction, non-uniform instance scale included).
 
-export const OCT_N = 6; // frames per side
-const BLEND_DIST = 100; // m: three-frame blending within, nearest frame beyond
-const THIN = [ 140, 320 ]; // m: distance range over which the forest is thinned
-const THIN_FRACTION = 0.5; // share of the crowns removed at the far end
-const SHRUB_MAX = 180; // m: shrub impostors are dropped beyond (too small to matter)
-const FRAME_PX = 128;
+export const OCT_N = CANOPY.framesPerSide;
+const BLEND_DIST = CANOPY.lod.frameBlendDistance;
+const THIN = [ CANOPY.lod.thinningStartDistance, CANOPY.lod.thinningEndDistance ];
+const THIN_FRACTION = CANOPY.lod.thinningRemoveFraction;
+const SHRUB_MAX = CANOPY.lod.shrubMaxDistance;
+const FRAME_PX = CANOPY.frameWidth;
+const BAKED_OCCLUSION_CURVE = CANOPY.lighting.bakedOcclusionExponent === 2 ? 'ex * ex' : `pow( ex, ${ CANOPY.lighting.bakedOcclusionExponent } )`;
 
 // hemi-octahedral decode: (u, v) in [-1, 1]^2 -> unit direction with y >= 0
 export function octDecode( u, v, out = new THREE.Vector3() ) {
@@ -205,15 +207,15 @@ ${ common }
 	// far away the forest is thinned out: fewer, proportionally larger crowns (grown about
 	// the base) keep the canopy closed
 	let thin = smoothstep( ${ f( THIN[ 0 ] ) }, ${ f( THIN[ 1 ] ) }, d );
-	let keep = select( 1.0, 0.0, fract( iDat.w * 91.7 ) < thin * ${ f( THIN_FRACTION ) } );
+	let keep = select( 1.0, 0.0, fract( iDat.w * ${ f( CANOPY.lod.thinningSeedMultiplier ) } ) < thin * ${ f( THIN_FRACTION ) } );
 	let grow = thin * ${ f( 1 / Math.sqrt( 1 - THIN_FRACTION ) - 1 ) } + 1.0;
 	let s = iPos.w * grow;
 	let C = base + vec3f( 0.0, Cy * s * sy, 0.0 );
 	// sway of the whole crown (matches the near plants' trunk sway amplitude)
 	let w = vegWindStrength();
 	let g = vegGustAt( base.xz );
-	let ph0 = iDat.w * 6.2832;
-	let sway = ( w * w * 0.009 * ( g * 0.8 + 0.3 ) + sin( frame.time * 0.9 + ph0 ) * w * 0.0045 * ( g + 0.4 ) ) * iDat.z * 0.45;
+	let ph0 = iDat.w * ${ f( CANOPY.wind.seedPhaseScale ) };
+	let sway = ( w * w * ${ f( CANOPY.wind.gustAmplitude ) } * ( g * ${ f( CANOPY.wind.gustScale ) } + ${ f( CANOPY.wind.gustBias ) } ) + sin( frame.time * ${ f( CANOPY.wind.waveFrequency ) } + ph0 ) * w * ${ f( CANOPY.wind.waveAmplitude ) } * ( g + ${ f( CANOPY.wind.waveGustBias ) } ) ) * iDat.z * ${ f( CANOPY.wind.heightScale ) };
 	let swayV = vegWindDir3() * sway;
 	let Cs = C + swayV;
 	o.vImp = vec4f( swayV, s );
@@ -288,7 +290,7 @@ ${ common }
 	let bright = vA.x / cov; let leaf = vA.y / cov; let cr = vA.z / cov;
 	// exposure (baked crown AO): the inside and underside of the crown in deep shade
 	let ex = vB.w / cov;
-	let albedo = ${ colorOf( { seed: 'iDat.w', cr: 'cr', leaf: 'leaf', bright: 'bright', isGroup1: 'g1Flag' } ) } * mix( 0.26, 1.0, ex * ex ) * ( bright * 0.6 + 0.7 );
+	let albedo = ${ colorOf( { seed: 'iDat.w', cr: 'cr', leaf: 'leaf', bright: 'bright', isGroup1: 'g1Flag' } ) } * mix( ${ f( CANOPY.lighting.bakedOcclusionFloor ) }, 1.0, ${ BAKED_OCCLUSION_CURVE } ) * ( bright * ${ f( CANOPY.lighting.brightnessScale ) } + ${ f( CANOPY.lighting.brightnessBias ) } );
 	s.albedo = albedo;
 	// B is written where A has coverage: un-premultiply the filtered edges by A's coverage
 	let nl = vB.xyz / max( vA.w, 1e-3 ) * 2.0 - 1.0;
@@ -296,11 +298,11 @@ ${ common }
 	let ns = vec3f( nl.x, nl.y / sy, nl.z );
 	let nw = normalize( vec3f( ns.x * cyw + ns.z * syw, ns.y, ns.z * cyw - ns.x * syw ) );
 	s.normal = normalize( nw + in.V * 0.12 );
-	s.roughness = 0.85;
+	s.roughness = ${ f( CANOPY.lighting.roughness ) };
 	s.metalness = 0.0;
-	s.specularIntensity = 0.12;
+	s.specularIntensity = ${ f( CANOPY.lighting.specularIntensity ) };
 	// backlit crowns glow at the edges (light through the leaves), like the near canopy
-	s.translucency = vegTranslucency( albedo, in.N, 0.35, in.P );`,
+	s.translucency = vegTranslucency( albedo, in.N, ${ f( CANOPY.lighting.translucency ) }, in.P );`,
 		} );
 
 		// frame sampler: the frame's direction, the view ray re-projected on its plane

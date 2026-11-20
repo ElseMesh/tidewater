@@ -30,6 +30,7 @@ import { validateWorldMaterialGraph } from '../../../src/network/WorldMaterialGr
 import { compileWorldMaterialGraph } from '../../../src/materials/WorldMaterialGraphCompiler.js';
 import { validateWorldLocalLightSet } from '../../../src/network/WorldLocalLightSet.js';
 import { TIDEWATER_PALM_MATERIAL_GRAPH } from '../vegetation/VegetationMaterialGraph.js';
+import { TIDEWATER_CANOPY_PROFILE } from '../vegetation/CanopyProfile.js';
 import { CANOPY_FAR_FADE, PALM_LOD } from '../vegetation/LODRules.js';
 import { writeInstanceLODSelection } from '../../../src/engine/render/InstanceDrawPlannerMath.js';
 import { createTidewaterGroundCoverMaterialGraph } from '../vegetation/GroundCoverMaterialGraph.js';
@@ -200,6 +201,7 @@ try {
 	const canopyAtlasSet = JSON.parse( canopyAtlasSetBytes );
 	assert.equal( canopyAtlasSet.format, 'tidewater.canopy-atlas-source/1' );
 	assert.equal( canopyAtlasSet.atlasDataFormat, 'rgba8unorm-data/1' );
+	assert.deepEqual( canopyAtlasSet.sourceProfile, TIDEWATER_CANOPY_PROFILE, 'the exported atlas sidecar carries the authored canopy palette, species selection, wind, and LOD data' );
 	assert.deepEqual( [ canopyAtlasSet.frameGrid.columns, canopyAtlasSet.frameGrid.rows, canopyAtlasSet.frameGrid.frameWidth, canopyAtlasSet.frameGrid.frameHeight ], [ 30, 6, 128, 128 ], 'canopy atlas preserves five variants of the six-by-six source frame grid' );
 	assert.deepEqual( canopyAtlasSet.variantGroups.map( group => [ group.id, group.atlasVariantRange.start, group.atlasVariantRange.end ] ), [ [ 'trees', 0, 3 ], [ 'shrubs', 3, 5 ] ], 'tree and shrub atlas variants remain in separate authored ranges' );
 	for ( const atlas of canopyAtlasSet.atlases ) {

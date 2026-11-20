@@ -1,6 +1,7 @@
 import { Material } from '../../../../src/engine/render/Material.js';
 import { ShaderModule } from '../../../../src/engine/gpu/Shader.js';
 import { vegModule, vegParams, LOD_BAND, C, f } from './VegNodes.js';
+import { TIDEWATER_CANOPY_PROFILE as CANOPY } from '../../vegetation/CanopyProfile.js';
 
 // Vegetation materials (engine Materials: WGSL vertex / surface snippets on the scene lighting).
 //
@@ -574,11 +575,11 @@ export const canopyModule = new ShaderModule( {
 	code: /* wgsl */`
 fn vegPick4( s4: f32, a: vec3f, b: vec3f, c: vec3f, d: vec3f ) -> vec3f { return select( select( select( d, c, s4 < 2.5 ), b, s4 < 1.5 ), a, s4 < 0.5 ); }
 fn vegPick3( s3: f32, a: vec3f, b: vec3f, c: vec3f ) -> vec3f { return select( select( c, b, s3 < 1.5 ), a, s3 < 0.5 ); }
-fn vegTreeSpecies( seed: f32 ) -> f32 { return floor( fract( seed * 5.31 ) * 4.0 ); }
+fn vegTreeSpecies( seed: f32 ) -> f32 { return floor( fract( seed * ${ f( CANOPY.species.treeSeedMultiplier ) } ) * ${ f( CANOPY.palette.trees.length ) } ); }
 // shrubs: 0 sea grape 45 %, 1 croton 15 %, 2 hibiscus 40 %
 fn vegShrubSpecies( seed: f32 ) -> f32 {
-	let h = fract( seed * 3.17 );
-	return select( select( 2.0, 1.0, h < 0.6 ), 0.0, h < 0.45 );
+	let h = fract( seed * ${ f( CANOPY.species.shrubSeedMultiplier ) } );
+	return select( select( 2.0, 1.0, h < ${ f( CANOPY.species.shrubCrotonThreshold ) } ), 0.0, h < ${ f( CANOPY.species.shrubSeaGrapeThreshold ) } );
 }
 
 // base leaf colour of an instance (species, per-card random cr, per-instance tint)
@@ -587,27 +588,27 @@ fn vegCanopyLeafColor( seed: f32, cr: f32, isShrub: bool ) -> vec3f {
 	// tree species: dark glossy (bronze flush), fresh mid green, yellow-green, blue-green
 	// (Caribbean hillside forest: deep, olive and yellow-greens, muted, with a few dry / bronze
 	// and flowering crowns)
-	let t0 = mix( mix( ${ C( 0x283a1b ) }, ${ C( 0x364a23 ) }, cr ), ${ C( 0x5e4a2e ) }, smoothstep( 0.96, 0.995, cr ) * 0.5 );
-	let t1 = mix( ${ C( 0x34491f ) }, ${ C( 0x485c27 ) }, cr );
-	let t2 = mix( ${ C( 0x4f5a27 ) }, ${ C( 0x646a31 ) }, cr );
-	let t3 = mix( ${ C( 0x2a3b2a ) }, ${ C( 0x3a4a36 ) }, cr );
-	let s0 = mix( ${ C( 0x3f5522 ) }, ${ C( 0x52662a ) }, cr );
-	let s1 = mix( ${ C( 0x2c421e ) }, ${ C( 0x44561f ) }, cr );
-	let s2 = mix( ${ C( 0x34521c ) }, ${ C( 0x466624 ) }, cr );
+	let t0 = mix( mix( ${ C( CANOPY.palette.trees[ 0 ].low ) }, ${ C( CANOPY.palette.trees[ 0 ].high ) }, cr ), ${ C( CANOPY.palette.trees[ 0 ].dry ) }, smoothstep( ${ f( CANOPY.palette.trees[ 0 ].dryStart ) }, ${ f( CANOPY.palette.trees[ 0 ].dryEnd ) }, cr ) * ${ f( CANOPY.palette.trees[ 0 ].dryMix ) } );
+	let t1 = mix( ${ C( CANOPY.palette.trees[ 1 ].low ) }, ${ C( CANOPY.palette.trees[ 1 ].high ) }, cr );
+	let t2 = mix( ${ C( CANOPY.palette.trees[ 2 ].low ) }, ${ C( CANOPY.palette.trees[ 2 ].high ) }, cr );
+	let t3 = mix( ${ C( CANOPY.palette.trees[ 3 ].low ) }, ${ C( CANOPY.palette.trees[ 3 ].high ) }, cr );
+	let s0 = mix( ${ C( CANOPY.palette.shrubs[ 0 ].low ) }, ${ C( CANOPY.palette.shrubs[ 0 ].high ) }, cr );
+	let s1 = mix( ${ C( CANOPY.palette.shrubs[ 1 ].low ) }, ${ C( CANOPY.palette.shrubs[ 1 ].high ) }, cr );
+	let s2 = mix( ${ C( CANOPY.palette.shrubs[ 2 ].low ) }, ${ C( CANOPY.palette.shrubs[ 2 ].high ) }, cr );
 	let iv = vegHash12( vec2f( seed * 17.3, 4.1 ) );
 	let iv2 = vegHash12( vec2f( seed * 5.9, 8.3 ) );
-	var c = select( vegPick4( spT, t0, t1, t2, t3 ), vegPick3( spS, s0, s1, s2 ), isShrub ) * ( iv * 0.36 + 0.74 );
+	var c = select( vegPick4( spT, t0, t1, t2, t3 ), vegPick3( spS, s0, s1, s2 ), isShrub ) * ( iv * ${ f( CANOPY.color.instanceTintScale ) } + ${ f( CANOPY.color.instanceTintBias ) } );
 	// a few trees dry / dropping leaves (brown-olive), or flowering (flamboyant, orange-red)
 	let treeK = select( 1.0, 0.0, isShrub );
-	let dry = step( iv2, 0.035 ) * treeK;
-	c = mix( c, mix( ${ C( 0x5c5234 ) }, ${ C( 0x6e5a3a ) }, cr ), dry * 0.5 );
-	let flower = step( 0.988, iv2 ) * treeK * step( 0.5, cr );
-	c = mix( c, ${ C( 0x8a4a2c ) }, flower * 0.5 );
-	return mix( vec3f( luminance( c ) ), c, 0.85 );
+	let dry = step( iv2, ${ f( CANOPY.species.dryTreeChance ) } ) * treeK;
+	c = mix( c, mix( ${ C( CANOPY.palette.dryTree.low ) }, ${ C( CANOPY.palette.dryTree.high ) }, cr ), dry * ${ f( CANOPY.palette.dryTree.mix ) } );
+	let flower = step( ${ f( CANOPY.species.floweringTreeThreshold ) }, iv2 ) * treeK * step( 0.5, cr );
+	c = mix( c, ${ C( CANOPY.palette.floweringTree ) }, flower * 0.5 );
+	return mix( vec3f( luminance( c ) ), c, ${ f( CANOPY.color.leafDesaturation ) } );
 }
 
 fn vegBarkColor( n: f32, n2: f32 ) -> vec3f {
-	return mix( mix( ${ C( 0x302a22 ) }, ${ C( 0x5c5549 ) }, n * 0.6 + n2 * 0.4 ), ${ C( 0x7b7b6a ) }, smoothstep( 0.64, 0.8, n2 ) * 0.3 );
+	return mix( mix( ${ C( CANOPY.palette.bark.dark ) }, ${ C( CANOPY.palette.bark.mid ) }, n * 0.6 + n2 * 0.4 ), ${ C( CANOPY.palette.bark.pale ) }, smoothstep( ${ f( CANOPY.palette.bark.paleStart ) }, ${ f( CANOPY.palette.bark.paleEnd ) }, n2 ) * ${ f( CANOPY.palette.bark.paleMix ) } );
 }
 
 // leaf-cluster tile of a card: trees broad / narrow leaves by species, shrubs round / narrow
@@ -624,13 +625,13 @@ fn vegCoverageThreshold( st: vec2f ) -> f32 {
 
 // Runtime colour of an impostor fragment (same palette as the near canopy)
 fn vegImpostorColor( seed: f32, cr: f32, leaf: f32, bright: f32, isGroup1: bool ) -> vec3f {
-	let leafC = vegCanopyLeafColor( seed, cr, isGroup1 ) * ( bright * 1.4 );
+	let leafC = vegCanopyLeafColor( seed, cr, isGroup1 ) * ( bright * ${ f( CANOPY.color.impostorBrightnessScale ) } );
 	// limbs and twigs seen through the crown gaps are in the crown's shade: dark and a little
 	// green-brown, and the leaves dominate the blend (grey limbs made far crowns read grey-beige)
-	let barkC = mix( ${ C( 0x1c1a13 ) }, ${ C( 0x2e2b20 ) }, ( bright - 0.4 ) / 0.5 );
-	let c = mix( barkC, leafC, smoothstep( 0.05, 0.55, leaf ) );
+	let barkC = mix( ${ C( CANOPY.color.barkDark ) }, ${ C( CANOPY.color.barkLight ) }, ( bright - 0.4 ) / 0.5 );
+	let c = mix( barkC, leafC, smoothstep( ${ f( CANOPY.color.leafBlendStart ) }, ${ f( CANOPY.color.leafBlendEnd ) }, leaf ) );
 	// far crowns keep their green through the haze (a little more saturated than the near canopy)
-	return max( mix( vec3f( luminance( c ) ), c, 1.25 ), vec3f( 0.0 ) );
+	return max( mix( vec3f( luminance( c ) ), c, ${ f( CANOPY.color.impostorSaturation ) } ), vec3f( 0.0 ) );
 }
 `,
 } );
