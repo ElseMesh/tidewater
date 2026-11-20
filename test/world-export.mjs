@@ -143,6 +143,8 @@ try {
 	const canopyRuntimePackageBytes = await readFile( path.join( output, 'vegetation-canopy-runtime-package.json' ) );
 	const canopyRuntimePackage = JSON.parse( canopyRuntimePackageBytes );
 	const canopyRuntimeAssets = new Map( await Promise.all( canopyRuntimePackage.assetFiles.map( async asset => [ asset.file, await readFile( path.join( output, asset.file ) ) ] ) ) );
+	const canopyRuntimeDescriptorAsset = canopyRuntimePackage.assetFiles.find( asset => asset.assetId === canopyRuntimePackage.component.data.descriptorAssetId );
+	const canopyRuntimeDescriptor = JSON.parse( canopyRuntimeAssets.get( canopyRuntimeDescriptorAsset.file ) );
 	const canopyNearFiles = await readdir( path.join( output, 'vegetation-canopy-near-models' ) );
 	const canopyNearBytes = new Map( await Promise.all( canopyNearFiles.map( async file => [ file, await readFile( path.join( output, 'vegetation-canopy-near-models', file ) ) ] ) ) );
 	const canopyAtlasFiles = await readdir( path.join( output, 'vegetation-canopy-atlases' ) );
@@ -315,6 +317,7 @@ try {
 	assert.deepEqual( canopyAtlasSet.appearance, TIDEWATER_CANOPY_APPEARANCE, 'the export exposes the same renderer-neutral canopy color, lighting and wind inputs for engine adapters' );
 	assert.deepEqual( [ canopyAtlasSet.frameGrid.columns, canopyAtlasSet.frameGrid.rows, canopyAtlasSet.frameGrid.frameWidth, canopyAtlasSet.frameGrid.frameHeight ], [ 30, 6, 128, 128 ], 'canopy atlas preserves five variants of the six-by-six source frame grid' );
 	assert.deepEqual( canopyAtlasSet.variantGroups.map( group => [ group.id, group.atlasVariantRange.start, group.atlasVariantRange.end ] ), [ [ 'trees', 0, 3 ], [ 'shrubs', 3, 5 ] ], 'tree and shrub atlas variants remain in separate authored ranges' );
+	assert.ok( canopyRuntimeDescriptor.variantGroups.every( group => group.windHeightDataIndex === 2 ), 'the descriptor maps the source per-instance plant height into the renderer-neutral canopy wind contract' );
 	for ( const atlas of canopyAtlasSet.atlases ) {
 		const bytes = canopyAtlasBytes.get( atlas.file );
 		assert.equal( `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`, atlas.assetId, `${atlas.role} atlas filename and bytes match its content address` );

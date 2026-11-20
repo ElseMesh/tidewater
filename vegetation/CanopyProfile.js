@@ -67,6 +67,8 @@ export const TIDEWATER_CANOPY_PROFILE = Object.freeze( {
 		gustAmplitude: 0.009,
 		gustBias: 0.3,
 		gustScale: 0.8,
+		gustTravelSpeedScale: 0.7,
+		gustTravelSpeedBias: 1.5,
 		waveAmplitude: 0.0045,
 		waveFrequency: 0.9,
 		waveGustBias: 0.4,

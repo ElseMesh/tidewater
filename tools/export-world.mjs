@@ -1024,7 +1024,8 @@ async function writeVegetationCanopyRuntimePackage( output, atlasSet, nearSet ) 
 			id: group.id,
 			modelIds,
 			atlasVariantRange: group.atlasVariantRange,
-			variantSelection: { source: 'instance-material-data', index: 7, method: 'fractional-bin/1', multiplier: TIDEWATER_CANOPY_PROFILE.variantSelectionMultiplier },
+					variantSelection: { source: 'instance-material-data', index: 7, method: 'fractional-bin/1', multiplier: TIDEWATER_CANOPY_PROFILE.variantSelectionMultiplier },
+					windHeightDataIndex: 2,
 			bounds: group.bounds,
 			lod: {
 				nearDistance: isTree ? TIDEWATER_CANOPY_PROFILE.lod.treeNearDistance : TIDEWATER_CANOPY_PROFILE.lod.shrubNearDistance,
