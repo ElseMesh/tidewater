@@ -21,6 +21,7 @@ import { decodeReefPlacements } from '../ReefPlacements.js';
 import { decodeFishPropPlacements } from '../FishPropPlacements.js';
 import { decodeTerrainSurfaceAsset } from '../../../src/network/TerrainSurfaceAsset.js';
 import { decodeBreakerStationsAsset, BREAKER_STATIONS_ASSET_KIND } from '../../../src/network/BreakerStationsAsset.js';
+import { loadOctahedralCanopyAssets } from '../../../src/network/OctahedralCanopyAssets.js';
 import { decodeGrassDensityAsset } from '../../../src/network/GrassDensityAsset.js';
 import { decodeGroundDetailDensityAsset, GROUND_DETAIL_DENSITY_ASSET_KIND } from '../../../src/network/GroundDetailDensityAsset.js';
 import { BANK } from '../../../src/audio/soundBank.js';
@@ -113,6 +114,9 @@ try {
 	const vegetationSetBytesFirst = await readFile( path.join( output, 'vegetation-static-model-instance-set.json' ) );
 	const canopyAtlasSetBytesFirst = await readFile( path.join( output, 'vegetation-canopy-atlas-set.json' ) );
 	const canopyNearSetBytesFirst = await readFile( path.join( output, 'vegetation-canopy-near-model-set.json' ) );
+	const canopyRuntimePackageBytesFirst = await readFile( path.join( output, 'vegetation-canopy-runtime-package.json' ) );
+	const canopyRuntimePackageFirst = JSON.parse( canopyRuntimePackageBytesFirst );
+	const canopyRuntimeAssetsFirst = new Map( await Promise.all( canopyRuntimePackageFirst.assetFiles.map( async asset => [ asset.file, await readFile( path.join( output, asset.file ) ) ] ) ) );
 	const canopyNearFilesFirst = await readdir( path.join( output, 'vegetation-canopy-near-models' ) );
 	const canopyNearBytesFirst = new Map( await Promise.all( canopyNearFilesFirst.map( async file => [ file, await readFile( path.join( output, 'vegetation-canopy-near-models', file ) ) ] ) ) );
 	const canopyAtlasFilesFirst = await readdir( path.join( output, 'vegetation-canopy-atlases' ) );
@@ -133,6 +137,9 @@ try {
 	const vegetationSetBytes = await readFile( path.join( output, 'vegetation-static-model-instance-set.json' ) );
 	const canopyAtlasSetBytes = await readFile( path.join( output, 'vegetation-canopy-atlas-set.json' ) );
 	const canopyNearSetBytes = await readFile( path.join( output, 'vegetation-canopy-near-model-set.json' ) );
+	const canopyRuntimePackageBytes = await readFile( path.join( output, 'vegetation-canopy-runtime-package.json' ) );
+	const canopyRuntimePackage = JSON.parse( canopyRuntimePackageBytes );
+	const canopyRuntimeAssets = new Map( await Promise.all( canopyRuntimePackage.assetFiles.map( async asset => [ asset.file, await readFile( path.join( output, asset.file ) ) ] ) ) );
 	const canopyNearFiles = await readdir( path.join( output, 'vegetation-canopy-near-models' ) );
 	const canopyNearBytes = new Map( await Promise.all( canopyNearFiles.map( async file => [ file, await readFile( path.join( output, 'vegetation-canopy-near-models', file ) ) ] ) ) );
 	const canopyAtlasFiles = await readdir( path.join( output, 'vegetation-canopy-atlases' ) );
@@ -181,6 +188,36 @@ try {
 	const vegetationPlacement = decodeVegetationPlacements( await readFile( path.join( output, 'assets', componentData( generatedVegetationComponent ).placementAssetId.slice( 'sha256:'.length ) ) ) );
 	const canopyNearSidecar = JSON.parse( canopyNearSetBytes );
 	const canopyNearSet = validateStaticModelInstanceSet( canopyNearSidecar.instanceSet );
+	assert.deepEqual( canopyRuntimePackageBytes, canopyRuntimePackageBytesFirst, 'the inactive canopy runtime package is deterministic' );
+	assert.deepEqual( canopyRuntimePackage.assetFiles.map( asset => asset.file ).sort(), canopyRuntimePackageFirst.assetFiles.map( asset => asset.file ).sort(), 'the runtime package references a stable content-addressed file set' );
+	assert.equal( canopyRuntimePackage.format, 'tidewater.canopy-runtime-package-source/1' );
+	assert.deepEqual( canopyRuntimePackage.activation.required, [ 'complete-appearance-graph', 'webgpu-adapter', 'webgl-adapter', 'matched-appearance-review' ], 'the source package stays inactive until the complete renderer-neutral appearance contract passes both backends' );
+	assert.equal( canopyRuntimePackage.activation.state, 'inactive' );
+	assert.equal( canopyRuntimePackage.component.type, 'elsemesh.octahedral-canopy/1' );
+	assert.deepEqual( canopyRuntimePackage.component.assets, canopyRuntimePackage.assetFiles.map( ( { assetId, kind } ) => ( { assetId, kind } ) ), 'candidate component asset references exactly match its content-addressed source file table' );
+	assert.equal( canopyRuntimePackage.component.data.descriptorAssetId, canopyRuntimePackage.assetFiles[ 0 ].assetId, 'candidate component names the generated content-addressed descriptor asset' );
+	assert.ok( ! firstDocument.components.some( component => component.type === 'elsemesh.octahedral-canopy/1' ), 'the inactive canopy package does not alter the active Tidewater world source' );
+	const runtimeDescriptorAsset = canopyRuntimePackage.assetFiles.find( asset => asset.assetId === canopyRuntimePackage.component.data.descriptorAssetId );
+	assert.ok( runtimeDescriptorAsset, 'candidate component descriptor is listed as a content-addressed package asset' );
+	const runtimeDescriptor = JSON.parse( canopyRuntimeAssets.get( runtimeDescriptorAsset.file ) );
+	assert.equal( runtimeDescriptor.leafMask.assetId, canopyAtlasSet.leafMask.assetId, 'runtime descriptor points at Tidewater\'s source leaf-mask PNG' );
+	assert.deepEqual( runtimeDescriptor.appearance, TIDEWATER_CANOPY_APPEARANCE, 'runtime descriptor carries the same authored palette, lighting and wind inputs as the source atlas sidecar' );
+	for ( const asset of canopyRuntimePackage.assetFiles ) {
+		const bytes = canopyRuntimeAssets.get( asset.file );
+		assert.ok( bytes, `runtime package asset ${asset.file} is written` );
+		assert.equal( bytes.byteLength, asset.bytes, `${asset.file} reports its exact byte length` );
+		assert.equal( `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`, asset.assetId, `${asset.file} content matches its asset identity` );
+		assert.deepEqual( bytes, canopyRuntimeAssetsFirst.get( asset.file ), `${asset.file} bytes are deterministic across exporter runs` );
+	}
+	const runtimeAssetBytes = new Map( canopyRuntimePackage.assetFiles.map( asset => [ asset.assetId, canopyRuntimeAssets.get( asset.file ) ] ) );
+	const runtimeLoadedCanopy = await loadOctahedralCanopyAssets( {
+		manifest: { assets: canopyRuntimePackage.assetFiles.map( ( { assetId, kind } ) => ( { id: assetId, kind } ) ) },
+		assets: new Map(),
+		async getAsset( assetId ) { return runtimeAssetBytes.get( assetId ); },
+	}, canopyRuntimePackage.component );
+	assert.equal( runtimeLoadedCanopy.instanceSet.instances.length, canopyNearSet.instances.length, 'the engine loader accepts the exporter-generated near-instance set' );
+	assert.deepEqual( [ runtimeLoadedCanopy.leafMask.width, runtimeLoadedCanopy.leafMask.height ], [ 1024, 1024 ], 'the engine loader resolves Tidewater\'s authored leaf-mask layout' );
+	assert.equal( runtimeLoadedCanopy.atlases.size, 2, 'both frame atlases resolve from the Tidewater source package' );
 	assert.equal( canopyNearSidecar.format, 'tidewater.canopy-near-source/1', 'near canopy geometry is an explicitly inactive source artifact' );
 	assert.equal( canopyNearSidecar.instanceSetAssetId, `sha256:${createHash( 'sha256' ).update( canopyNearBytes.get( canopyNearSidecar.instanceSetFile ) ).digest( 'hex' )}`, 'canopy near instance-set bytes match the content address' );
 	assert.deepEqual( canopyNearSet.models.map( model => model.id ), [ 'tree-0', 'tree-1', 'tree-2', 'shrub-0', 'shrub-1' ], 'the near model set exports every authored tree and shrub variant' );

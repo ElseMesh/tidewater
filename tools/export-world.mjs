@@ -40,6 +40,7 @@ import { getDetailImage } from '../../../src/world/terrain/DetailTextureData.js'
 import { getDetailTexture } from '../../../src/world/terrain/DetailTextures.js';
 import { encodeTerrainSurfaceAsset } from '../../../src/network/TerrainSurfaceAsset.js';
 import { encodeBreakerStationsAsset, BREAKER_STATIONS_ASSET_KIND } from '../../../src/network/BreakerStationsAsset.js';
+import { OCTAHEDRAL_CANOPY_COMPONENT_TYPE, OCTAHEDRAL_CANOPY_DESCRIPTOR_ASSET_KIND, validateOctahedralCanopyDescriptor } from '../../../src/network/OctahedralCanopyDescriptor.js';
 import '../../../test/headless.mjs';
 import { GPU } from '../../../src/engine/gpu/GPU.js';
 import { readTexture } from '../../../src/engine/gpu/Readback.js';
@@ -232,9 +233,10 @@ const vegetationStaticModelsPath = path.join( output, 'vegetation-static-models'
 await mkdir( vegetationStaticModelsPath, { recursive: true } );
 for ( const entry of await readdir( vegetationStaticModelsPath, { withFileTypes: true } ) ) if ( entry.isFile() && /^[0-9a-f]{64}\.glb$/.test( entry.name ) && ! vegetationStaticModelSet.assets.has( entry.name.slice( 0, 64 ) ) ) await rm( path.join( vegetationStaticModelsPath, entry.name ) );
 for ( const [ hash, bytes ] of vegetationStaticModelSet.assets ) await writeFile( path.join( vegetationStaticModelsPath, `${hash}.glb` ), bytes );
-await writeVegetationCanopyAtlasSidecar( output, vegetationCanopyAtlasBake );
+const vegetationCanopyAtlasSidecar = await writeVegetationCanopyAtlasSidecar( output, vegetationCanopyAtlasBake );
 const vegetationCanopyNearSet = exportVegetationCanopyNearSet( generated.vegetation );
-await writeVegetationCanopyNearSidecar( output, vegetationCanopyNearSet );
+const vegetationCanopyNearSidecar = await writeVegetationCanopyNearSidecar( output, vegetationCanopyNearSet );
+await writeVegetationCanopyRuntimePackage( output, vegetationCanopyAtlasSidecar, vegetationCanopyNearSidecar );
 const groundCoverPatchSet = { format: 'tidewater.ground-cover-patch-set/1', cellSize: GROUND_COVER_CELL, seed: 7, lods: [] }, groundCoverPatchAssets = new Map();
 const groundCoverMaterialGraph = createTidewaterGroundCoverMaterialGraph( { densityOrigin: terrain.origin, densitySize: terrain.size } );
 for ( const [ level, name ] of [ 'near', 'mid', 'far' ].entries() ) {
@@ -894,6 +896,7 @@ async function writeVegetationCanopyNearSidecar( output, set ) {
 		models: modelAssets,
 	};
 	await writeFile( path.join( output, 'vegetation-canopy-near-model-set.json' ), `${JSON.stringify( sidecar, null, 2 )}\n` );
+	return { ...sidecar, instanceSetBytes };
 }
 
 // Cook the WebGPU source atlas into portable linear RGBA8 data PNGs. This is
@@ -1002,6 +1005,102 @@ async function writeVegetationCanopyAtlasSidecar( output, bake ) {
 		atlases: assets.map( ( { role, assetId, file, width, height, bytes } ) => ( { role, assetId, file, width, height, bytes: bytes.byteLength } ) ),
 	};
 	await writeFile( path.join( output, 'vegetation-canopy-atlas-set.json' ), `${JSON.stringify( sidecar, null, 2 )}\n` );
+	return sidecar;
+}
+
+async function writeVegetationCanopyRuntimePackage( output, atlasSet, nearSet ) {
+	const atlases = [ 'material', 'normal-exposure' ].map( role => {
+		const atlas = atlasSet.atlases.find( entry => entry.role === role );
+		if ( ! atlas ) throw new Error( `Tidewater canopy export is missing the ${role} atlas` );
+		return atlas;
+	} );
+	const variantGroups = atlasSet.variantGroups.map( group => {
+		const modelPrefix = group.id === 'trees' ? 'tree' : group.id === 'shrubs' ? 'shrub' : null;
+		if ( ! modelPrefix ) throw new Error( `Unsupported Tidewater canopy variant group: ${group.id}` );
+		const modelIds = nearSet.models.filter( model => model.modelId.startsWith( `${modelPrefix}-` ) ).map( model => model.modelId );
+		const isTree = group.id === 'trees';
+		return {
+			id: group.id,
+			modelIds,
+			atlasVariantRange: group.atlasVariantRange,
+			variantSelection: { source: 'instance-material-data', index: 7, method: 'fractional-bin/1', multiplier: TIDEWATER_CANOPY_PROFILE.variantSelectionMultiplier },
+			bounds: group.bounds,
+			lod: {
+				nearDistance: isTree ? TIDEWATER_CANOPY_PROFILE.lod.treeNearDistance : TIDEWATER_CANOPY_PROFILE.lod.shrubNearDistance,
+				maxDistance: isTree ? TIDEWATER_CANOPY_PROFILE.lod.treeMaxDistance : TIDEWATER_CANOPY_PROFILE.lod.shrubMaxDistance,
+				farFade: isTree ? { startDistance: TIDEWATER_CANOPY_PROFILE.lod.treeFadeStartDistance, endDistance: TIDEWATER_CANOPY_PROFILE.lod.treeMaxDistance } : null,
+			},
+		};
+	} );
+	const descriptor = {
+		format: 'elsemesh.octahedral-canopy/1',
+		instanceSetAssetId: nearSet.instanceSetAssetId,
+		atlasAssetIds: atlases.map( atlas => atlas.assetId ),
+		atlasDataFormat: atlasSet.atlasDataFormat,
+		atlasChannels: {
+			material: { r: 'brightness', g: 'leaf-flag', b: 'card-variation', a: 'coverage' },
+			normalExposure: { r: 'normal-x-encoded', g: 'normal-y-encoded', b: 'normal-z-encoded', a: 'ambient-exposure' },
+		},
+		leafMask: {
+			assetId: atlasSet.leafMask.assetId,
+			dataFormat: atlasSet.leafMask.dataFormat,
+			layout: atlasSet.leafMask.layout,
+			channels: atlasSet.leafMask.channels,
+		},
+		// This is a valid PBR fallback, not the final palette/wind graph; the
+		// package stays inactive until the complete shared appearance graph exists.
+		materialGraph: {
+			format: 'elsemesh.material-graph/1',
+			nodes: [ { id: 'baseColor', op: 'input', name: 'colorRGB' }, { id: 'roughness', op: 'constant', value: atlasSet.appearance.lighting.roughness } ],
+			outputs: { baseColor: 'baseColor', roughness: 'roughness' },
+		},
+		appearance: atlasSet.appearance,
+		projection: atlasSet.projection,
+		frameGrid: atlasSet.frameGrid,
+		variantGroups,
+		frameBlendDistance: TIDEWATER_CANOPY_PROFILE.lod.frameBlendDistance,
+		lodBandFraction: TIDEWATER_CANOPY_PROFILE.lod.bandFraction,
+		thinning: {
+			startDistance: TIDEWATER_CANOPY_PROFILE.lod.thinningStartDistance,
+			endDistance: TIDEWATER_CANOPY_PROFILE.lod.thinningEndDistance,
+			removeFraction: TIDEWATER_CANOPY_PROFILE.lod.thinningRemoveFraction,
+			seedMultiplier: TIDEWATER_CANOPY_PROFILE.lod.thinningSeedMultiplier,
+			scaleCompensation: 'inverse-square-root-retained-density/1',
+		},
+	};
+	const descriptorBytes = Buffer.from( `${JSON.stringify( descriptor, null, 2 )}\n` );
+	const descriptorHash = createHash( 'sha256' ).update( descriptorBytes ).digest( 'hex' );
+	const descriptorAssetId = `sha256:${descriptorHash}`;
+	const assetFiles = [
+		{ assetId: descriptorAssetId, kind: OCTAHEDRAL_CANOPY_DESCRIPTOR_ASSET_KIND, file: `vegetation-canopy-runtime/${descriptorHash}.json`, bytes: descriptorBytes.byteLength },
+		{ assetId: nearSet.instanceSetAssetId, kind: 'static-model-instance-set/1', file: `vegetation-canopy-near-models/${nearSet.instanceSetFile}`, bytes: nearSet.instanceSetBytes.byteLength },
+		...nearSet.models.map( model => ( { assetId: model.assetId, kind: 'glb', file: `vegetation-canopy-near-models/${model.file}`, bytes: model.bytes } ) ),
+		...atlases.map( atlas => ( { assetId: atlas.assetId, kind: 'image/png', file: `vegetation-canopy-atlases/${atlas.file}`, bytes: atlas.bytes } ) ),
+		{ assetId: atlasSet.leafMask.assetId, kind: 'image/png', file: `vegetation-canopy-atlases/${atlasSet.leafMask.file}`, bytes: atlasSet.leafMask.bytes },
+	];
+	validateOctahedralCanopyDescriptor( descriptor, {
+		componentAssets: assetFiles.map( ( { assetId, kind } ) => ( { assetId, kind } ) ),
+		staticModelInstanceSetAssetId: nearSet.instanceSetAssetId,
+		staticModelInstanceSet: nearSet.instanceSet,
+	} );
+	const runtimeDirectory = path.join( output, 'vegetation-canopy-runtime' );
+	await mkdir( runtimeDirectory, { recursive: true } );
+	for ( const entry of await readdir( runtimeDirectory, { withFileTypes: true } ) ) if ( entry.isFile() && /^[0-9a-f]{64}\.json$/.test( entry.name ) && entry.name !== `${descriptorHash}.json` ) await rm( path.join( runtimeDirectory, entry.name ) );
+	await writeFile( path.join( runtimeDirectory, `${descriptorHash}.json` ), descriptorBytes );
+	const packageDocument = {
+		format: 'tidewater.canopy-runtime-package-source/1',
+		activation: { state: 'inactive', required: [ 'complete-appearance-graph', 'webgpu-adapter', 'webgl-adapter', 'matched-appearance-review' ] },
+		component: {
+			id: 'elsemesh-component:island-vegetation-canopy',
+			type: OCTAHEDRAL_CANOPY_COMPONENT_TYPE,
+			priority: 'portal-preview',
+			assets: assetFiles.map( ( { assetId, kind } ) => ( { assetId, kind } ) ),
+			data: { descriptorAssetId },
+		},
+		assetFiles,
+	};
+	await writeFile( path.join( output, 'vegetation-canopy-runtime-package.json' ), `${JSON.stringify( packageDocument, null, 2 )}\n` );
+	return packageDocument;
 }
 
 function exportVegetationGLB( name, geometry, { materialName = 'Tidewater coconut palm', baseColorFactor = [ 1, 1, 1, 1 ], materialGraph = TIDEWATER_PALM_MATERIAL_GRAPH } = {} ) {

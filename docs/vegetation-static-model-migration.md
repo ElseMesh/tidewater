@@ -39,11 +39,15 @@ placement, and texture evidence: these GLBs use a provisional glTF PBR
 material, are not referenced by a signed canopy component, and do not yet carry
 the renderer-neutral canopy material graph. Do not activate this sidecar.
 
-Their far representation remains the view-dependent octahedral impostor atlas
-with view blending, ray reprojection, wind, and distance thinning. A static far
-mesh would not preserve that appearance. The exporter must join the near set,
-atlas bytes, appearance block, and a complete material contract in one signed
-canopy component; ElseMesh must implement both backend adapters and pass the
-matched review before either existing presenter is removed. The remaining
-finite vegetation categories also need their source meshes, distance fades,
-and material inputs exported and validated.
+The exporter now joins the near set, both octahedral impostor atlases, the leaf
+mask, appearance inputs, and LOD rules into
+`vegetation-canopy-runtime-package.json`. Its component descriptor validates
+through the ElseMesh codec and asset loader against the actual content-addressed
+files. This package remains inactive and outside `world-source.json`: its near
+GLBs still use provisional PBR, the complete canopy material graph is absent,
+and neither engine backend consumes it. The far representation still requires
+the view-dependent octahedral atlas with view blending, ray reprojection, wind,
+and distance thinning. ElseMesh must implement both adapters and pass matched
+review before replacing either current presenter. The remaining finite
+vegetation categories also need their source meshes, distance fades, and
+material inputs exported and validated.
