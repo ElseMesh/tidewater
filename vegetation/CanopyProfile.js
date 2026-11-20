@@ -83,5 +83,11 @@ export const TIDEWATER_CANOPY_APPEARANCE = Object.freeze( {
 	lighting: TIDEWATER_CANOPY_PROFILE.lighting,
 	wind: TIDEWATER_CANOPY_PROFILE.wind,
 	palette: TIDEWATER_CANOPY_PROFILE.palette,
-	species: TIDEWATER_CANOPY_PROFILE.species,
+	species: Object.freeze( {
+		treeSeedMultiplier: TIDEWATER_CANOPY_PROFILE.species.treeSeedMultiplier,
+		shrubSeedMultiplier: TIDEWATER_CANOPY_PROFILE.species.shrubSeedMultiplier,
+		shrubVariantThresholds: Object.freeze( [ TIDEWATER_CANOPY_PROFILE.species.shrubSeaGrapeThreshold, TIDEWATER_CANOPY_PROFILE.species.shrubCrotonThreshold ] ),
+		dryTreeChance: TIDEWATER_CANOPY_PROFILE.species.dryTreeChance,
+		floweringTreeThreshold: TIDEWATER_CANOPY_PROFILE.species.floweringTreeThreshold,
+	} ),
 } );
