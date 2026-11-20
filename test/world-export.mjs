@@ -22,6 +22,7 @@ import { decodeFishPropPlacements } from '../FishPropPlacements.js';
 import { decodeTerrainSurfaceAsset } from '../../../src/network/TerrainSurfaceAsset.js';
 import { decodeBreakerStationsAsset, BREAKER_STATIONS_ASSET_KIND } from '../../../src/network/BreakerStationsAsset.js';
 import { loadOctahedralCanopyAssets } from '../../../src/network/OctahedralCanopyAssets.js';
+import { planOctahedralCanopyInstances } from '../../../src/engine/render/OctahedralCanopyRuntime.js';
 import { decodeGrassDensityAsset } from '../../../src/network/GrassDensityAsset.js';
 import { decodeGroundDetailDensityAsset, GROUND_DETAIL_DENSITY_ASSET_KIND } from '../../../src/network/GroundDetailDensityAsset.js';
 import { BANK } from '../../../src/audio/soundBank.js';
@@ -219,6 +220,20 @@ try {
 	assert.equal( runtimeLoadedCanopy.instanceSet.instances.length, canopyNearSet.instances.length, 'the engine loader accepts the exporter-generated near-instance set' );
 	assert.deepEqual( [ runtimeLoadedCanopy.leafMask.width, runtimeLoadedCanopy.leafMask.height ], [ 1024, 1024 ], 'the engine loader resolves Tidewater\'s authored leaf-mask layout' );
 	assert.equal( runtimeLoadedCanopy.atlases.size, 2, 'both frame atlases resolve from the Tidewater source package' );
+	for ( const [ modelPrefix, groupID ] of [ [ 'tree-', 'trees' ], [ 'shrub-', 'shrubs' ] ] ) {
+		const instance = runtimeLoadedCanopy.instanceSet.instances.find( entry => entry.model.startsWith( modelPrefix ) );
+		const group = runtimeLoadedCanopy.descriptor.variantGroups.find( entry => entry.id === groupID );
+		assert.ok( instance && group, `${groupID} canopy package contains an authored instance and LOD group` );
+		const planAt = distance => planOctahedralCanopyInstances( runtimeLoadedCanopy.descriptor, runtimeLoadedCanopy.instanceSet, [ instance.position[ 0 ] + distance, instance.position[ 1 ], instance.position[ 2 ] ] ).find( entry => entry.placementId === instance.placementId );
+		const near = planAt( 0 );
+		assert.equal( near.nearWeight, 1, `${groupID} uses its signed near model beside the authored instance` );
+		assert.equal( near.farWeight, 0, `${groupID} suppresses its far atlas at the instance origin` );
+		const handoff = planAt( group.lod.nearDistance );
+		assert.ok( Math.abs( handoff.nearWeight - 0.5 ) < 1e-9 && Math.abs( handoff.farWeight - 0.5 ) < 1e-9, `${groupID} uses the shared 12-percent midpoint handoff at its authored near distance` );
+		const far = planAt( group.lod.nearDistance + 20 );
+		assert.equal( far.nearWeight, 0, `${groupID} leaves the near-model range after its authored transition` );
+		assert.ok( far.farWeight > 0, `${groupID} selects its signed impostor atlas after the shared handoff` );
+	}
 	assert.equal( canopyNearSidecar.format, 'tidewater.canopy-near-source/1', 'near canopy geometry is an explicitly inactive source artifact' );
 	assert.equal( canopyNearSidecar.instanceSetAssetId, `sha256:${createHash( 'sha256' ).update( canopyNearBytes.get( canopyNearSidecar.instanceSetFile ) ).digest( 'hex' )}`, 'canopy near instance-set bytes match the content address' );
 	assert.deepEqual( canopyNearSet.models.map( model => model.id ), [ 'tree-0', 'tree-1', 'tree-2', 'shrub-0', 'shrub-1' ], 'the near model set exports every authored tree and shrub variant' );
