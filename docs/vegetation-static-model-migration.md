@@ -28,8 +28,20 @@ or remove either existing renderer path until the complete renderer-neutral
 contract and matched WebGPU/WebGL review against the pre-split WebGPU reference
 pass.
 
-Trees and shrubs are not included: their far representation is a view-dependent
-octahedral impostor atlas with variant selection, view blending, reprojection,
-and distance thinning. A static far mesh would not preserve that appearance.
-The remaining finite vegetation categories also need their source meshes,
-distance fades, and material inputs exported and validated.
+The exporter now also emits an inactive near-model sidecar for trees and
+shrubs. It contains the three tree and two shrub lobe variants as content-
+addressed GLBs, preserves their three VEC4 source streams, and maps every
+authored placement to a model variant with the same fractional seed-bin rule
+used by the canopy atlas. This is geometry and placement evidence only: these
+GLBs still use a provisional glTF PBR material, are not referenced by a signed
+canopy component, and do not carry the leaf atlas or renderer-neutral canopy
+material graph. Do not activate this sidecar.
+
+Their far representation remains the view-dependent octahedral impostor atlas
+with view blending, ray reprojection, wind, and distance thinning. A static far
+mesh would not preserve that appearance. The exporter must join the near set,
+atlas bytes, appearance block, and a complete material contract in one signed
+canopy component; ElseMesh must implement both backend adapters and pass the
+matched review before either existing presenter is removed. The remaining
+finite vegetation categories also need their source meshes, distance fades,
+and material inputs exported and validated.

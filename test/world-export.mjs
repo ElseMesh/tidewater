@@ -110,6 +110,9 @@ try {
 	const fishSetBytesFirst = await readFile( path.join( output, 'fish-static-model-instance-set.json' ) );
 	const vegetationSetBytesFirst = await readFile( path.join( output, 'vegetation-static-model-instance-set.json' ) );
 	const canopyAtlasSetBytesFirst = await readFile( path.join( output, 'vegetation-canopy-atlas-set.json' ) );
+	const canopyNearSetBytesFirst = await readFile( path.join( output, 'vegetation-canopy-near-model-set.json' ) );
+	const canopyNearFilesFirst = await readdir( path.join( output, 'vegetation-canopy-near-models' ) );
+	const canopyNearBytesFirst = new Map( await Promise.all( canopyNearFilesFirst.map( async file => [ file, await readFile( path.join( output, 'vegetation-canopy-near-models', file ) ) ] ) ) );
 	const canopyAtlasFilesFirst = await readdir( path.join( output, 'vegetation-canopy-atlases' ) );
 	const canopyAtlasBytesFirst = new Map( await Promise.all( canopyAtlasFilesFirst.map( async file => [ file, await readFile( path.join( output, 'vegetation-canopy-atlases', file ) ) ] ) ) );
 	const groundCoverPatchSetBytesFirst = await readFile( path.join( output, 'ground-cover-patch-set.json' ) );
@@ -127,6 +130,9 @@ try {
 	const fishSetBytes = await readFile( path.join( output, 'fish-static-model-instance-set.json' ) );
 	const vegetationSetBytes = await readFile( path.join( output, 'vegetation-static-model-instance-set.json' ) );
 	const canopyAtlasSetBytes = await readFile( path.join( output, 'vegetation-canopy-atlas-set.json' ) );
+	const canopyNearSetBytes = await readFile( path.join( output, 'vegetation-canopy-near-model-set.json' ) );
+	const canopyNearFiles = await readdir( path.join( output, 'vegetation-canopy-near-models' ) );
+	const canopyNearBytes = new Map( await Promise.all( canopyNearFiles.map( async file => [ file, await readFile( path.join( output, 'vegetation-canopy-near-models', file ) ) ] ) ) );
 	const canopyAtlasFiles = await readdir( path.join( output, 'vegetation-canopy-atlases' ) );
 	const canopyAtlasBytes = new Map( await Promise.all( canopyAtlasFiles.map( async file => [ file, await readFile( path.join( output, 'vegetation-canopy-atlases', file ) ) ] ) ) );
 	const groundCoverPatchSetBytes = await readFile( path.join( output, 'ground-cover-patch-set.json' ) );
@@ -171,6 +177,35 @@ try {
 	assert.equal( vegetationSet.models[ 0 ].drawMaxDistance, 2800, 'palm artifact preserves the authored far fade end' );
 	const generatedVegetationComponent = firstDocument.components.find( component => component.type === 'elsemesh.static-vegetation/1' );
 	const vegetationPlacement = decodeVegetationPlacements( await readFile( path.join( output, 'assets', componentData( generatedVegetationComponent ).placementAssetId.slice( 'sha256:'.length ) ) ) );
+	const canopyNearSidecar = JSON.parse( canopyNearSetBytes );
+	const canopyNearSet = validateStaticModelInstanceSet( canopyNearSidecar.instanceSet );
+	assert.equal( canopyNearSidecar.format, 'tidewater.canopy-near-source/1', 'near canopy geometry is an explicitly inactive source artifact' );
+	assert.equal( canopyNearSidecar.instanceSetAssetId, `sha256:${createHash( 'sha256' ).update( canopyNearBytes.get( canopyNearSidecar.instanceSetFile ) ).digest( 'hex' )}`, 'canopy near instance-set bytes match the content address' );
+	assert.deepEqual( canopyNearSet.models.map( model => model.id ), [ 'tree-0', 'tree-1', 'tree-2', 'shrub-0', 'shrub-1' ], 'the near model set exports every authored tree and shrub variant' );
+	assert.equal( canopyNearSidecar.models.length, 5, 'near canopy sidecar describes all five variant GLBs' );
+	assert.equal( canopyNearSet.instances.length, vegetationPlacement.trees.length + vegetationPlacement.shrubs.length, 'near canopy sidecar preserves each tree and shrub placement' );
+	assert.equal( canopyNearFiles.length, 6, 'near canopy sidecar writes five GLBs and one instance-set asset' );
+	assert.deepEqual( canopyNearSetBytes, canopyNearSetBytesFirst, 'the near canopy sidecar descriptor is deterministic' );
+	assert.deepEqual( canopyNearFiles.sort(), canopyNearFilesFirst.sort(), 'near canopy export has a stable content-addressed file set' );
+	for ( const file of canopyNearFiles ) assert.deepEqual( canopyNearBytes.get( file ), canopyNearBytesFirst.get( file ), 'near canopy GLB and descriptor bytes are deterministic' );
+	for ( const model of canopyNearSet.models ) {
+		const assetId = model.lods[ 0 ].assetId;
+		const bytes = canopyNearBytes.get( `${assetId.slice( 'sha256:'.length )}.glb` );
+		assert.ok( bytes, `${model.id} resolves to a near GLB in the inactive sidecar` );
+		assert.equal( `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`, assetId, `${model.id} GLB bytes match its content address` );
+		const primitive = parseGLB( bytes ).meshes[ 0 ][ 0 ];
+		assert.ok( primitive.attributes.POSITION && primitive.attributes.NORMAL && primitive.attributes.TEXCOORD_0, `${model.id} preserves portable geometry inputs` );
+		for ( const name of [ '_ELSEMESH_VDATA', '_ELSEMESH_VDATA1', '_ELSEMESH_VDATA2' ] ) assert.equal( primitive.attributes[ name ]?.itemSize, 4, `${model.id} preserves ${name} as a VEC4 source stream` );
+	}
+	for ( let index = 0; index < canopyNearSet.instances.length; index ++ ) {
+		const instance = canopyNearSet.instances[ index ];
+		const isTree = index < vegetationPlacement.trees.length;
+		const record = vegetationPlacement[ isTree ? 'trees' : 'shrubs' ][ isTree ? index : index - vegetationPlacement.trees.length ];
+		assert.deepEqual( instance.position, [ record.x, record.y, record.z ], 'near canopy placements match the exported world placement records' );
+		assert.deepEqual( instance.materialData.slice( 0, 4 ), [ record.la || 0, record.l || 0, record.H || 1, record.seed ], 'near canopy retains the original instance direction, scale, height, and seed inputs' );
+		assert.equal( instance.materialData[ 7 ], record.seed, 'near canopy keeps the authored per-instance seed' );
+		assert.match( instance.model, isTree ? /^tree-[0-2]$/ : /^shrub-[0-1]$/, 'near geometry variant stays within the matching atlas group' );
+	}
 	assert.equal( vegetationSet.instances.length, vegetationPlacement.palms.length, 'palm artifact exports every post-scatter palm placement' );
 	for ( let i = 0; i < vegetationSet.instances.length; i ++ ) {
 		const instance = vegetationSet.instances[ i ], record = vegetationPlacement.palms[ i ];

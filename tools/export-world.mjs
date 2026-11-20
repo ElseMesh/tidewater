@@ -28,6 +28,7 @@ import { groundCoverPatchGLB } from '../vegetation/GroundCoverPatchGLB.js';
 import { createTidewaterGroundCoverMaterialGraph } from '../vegetation/GroundCoverMaterialGraph.js';
 import { encodeVegetationPlacements } from '../VegetationPlacements.js';
 import { encodeGrassDensityAsset } from '../../../src/network/GrassDensityAsset.js';
+import { validateStaticModelInstanceSet } from '../../../src/network/StaticModelInstanceSet.js';
 import { Reef } from '../Reef.js';
 import { encodeReefPlacements } from '../ReefPlacements.js';
 import { encodeFishPropPlacements, MAX_FISH_PROP_PLACEMENT_BYTES } from '../FishPropPlacements.js';
@@ -47,6 +48,7 @@ import { writeWorldAssetIndex } from '../../../tools/world-asset-index.mjs';
 import { generateTidewaterReefURLs } from './generate-reef-asset-urls.mjs';
 import { fishPropGeometry } from '../../../src/world/fish/FishProps.js';
 import { buildPalmFar, buildPalmNear, buildTreeNear, buildShrubNear, lobeVariantGeometry, TREE_VARIANTS, SHRUB_VARIANTS, LOBE_TABLE } from '../vegetation/geometry/PlantGeometry.js';
+import { selectFractionalBinVariant } from '../../../src/engine/render/OctahedralImpostorMath.js';
 import { CANOPY_FAR_FADE, PALM_LOD } from '../vegetation/LODRules.js';
 import { TIDEWATER_CANOPY_APPEARANCE, TIDEWATER_CANOPY_PROFILE } from '../vegetation/CanopyProfile.js';
 import { TIDEWATER_PALM_MATERIAL_GRAPH } from '../vegetation/VegetationMaterialGraph.js';
@@ -225,6 +227,8 @@ await mkdir( vegetationStaticModelsPath, { recursive: true } );
 for ( const entry of await readdir( vegetationStaticModelsPath, { withFileTypes: true } ) ) if ( entry.isFile() && /^[0-9a-f]{64}\.glb$/.test( entry.name ) && ! vegetationStaticModelSet.assets.has( entry.name.slice( 0, 64 ) ) ) await rm( path.join( vegetationStaticModelsPath, entry.name ) );
 for ( const [ hash, bytes ] of vegetationStaticModelSet.assets ) await writeFile( path.join( vegetationStaticModelsPath, `${hash}.glb` ), bytes );
 await writeVegetationCanopyAtlasSidecar( output, vegetationCanopyAtlasBake );
+const vegetationCanopyNearSet = exportVegetationCanopyNearSet( generated.vegetation );
+await writeVegetationCanopyNearSidecar( output, vegetationCanopyNearSet );
 const groundCoverPatchSet = { format: 'tidewater.ground-cover-patch-set/1', cellSize: GROUND_COVER_CELL, seed: 7, lods: [] }, groundCoverPatchAssets = new Map();
 const groundCoverMaterialGraph = createTidewaterGroundCoverMaterialGraph( { densityOrigin: terrain.origin, densitySize: terrain.size } );
 for ( const [ level, name ] of [ 'near', 'mid', 'far' ].entries() ) {
@@ -797,6 +801,95 @@ function exportPalmStaticModelSet( records ) {
 	};
 }
 
+// Cook tree/shrub near geometry and placements into the renderer-neutral model
+// format. This remains an inactive migration artifact until the signed canopy
+// component has both engine adapters and matched appearance parity.
+function exportVegetationCanopyNearSet( vegetation ) {
+	const models = [], instances = [], assets = new Map();
+	const groupSpecs = [
+		{ id: 'tree', records: vegetation.trees, variants: TREE_VARIANTS, build: buildTreeNear, base: 0, nearDistance: TIDEWATER_CANOPY_PROFILE.lod.treeNearDistance },
+		{ id: 'shrub', records: vegetation.shrubs, variants: SHRUB_VARIANTS, build: buildShrubNear, base: TREE_VARIANTS, nearDistance: TIDEWATER_CANOPY_PROFILE.lod.shrubNearDistance },
+	];
+	for ( const group of groupSpecs ) {
+		const baseGeometry = group.build().geometry;
+		try {
+			for ( let variant = 0; variant < group.variants; variant ++ ) {
+				const geometry = lobeVariantGeometry( baseGeometry, LOBE_TABLE, ( group.base + variant ) * 8 );
+				try {
+					const id = `${group.id}-${variant}`;
+					const glb = exportVegetationGLB( `Tidewater ${group.id} canopy near ${variant}`, geometry, {
+						materialName: `Tidewater ${group.id} canopy near`,
+						baseColorFactor: [ 0.38, 0.46, 0.28, 1 ],
+						materialGraph: null,
+					} );
+					const assetId = `sha256:${createHash( 'sha256' ).update( glb ).digest( 'hex' )}`;
+					assets.set( assetId.slice( 'sha256:'.length ), glb );
+					geometry.computeBoundingSphere();
+					models.push( {
+						id,
+						bounds: { center: geometry.boundingSphere.center.toArray(), radius: geometry.boundingSphere.radius },
+						geometryMirrorX: false,
+						lods: [ { assetId } ],
+						lodThresholds: [],
+						lodMetric: 'world-distance',
+						lodFadeFraction: 0.12,
+						shadowLodBias: 0,
+						shadowMaxDistance: group.nearDistance,
+						drawMaxDistance: group.nearDistance * 1.06,
+						drawFadeStartDistance: group.nearDistance * 0.94,
+					} );
+				} finally { geometry.dispose(); }
+			}
+		} finally { baseGeometry.dispose(); }
+		for ( let index = 0; index < group.records.length; index ++ ) {
+			const record = group.records[ index ];
+			const seed = Math.fround( record.seed );
+			const variant = selectFractionalBinVariant( seed, group.variants, TIDEWATER_CANOPY_PROFILE.variantSelectionMultiplier );
+			const scale = Math.fround( record.s );
+			const verticalScale = Math.fround( scale * Math.abs( record.sy ?? 1 ) );
+			const yaw = Math.fround( record.yaw );
+			instances.push( {
+				model: `${group.id}-${variant}`,
+				position: [ Math.fround( record.x ), Math.fround( record.y ), Math.fround( record.z ) ],
+				rotation: [ 0, Math.sin( yaw * 0.5 ), 0, Math.cos( yaw * 0.5 ) ],
+				scale: [ scale, verticalScale, scale ],
+				placementId: `${group.id}:${index}`,
+				materialData: [ Math.fround( record.la || 0 ), Math.fround( record.l || 0 ), Math.fround( record.H || 1 ), seed, variant, 0, 0, seed ],
+			} );
+		}
+	}
+	const document = { format: 'elsemesh.static-model-instance-set/1', models, instances };
+	return { document: validateStaticModelInstanceSet( document ), assets };
+}
+
+async function writeVegetationCanopyNearSidecar( output, set ) {
+	const directory = path.join( output, 'vegetation-canopy-near-models' );
+	await mkdir( directory, { recursive: true } );
+	const keep = new Set( set.assets.keys() );
+	for ( const entry of await readdir( directory, { withFileTypes: true } ) ) if ( entry.isFile() && /^[0-9a-f]{64}\.glb$/.test( entry.name ) && ! keep.has( entry.name.slice( 0, 64 ) ) ) await rm( path.join( directory, entry.name ) );
+	const modelAssets = [];
+	for ( const model of set.document.models ) {
+		const assetId = model.lods[ 0 ].assetId;
+		const hash = assetId.slice( 'sha256:'.length );
+		const bytes = set.assets.get( hash );
+		await writeFile( path.join( directory, `${hash}.glb` ), bytes );
+		modelAssets.push( { modelId: model.id, assetId, file: `${hash}.glb`, bytes: bytes.byteLength } );
+	}
+	const instanceSetBytes = Buffer.from( `${JSON.stringify( set.document, null, 2 )}\n` );
+	const instanceSetHash = createHash( 'sha256' ).update( instanceSetBytes ).digest( 'hex' );
+	for ( const entry of await readdir( directory, { withFileTypes: true } ) ) if ( entry.isFile() && /^[0-9a-f]{64}\.json$/.test( entry.name ) && entry.name !== `${instanceSetHash}.json` ) await rm( path.join( directory, entry.name ) );
+	await writeFile( path.join( directory, `${instanceSetHash}.json` ), instanceSetBytes );
+	const sidecar = {
+		format: 'tidewater.canopy-near-source/1',
+		instanceSetAssetId: `sha256:${instanceSetHash}`,
+		instanceSetFile: `${instanceSetHash}.json`,
+		instanceSetBytes: instanceSetBytes.byteLength,
+		instanceSet: set.document,
+		models: modelAssets,
+	};
+	await writeFile( path.join( output, 'vegetation-canopy-near-model-set.json' ), `${JSON.stringify( sidecar, null, 2 )}\n` );
+}
+
 // Cook the WebGPU source atlas into portable linear RGBA8 data PNGs. This is
 // an inactive migration artifact: runtime presentation still uses the
 // Tidewater vegetation presenters until both ElseMesh adapters consume the
@@ -889,7 +982,7 @@ async function writeVegetationCanopyAtlasSidecar( output, bake ) {
 	await writeFile( path.join( output, 'vegetation-canopy-atlas-set.json' ), `${JSON.stringify( sidecar, null, 2 )}\n` );
 }
 
-function exportVegetationGLB( name, geometry ) {
+function exportVegetationGLB( name, geometry, { materialName = 'Tidewater coconut palm', baseColorFactor = [ 1, 1, 1, 1 ], materialGraph = TIDEWATER_PALM_MATERIAL_GRAPH } = {} ) {
 	const chunks = [], bufferViews = [], accessors = [];
 	let byteLength = 0;
 	const add = ( typed, target, type, size, componentType = 5126, includeBounds = false ) => {
@@ -928,10 +1021,10 @@ function exportVegetationGLB( name, geometry ) {
 		scene: 0, scenes: [ { nodes: [ 0 ] } ], nodes: [ { name } ],
 		meshes: [ { name, primitives: [ { attributes, indices: indexAccessor, material: 0, mode: 4 } ] } ],
 		materials: [ {
-			name: 'Tidewater coconut palm',
-			pbrMetallicRoughness: { baseColorFactor: [ 1, 1, 1, 1 ], metallicFactor: 0, roughnessFactor: 0.8 },
+			name: materialName,
+			pbrMetallicRoughness: { baseColorFactor, metallicFactor: 0, roughnessFactor: 0.8 },
 			doubleSided: true,
-			extras: { elsemeshMaterial: { profile: 'elsemesh.material-graph/1', role: 'graph', graph: TIDEWATER_PALM_MATERIAL_GRAPH } },
+			...( materialGraph ? { extras: { elsemeshMaterial: { profile: 'elsemesh.material-graph/1', role: 'graph', graph: materialGraph } } } : {} ),
 		} ],
 		accessors, bufferViews, buffers: [ { byteLength: binary.length } ],
 	};
