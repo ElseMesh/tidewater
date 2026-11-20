@@ -39,3 +39,24 @@ export function tidewaterLocalLightSet( village ) {
 	}
 	return lights;
 }
+
+// Renderer-neutral navigation and cabin lights authored in the boat's local frame.
+export function tidewaterBoatLocalLights( boat ) {
+	const lines = boat.lines;
+	const sternY = lines.sheerY( 0 ) + 0.1;
+	const objectId = 'elsemesh-object:moored-lobster-boat';
+	const defs = [
+		{ position: [ 0, 2.24, 0.42 ], color: [ 1.0, 0.84, 0.62 ], intensity: 0.9, range: 5.5 },
+		{ position: [ - 0.45, 1.5, 1.12 ], color: [ 0.45, 0.75, 1.0 ], intensity: 0.12, range: 2.2 },
+		{ position: [ 0.47, 3.45, - 0.47 ], direction: [ 1, 0, 0 ], color: [ 1.0, 0.06, 0.03 ], intensity: 1.4, range: 8 },
+		{ position: [ - 0.47, 3.45, - 0.47 ], direction: [ - 1, 0, 0 ], color: [ 0.05, 1.0, 0.3 ], intensity: 1.4, range: 8 },
+		{ position: [ 0, 3.97, - 0.5 ], color: [ 1.0, 0.95, 0.85 ], intensity: 1.2, range: 8 },
+		{ position: [ 0, sternY, lines.zAft - 0.05 ], color: [ 1.0, 0.95, 0.85 ], intensity: 0.8, range: 7 },
+	];
+	return defs.map( light => ( {
+		...light,
+		objectId,
+		type: light.direction ? 'spot' : 'point',
+		...( light.direction ? { innerCone: Math.acos( 0.25 ), outerCone: Math.acos( - 0.2 ) } : {} ),
+	} ) );
+}

@@ -52,7 +52,7 @@ import { TIDEWATER_PALM_MATERIAL_GRAPH } from '../vegetation/VegetationMaterialG
 import { LeafAtlas } from '../renderers/webgpu-vegetation/LeafTextures.js';
 import { createCanopyBakeMaterials } from '../renderers/webgpu-vegetation/VegMaterials.js';
 import { ImpostorAtlas } from '../renderers/webgpu-vegetation/Impostors.js';
-import { tidewaterLocalLightSet } from '../WorldLights.js';
+import { tidewaterBoatLocalLights, tidewaterLocalLightSet } from '../WorldLights.js';
 
 const REPO = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '../../..' );
 const WORLD_ROOT = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..' );
@@ -546,6 +546,7 @@ function buildIslandProceduralContent( terrainData ) {
 		tag: cylinder.tag || undefined,
 	} ) );
 	foldVillageMaterialBatches( village.B );
+	const boat = new BoatModel();
 	const batches = Object.entries( village.B.batches )
 		.filter( ( [ , batch ] ) => batch.vcount > 0 )
 		.map( ( [ name, batch ] ) => ( { name, batch } ) );
@@ -566,7 +567,7 @@ function buildIslandProceduralContent( terrainData ) {
 	return {
 		spawn: { position: [ TIDEWATER_LAYOUT.start.position.x, Math.max( terrainData.heightAt( TIDEWATER_LAYOUT.start.position.x, TIDEWATER_LAYOUT.start.position.z ), colliders.groundHeightAt( TIDEWATER_LAYOUT.start.position.x, TIDEWATER_LAYOUT.start.position.z, 50 ) ) + 1.62, TIDEWATER_LAYOUT.start.position.z ], yaw: TIDEWATER_LAYOUT.start.yaw, pitch: - 0.05 },
 		villageBatches: batches,
-		localLights: tidewaterLocalLightSet( village ),
+		localLights: [ ...tidewaterLocalLightSet( village ), ...tidewaterBoatLocalLights( boat ) ],
 		villageTriangles: batches.reduce( ( total, { batch } ) => total + batch.triangles, 0 ),
 		villageColliders,
 		villageCylinders,
@@ -576,7 +577,7 @@ function buildIslandProceduralContent( terrainData ) {
 		vegetationSite: vegetation.site,
 		groundDetailDensity: placer.mask,
 		naturalDebris: B.batches.nature,
-		boatBatches: buildBoatBatches(),
+		boatBatches: buildBoatBatches( boat ),
 		debris: placer.scanned,
 		vegetation: vegetation.records,
 	};
@@ -960,9 +961,8 @@ function foldVillageMaterialBatches( builder ) {
 	if ( nets.vcount > 0 ) builder.batches.net = nets;
 }
 
-function buildBoatBatches() {
+function buildBoatBatches( boat ) {
 
-	const boat = new BoatModel();
 	boat.group.updateWorldMatrix( true, true );
 	const batches = [];
 	boat.group.traverse( ( object ) => {
