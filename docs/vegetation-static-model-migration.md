@@ -46,10 +46,16 @@ instance yaw and horizontal/vertical scale in the shared material-data record
 so the graph can express wind in local mesh space. Its traveling gust samples
 the shared terrain detail field at the source's two scales, combines the same
 channels and weights, and applies the same smoothstep thresholds. The
-deformation still needs matched rendered review. Edge-on card thinning and
-view-dependent far-impostor presentation remain unimplemented.
-The candidate remains outside the signed world source until both engine
-adapters and matched appearance review pass.
+deformation still needs matched rendered review. Edge-on card thinning also
+remains unimplemented.
+
+ElseMesh now registers the generic near-model and octahedral far-canopy
+presenters for WebGPU and WebGL. A deterministic Tidewater export loaded
+through both adapters; they planned 7,945 source far instances, and WebGPU
+rendered the atlas batch without validation errors. This confirms package
+loading and adapter execution, not near/far appearance parity. Keep the
+candidate outside the signed world source until matched WebGPU/WebGL review
+against the pre-split WebGPU scene passes.
 
 The exporter now joins the near set, both octahedral impostor atlases, the leaf
 mask, appearance inputs, and LOD rules into
@@ -62,10 +68,10 @@ marks the authored content role as `vegetation` so the engine's vegetation
 visibility control includes it. The generic WebGPU and WebGL static-model
 adapters validate and bind this shared texture contract. Both candidates remain
 inactive and outside `world-source.json` until the complete near and far
-presenters pass matched appearance review. The far representation still needs
-its view-dependent atlas sampler, frame blending, reprojection, wind, and
-distance thinning. ElseMesh must implement both adapters and pass matched
-review before replacing either current presenter.
+presenters pass matched appearance review. The engine has both far presenters;
+matched review still needs to cover atlas sampling, frame blending,
+reprojection, wind, distance thinning, shadows, and the near/far transition.
+Do not replace either current presenter until that comparison passes.
 The remaining finite vegetation categories also need their source meshes,
 distance fades, and material inputs exported and validated.
 
