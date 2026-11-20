@@ -16653,7 +16653,12 @@
       "id": "elsemesh-component:island-ocean",
       "type": "elsemesh.island-ocean/1",
       "priority": "portal-preview",
-      "assets": [],
+      "assets": [
+        {
+          "assetId": "sha256:7ca84a85f3f2054377480c0d75ded5e3b2493b2d4a68a3c7a5a80aecb77339ac",
+          "kind": "wave-breaker-stations/1"
+        }
+      ],
       "data": {}
     },
     {

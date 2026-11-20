@@ -1,6 +1,6 @@
 # Example Island asset index
 
-Generated from [world-source.json](world-source.json) (83 verified content-addressed assets).
+Generated from [world-source.json](world-source.json) (84 verified content-addressed assets).
 Each filename is the SHA-256 of the exact packaged bytes. Keep these names immutable; use the descriptions and use sites below to identify the assets.
 
 | Description / use | Format | Size | SHA-256 asset |
@@ -26,6 +26,7 @@ Each filename is the SHA-256 of the exact packaged bytes. Keep these names immut
 | Component elsemesh-component:island-humpback — whale-geometry/1<br>Editable source: source/models/whale/humpback.bin | Binary (whale-geometry/1) | 3.31 MiB | [`b3a31801a393489331bc3dd4fd5be64cbad32ac4e159f5180e0eb028d489a92d`](assets/b3a31801a393489331bc3dd4fd5be64cbad32ac4e159f5180e0eb028d489a92d) |
 | Component elsemesh-component:island-humpback — whale-height/1<br>Editable source: source/models/whale/humpback_height.png | PNG image | 12.30 MiB | [`5e18fbff0aa0034519d149c245d515f75011e7dd4f626dbd1a5e97eea79b66b5`](assets/5e18fbff0aa0034519d149c245d515f75011e7dd4f626dbd1a5e97eea79b66b5) |
 | Component elsemesh-component:island-humpback — whale-model/1<br>Editable source: source/models/whale/humpback.json | JSON | 4.0 KiB | [`c47390c365da1c8c6fa73bea4996bf51073a973770c1942e8993f545e283a354`](assets/c47390c365da1c8c6fa73bea4996bf51073a973770c1942e8993f545e283a354) |
+| Component elsemesh-component:island-ocean — wave-breaker-stations/1 | Binary (wave-breaker-stations/1) | 9.0 KiB | [`7ca84a85f3f2054377480c0d75ded5e3b2493b2d4a68a3c7a5a80aecb77339ac`](assets/7ca84a85f3f2054377480c0d75ded5e3b2493b2d4a68a3c7a5a80aecb77339ac) |
 | Component elsemesh-component:island-terrain — terrain-surface/1 | Binary (terrain-surface/1) | 29.71 MiB | [`b26986a190a36734acfe3004d0ddd3663e3c467d2764b30b60a8afee655d76e8`](assets/b26986a190a36734acfe3004d0ddd3663e3c467d2764b30b60a8afee655d76e8) |
 | Component elsemesh-component:island-vegetation — vegetation-placement/1 | Binary (vegetation-placement/1) | 2.56 MiB | [`e9ead2780768e0dabea07317da0c020497137472e6adc1cb3f166611fb0fbae6`](assets/e9ead2780768e0dabea07317da0c020497137472e6adc1cb3f166611fb0fbae6) |
 | Component elsemesh-component:reef-tile--1--1 — reef-placement/1 | Binary (reef-placement/1) | 40.4 KiB | [`92cdd6f611d76139891a1440cd2deeb4ae88159a899989593127eb0630b28ae4`](assets/92cdd6f611d76139891a1440cd2deeb4ae88159a899989593127eb0630b28ae4) |

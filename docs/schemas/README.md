@@ -10,7 +10,6 @@ proposal schemas remain in the engine repository under `docs/schemas/`.
 - [Fishing bite schedule](fishing-bite-schedule.md)
 - [Grass density](grass-density.md)
 - [Humpback whale](humpback-whale.md)
-- [Island ocean](island-ocean.md)
 - [Reef placements](reef-placement.md)
 - [Terrain package](terrain-package.md)
 - [Vegetation placements](vegetation-placement.md)
