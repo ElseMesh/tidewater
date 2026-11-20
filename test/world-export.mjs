@@ -208,11 +208,13 @@ try {
 	assert.deepEqual( runtimeDescriptor.appearance, TIDEWATER_CANOPY_APPEARANCE, 'runtime descriptor carries the same authored palette, lighting and wind inputs as the source atlas sidecar' );
 	const canopyGraphWebGPU = compileWorldMaterialGraph( runtimeDescriptor.materialGraph, 'webgpu' );
 	const canopyGraphWebGL = compileWorldMaterialGraph( runtimeDescriptor.materialGraph, 'webgl' );
-	assert.deepEqual( canopyGraphWebGPU.textureSlots, [ 'leafMask' ], 'the WebGPU near-model graph uses the signed raw leaf mask' );
+	assert.deepEqual( canopyGraphWebGPU.textureSlots, [ 'detailField', 'leafMask' ], 'the near-model graph uses the shared world detail field and signed raw leaf mask' );
 	assert.deepEqual( canopyGraphWebGL.textureSlots, canopyGraphWebGPU.textureSlots, 'both near-model compilers bind the same authored leaf mask' );
 	assert.ok( canopyGraphWebGPU.hasVertexOutput && canopyGraphWebGL.hasVertexOutput, 'both backend compilers apply the authored near-canopy wind deformation' );
 	assert.match( canopyGraphWebGPU.vertex, /frame\.windVelocityIntegral/ );
 	assert.match( canopyGraphWebGL.glsl.vertex, /emgWindVelocityIntegral/ );
+	assert.match( canopyGraphWebGPU.vertex, /textureSampleLevel\( emgTexture_detailField, smpLinearRepeat,/ );
+	assert.match( canopyGraphWebGL.glsl.vertex, /textureLod\( emgTexture_detailField,/ );
 	assert.match( canopyGraphWebGPU.surface, /textureSample\( emgTexture_leafMask, smpLinearClamp,/ );
 	assert.match( canopyGraphWebGL.glsl.alphaFragment, /texture2D\( emgTexture_leafMask,/ );
 	for ( const asset of canopyRuntimePackage.assetFiles ) {

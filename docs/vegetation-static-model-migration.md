@@ -43,10 +43,11 @@ instance/card color variation, leaf detail, bark weathering, roughness, ambient
 occlusion, normal bias, leaf translucency, and near-mesh wind deformation to
 both compilers; the GLB keeps a neutral white base factor. The exporter stores
 instance yaw and horizontal/vertical scale in the shared material-data record
-so the graph can express wind in local mesh space. Its traveling gust uses
-portable value-noise operators and shared world-wind inputs; matched rendered
-review against the source detail-texture gust is still required. Edge-on card
-thinning and view-dependent far-impostor presentation remain unimplemented.
+so the graph can express wind in local mesh space. Its traveling gust samples
+the shared terrain detail field at the source's two scales, combines the same
+channels and weights, and applies the same smoothstep thresholds. The
+deformation still needs matched rendered review. Edge-on card thinning and
+view-dependent far-impostor presentation remain unimplemented.
 The candidate remains outside the signed world source until both engine
 adapters and matched appearance review pass.
 

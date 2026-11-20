@@ -29,8 +29,8 @@ for ( const [ name, compiled ] of [ [ 'WebGPU', canopyWebGPU ], [ 'WebGL', canop
 	}
 	assert.ok( compiled.hasVertexOutput, `${name} applies the authored wind deformation in the material graph` );
 	assert.match( compiled.vertex, name === 'WebGPU' ? /v\.position = emg_n\d+;/ : /transformed = emg_n\d+;/, `${name} translates the same canopy deformation graph` );
-	assert.match( name === 'WebGPU' ? compiled.wgslHelpers : compiled.glsl.vertexHelpers, /emgValueNoise2/, `${name} compiles the shared traveling gust field` );
-	assert.deepEqual( compiled.textureSlots, [ 'leafMask' ], `${name} samples the signed linear leaf mask` );
+	assert.deepEqual( compiled.textureSlots, [ 'detailField', 'leafMask' ], `${name} samples the shared terrain detail and signed linear leaf mask` );
+	assert.match( compiled.vertex, name === 'WebGPU' ? /textureSampleLevel\( emgTexture_detailField, smpLinearRepeat,/ : /textureLod\( emgTexture_detailField,/ );
 	assert.match( compiled.surface, /translucency/ );
 }
 assert.ok( TIDEWATER_CANOPY_MATERIAL_GRAPH.nodes.some( node => node.op === 'hash12' ), 'canopy species and instance tint use authored seed data' );

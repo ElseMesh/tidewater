@@ -66,9 +66,10 @@ function buildCanopyMaterialGraph() {
 	const worldZ = unary( 'z', worldVertexPosition );
 	const worldXZ = add( 'vec2', { args: [ worldX, worldZ ] } );
 	const gustPosition = binary( 'subtract', worldXZ, windVelocityIntegral );
-	const gustWide = unary( 'valueNoise2', binary( 'divide', gustPosition, constant( 140 ) ) );
+	const gustWideUV = binary( 'divide', gustPosition, constant( 140 ) );
+	const gustWide = unary( 'w', add( 'textureSampleLevel', { slot: 'detailField', uv: gustWideUV, lod: constant( 0 ) } ) );
 	const gustDetailPosition = binary( 'add', binary( 'divide', gustPosition, constant( 61 ) ), constant( [ 0.37, 0.37 ] ) );
-	const gustDetail = unary( 'valueNoise2', gustDetailPosition );
+	const gustDetail = unary( 'w', add( 'textureSampleLevel', { slot: 'detailField', uv: gustDetailPosition, lod: constant( 0 ) } ) );
 	const gustNoise = binary( 'add', binary( 'multiply', gustWide, constant( 0.62 ) ), binary( 'multiply', gustDetail, constant( 0.38 ) ) );
 	const gust = ternary( 'smoothstep', constant( 0.46 ), constant( 0.6 ), gustNoise );
 	const windStrength = binary( 'max', binary( 'multiply', windSpeed, constant( 0.1 ) ), constant( 0.03 ) );
