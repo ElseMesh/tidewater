@@ -1030,7 +1030,9 @@ async function writeVegetationCanopyRuntimePackage( output, atlasSet, nearSet ) 
 			lod: {
 				nearDistance: isTree ? TIDEWATER_CANOPY_PROFILE.lod.treeNearDistance : TIDEWATER_CANOPY_PROFILE.lod.shrubNearDistance,
 				maxDistance: isTree ? TIDEWATER_CANOPY_PROFILE.lod.treeMaxDistance : TIDEWATER_CANOPY_PROFILE.lod.shrubMaxDistance,
-				farFade: isTree ? { startDistance: TIDEWATER_CANOPY_PROFILE.lod.treeFadeStartDistance, endDistance: TIDEWATER_CANOPY_PROFILE.lod.treeMaxDistance } : null,
+				// The source impostor shader uses a hard max-distance cutoff. The
+				// 2,600 m fade in the profile belongs to near vegetation draws.
+				farFade: null,
 			},
 		};
 	} );

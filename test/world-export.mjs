@@ -211,6 +211,7 @@ try {
 	const runtimeDescriptorAsset = canopyRuntimePackage.assetFiles.find( asset => asset.assetId === canopyRuntimePackage.component.data.descriptorAssetId );
 	assert.ok( runtimeDescriptorAsset, 'candidate component descriptor is listed as a content-addressed package asset' );
 	const runtimeDescriptor = JSON.parse( canopyRuntimeAssets.get( runtimeDescriptorAsset.file ) );
+	assert.equal( runtimeDescriptor.variantGroups.find( group => group.id === 'trees' ).lod.farFade, null, 'far impostors remain visible until the source shader hard cutoff instead of inheriting the near-vegetation fade' );
 	assert.equal( runtimeDescriptor.leafMask.assetId, canopyAtlasSet.leafMask.assetId, 'runtime descriptor points at Tidewater\'s source leaf-mask PNG' );
 	assert.deepEqual( runtimeDescriptor.materialGraph, TIDEWATER_CANOPY_MATERIAL_GRAPH, 'runtime descriptor carries Tidewater\'s authored cross-backend leaf-mask graph' );
 	assert.deepEqual( runtimeDescriptor.appearance, TIDEWATER_CANOPY_APPEARANCE, 'runtime descriptor carries the same authored palette, lighting and wind inputs as the source atlas sidecar' );
