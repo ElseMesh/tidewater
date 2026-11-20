@@ -14,13 +14,14 @@ import { vegModule, f } from './VegNodes.js';
 //
 // WGSL: materials sampling the atlas list `leafAtlas.module` and call
 //   fn vegLeafSample( st: vec2f, tile: f32 ) -> vec4f   (coverage, bright, cell, 1)
-export const LEAF_TILES = [
+export const LEAF_TILES = Object.freeze( [
 	{ grid: 4, leaves: 6, width: 0.34 },
 	{ grid: 4, leaves: 8, width: 0.2 },
 	{ grid: 3, leaves: 6, width: 0.45 },
 	{ grid: 3, leaves: 8, width: 0.22 },
-];
-const SIZE = 1024;
+] );
+export const LEAF_ATLAS_SIZE = 1024;
+const SIZE = LEAF_ATLAS_SIZE;
 
 // leaf rosettes tiled G x G over a card: each cell holds one rosette with its own rotation /
 // size; leaves have a short petiole gap at the centre. Returns ( d: signed distance to the leaf

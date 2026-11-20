@@ -52,7 +52,7 @@ import { selectFractionalBinVariant } from '../../../src/engine/render/Octahedra
 import { CANOPY_FAR_FADE, PALM_LOD } from '../vegetation/LODRules.js';
 import { TIDEWATER_CANOPY_APPEARANCE, TIDEWATER_CANOPY_PROFILE } from '../vegetation/CanopyProfile.js';
 import { TIDEWATER_PALM_MATERIAL_GRAPH } from '../vegetation/VegetationMaterialGraph.js';
-import { LeafAtlas } from '../renderers/webgpu-vegetation/LeafTextures.js';
+import { LeafAtlas, LEAF_ATLAS_SIZE, LEAF_TILES } from '../renderers/webgpu-vegetation/LeafTextures.js';
 import { createCanopyBakeMaterials } from '../renderers/webgpu-vegetation/VegMaterials.js';
 import { ImpostorAtlas } from '../renderers/webgpu-vegetation/Impostors.js';
 import { tidewaterBoatLocalLights, tidewaterLocalLightSet } from '../WorldLights.js';
@@ -919,7 +919,7 @@ async function bakeVegetationCanopyAtlases() {
 		GPU.submit();
 		atlas.bake();
 		GPU.submit();
-		const [ material, normalExposure ] = await Promise.all( [ readTexture( atlas.rtA.texture ), readTexture( atlas.rtB.texture ) ] );
+		const [ material, normalExposure, leafMask ] = await Promise.all( [ readTexture( atlas.rtA.texture ), readTexture( atlas.rtB.texture ), readTexture( leafAtlas.texture ) ] );
 		return {
 			frameGrid: { columns: atlas.variantCount * TIDEWATER_CANOPY_PROFILE.framesPerSide, rows: TIDEWATER_CANOPY_PROFILE.framesPerSide, frameWidth: TIDEWATER_CANOPY_PROFILE.frameWidth, frameHeight: TIDEWATER_CANOPY_PROFILE.frameWidth },
 			variantGroups: [
@@ -930,6 +930,7 @@ async function bakeVegetationCanopyAtlases() {
 				{ role: 'material', width: material.width, height: material.height, data: new Uint8Array( material.data ) },
 				{ role: 'normal-exposure', width: normalExposure.width, height: normalExposure.height, data: new Uint8Array( normalExposure.data ) },
 			],
+			leafMask: { width: leafMask.width, height: leafMask.height, data: new Uint8Array( leafMask.data ) },
 		};
 	} finally {
 		for ( const variant of [ ...treeVariants, ...shrubVariants ] ) variant.dispose();
@@ -966,9 +967,13 @@ async function writeVegetationCanopyAtlasSidecar( output, bake ) {
 		const hash = createHash( 'sha256' ).update( bytes ).digest( 'hex' );
 		return { role: atlas.role, assetId: `sha256:${hash}`, file: `${hash}.png`, width: atlas.width, height: atlas.height, bytes };
 	} );
-	const keep = new Set( assets.map( asset => asset.file ) );
+	const leafMaskBytes = encodePNG( bake.leafMask.width, bake.leafMask.height, bake.leafMask.data );
+	const leafMaskHash = createHash( 'sha256' ).update( leafMaskBytes ).digest( 'hex' );
+	const leafMask = { assetId: `sha256:${leafMaskHash}`, file: `${leafMaskHash}.png`, width: bake.leafMask.width, height: bake.leafMask.height, bytes: leafMaskBytes };
+	const keep = new Set( [ ...assets.map( asset => asset.file ), leafMask.file ] );
 	for ( const entry of await readdir( directory, { withFileTypes: true } ) ) if ( entry.isFile() && /^[0-9a-f]{64}\.png$/.test( entry.name ) && ! keep.has( entry.name ) ) await rm( path.join( directory, entry.name ) );
 	for ( const asset of assets ) await writeFile( path.join( directory, asset.file ), asset.bytes );
+	await writeFile( path.join( directory, leafMask.file ), leafMask.bytes );
 	const sidecar = {
 		format: 'tidewater.canopy-atlas-source/1',
 		atlasDataFormat: 'rgba8unorm-data/1',
@@ -977,6 +982,17 @@ async function writeVegetationCanopyAtlasSidecar( output, bake ) {
 		variantGroups: bake.variantGroups,
 		sourceProfile: TIDEWATER_CANOPY_PROFILE,
 		appearance: TIDEWATER_CANOPY_APPEARANCE,
+		leafMask: {
+			assetId: leafMask.assetId,
+			file: leafMask.file,
+			width: leafMask.width,
+			height: leafMask.height,
+			bytes: leafMask.bytes.byteLength,
+			dataFormat: 'rgba8unorm-data/1',
+			layout: { type: 'row-major-atlas-uv/1', columns: 2, rows: 2, tileWidth: LEAF_ATLAS_SIZE / 2, tileHeight: LEAF_ATLAS_SIZE / 2 },
+			channels: { r: 'leaf-coverage', g: 'leaf-brightness-over-1.4', b: 'leaf-cell-random', a: 'opaque' },
+			tiles: LEAF_TILES.map( ( tile, index ) => ( { index, column: index % 2, row: Math.floor( index / 2 ), ...tile } ) ),
+		},
 		atlases: assets.map( ( { role, assetId, file, width, height, bytes } ) => ( { role, assetId, file, width, height, bytes: bytes.byteLength } ) ),
 	};
 	await writeFile( path.join( output, 'vegetation-canopy-atlas-set.json' ), `${JSON.stringify( sidecar, null, 2 )}\n` );

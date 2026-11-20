@@ -32,10 +32,12 @@ The exporter now also emits an inactive near-model sidecar for trees and
 shrubs. It contains the three tree and two shrub lobe variants as content-
 addressed GLBs, preserves their three VEC4 source streams, and maps every
 authored placement to a model variant with the same fractional seed-bin rule
-used by the canopy atlas. This is geometry and placement evidence only: these
-GLBs still use a provisional glTF PBR material, are not referenced by a signed
-canopy component, and do not carry the leaf atlas or renderer-neutral canopy
-material graph. Do not activate this sidecar.
+used by the canopy atlas. The export now includes the source leaf-mask atlas as
+a content-addressed linear RGBA8 data PNG, with its 2×2 tile layout and channel
+semantics recorded beside the impostor atlases. This is still only geometry,
+placement, and texture evidence: these GLBs use a provisional glTF PBR
+material, are not referenced by a signed canopy component, and do not yet carry
+the renderer-neutral canopy material graph. Do not activate this sidecar.
 
 Their far representation remains the view-dependent octahedral impostor atlas
 with view blending, ray reprojection, wind, and distance thinning. A static far

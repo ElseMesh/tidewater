@@ -3,6 +3,7 @@ import '../register-behavior.js';
 import * as fishPresentation from '../FishPresentation.js';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { inflateSync } from 'node:zlib';
 import { mkdtemp, readFile, readlink, readdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -231,11 +232,14 @@ try {
 	assert.deepEqual( vegetationSetBytes, vegetationSetBytesFirst, 'the generic palm model-set descriptor is deterministic' );
 	assert.deepEqual( canopyAtlasSetBytes, canopyAtlasSetBytesFirst, 'the inactive canopy atlas sidecar is deterministic' );
 	assert.deepEqual( canopyAtlasFiles.sort(), canopyAtlasFilesFirst.sort(), 'the canopy atlas export has a stable content-addressed file set' );
-	assert.equal( canopyAtlasFiles.length, 2, 'canopy export writes the material and normal/exposure atlases' );
+	assert.equal( canopyAtlasFiles.length, 3, 'canopy export writes the material, normal/exposure, and leaf-mask atlases' );
 	for ( const file of canopyAtlasFiles ) assert.deepEqual( canopyAtlasBytes.get( file ), canopyAtlasBytesFirst.get( file ), 'canopy atlas PNG bytes are deterministic' );
 	const canopyAtlasSet = JSON.parse( canopyAtlasSetBytes );
 	assert.equal( canopyAtlasSet.format, 'tidewater.canopy-atlas-source/1' );
 	assert.equal( canopyAtlasSet.atlasDataFormat, 'rgba8unorm-data/1' );
+	assert.deepEqual( canopyAtlasSet.leafMask.layout, { type: 'row-major-atlas-uv/1', columns: 2, rows: 2, tileWidth: 512, tileHeight: 512 }, 'leaf mask sidecar specifies the packed 2x2 tile layout' );
+	assert.deepEqual( canopyAtlasSet.leafMask.channels, { r: 'leaf-coverage', g: 'leaf-brightness-over-1.4', b: 'leaf-cell-random', a: 'opaque' }, 'leaf mask sidecar preserves the source atlas channel meanings' );
+	assert.equal( canopyAtlasSet.leafMask.tiles.length, 4, 'leaf mask sidecar exposes all four authored leaf tile definitions' );
 	assert.deepEqual( canopyAtlasSet.sourceProfile, TIDEWATER_CANOPY_PROFILE, 'the exported atlas sidecar carries the authored canopy palette, species selection, wind, and LOD data' );
 	assert.deepEqual( canopyAtlasSet.appearance, TIDEWATER_CANOPY_APPEARANCE, 'the export exposes the same renderer-neutral canopy color, lighting and wind inputs for engine adapters' );
 	assert.deepEqual( [ canopyAtlasSet.frameGrid.columns, canopyAtlasSet.frameGrid.rows, canopyAtlasSet.frameGrid.frameWidth, canopyAtlasSet.frameGrid.frameHeight ], [ 30, 6, 128, 128 ], 'canopy atlas preserves five variants of the six-by-six source frame grid' );
@@ -245,6 +249,35 @@ try {
 		assert.equal( `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`, atlas.assetId, `${atlas.role} atlas filename and bytes match its content address` );
 		assert.deepEqual( [ bytes.readUInt32BE( 16 ), bytes.readUInt32BE( 20 ) ], [ 3840, 768 ], `${atlas.role} atlas has the signed source dimensions` );
 		assert.equal( atlas.bytes, bytes.byteLength, `${atlas.role} atlas reports its exact encoded size` );
+	}
+	{
+		const mask = canopyAtlasSet.leafMask;
+		const bytes = canopyAtlasBytes.get( mask.file );
+		assert.equal( `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`, mask.assetId, 'leaf mask filename and bytes match its content address' );
+		assert.deepEqual( [ bytes.readUInt32BE( 16 ), bytes.readUInt32BE( 20 ) ], [ 1024, 1024 ], 'leaf mask has the source atlas dimensions' );
+		assert.equal( mask.bytes, bytes.byteLength, 'leaf mask reports its exact encoded size' );
+		const chunks = [];
+		for ( let offset = 8; offset < bytes.length; ) {
+			const length = bytes.readUInt32BE( offset );
+			const type = bytes.toString( 'ascii', offset + 4, offset + 8 );
+			assert.ok( ! [ 'sRGB', 'iCCP', 'gAMA', 'cHRM' ].includes( type ), `leaf mask data PNG has no color-profile chunk (${type})` );
+			if ( type === 'IDAT' ) chunks.push( bytes.subarray( offset + 8, offset + 8 + length ) );
+			offset += 12 + length;
+			if ( type === 'IEND' ) break;
+		}
+		const raw = inflateSync( Buffer.concat( chunks ) );
+		const stride = mask.width * 4 + 1;
+		assert.equal( raw.length, stride * mask.height, 'leaf mask PNG inflates to tightly packed RGBA8 scanlines' );
+		let covered = 0, clear = 0;
+		for ( let y = 0; y < mask.height; y ++ ) {
+			assert.equal( raw[ y * stride ], 0, 'leaf mask PNG rows use the deterministic no-filter encoding' );
+			for ( let x = 0; x < mask.width; x ++ ) {
+				const coverage = raw[ y * stride + 1 + x * 4 ];
+				if ( coverage > 0 ) covered ++;
+				if ( coverage < 255 ) clear ++;
+			}
+		}
+		assert.ok( covered > 0 && clear > 0, 'leaf mask contains both leaf coverage and open gaps' );
 	}
 	assert.deepEqual( groundCoverPatchSetBytes, groundCoverPatchSetBytesFirst, 'the renderer-neutral ground-cover patch sidecar is deterministic' );
 	const fishSet = validateStaticModelInstanceSet( JSON.parse( fishSetBytes ) );
