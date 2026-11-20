@@ -17,8 +17,8 @@ const temporaryRoot = process.env.PREFIX ? path.join( process.env.PREFIX, 'tmp' 
 const root = await mkdtemp( path.join( temporaryRoot, 'elsemesh-manifest-test-' ) );
 
 assert.equal( WORLD_SOURCE_PROTOCOL, 'elsemesh.world-source/1' );
-assert.throws( () => validateWorldSource( { protocol: 'elsemesh.world-source/1' } ), /Unsupported world source format/ );
-for ( const protocol of [ 'elsemesh.world-source/2', 'elsemesh.world-source/3' ] ) assert.throws( () => validateWorldSource( { protocol } ), /Unsupported world source format/, `pre-release protocol ${protocol} is not accepted` );
+assert.throws( () => validateWorldSource( { protocol: 'elsemesh.world-source/0', worldId: 'elsemesh:unsupported' } ), /Unsupported world source format/ );
+for ( const protocol of [ 'elsemesh.world-source/2', 'elsemesh.world-source/3' ] ) assert.throws( () => validateWorldSource( { protocol, worldId: 'elsemesh:legacy' } ), /Unsupported world source format/, `pre-release protocol ${protocol} is not accepted` );
 assert.throws( () => validateWorldSource( { protocol: WORLD_SOURCE_PROTOCOL, worldId: 'world:legacy' } ), /Invalid worldId/ );
 assert.throws( () => validateWorldSource( { protocol: WORLD_SOURCE_PROTOCOL, worldId: 'elsemesh-world:legacy' } ), /Invalid worldId/ );
 assert.throws( () => validateWorldSource( { protocol: WORLD_SOURCE_PROTOCOL, worldId: 'em-world:legacy' } ), /Invalid worldId/ );
