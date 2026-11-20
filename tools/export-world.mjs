@@ -48,7 +48,7 @@ import { generateTidewaterReefURLs } from './generate-reef-asset-urls.mjs';
 import { fishPropGeometry } from '../../../src/world/fish/FishProps.js';
 import { buildPalmFar, buildPalmNear, buildTreeNear, buildShrubNear, lobeVariantGeometry, TREE_VARIANTS, SHRUB_VARIANTS, LOBE_TABLE } from '../vegetation/geometry/PlantGeometry.js';
 import { CANOPY_FAR_FADE, PALM_LOD } from '../vegetation/LODRules.js';
-import { TIDEWATER_CANOPY_PROFILE } from '../vegetation/CanopyProfile.js';
+import { TIDEWATER_CANOPY_APPEARANCE, TIDEWATER_CANOPY_PROFILE } from '../vegetation/CanopyProfile.js';
 import { TIDEWATER_PALM_MATERIAL_GRAPH } from '../vegetation/VegetationMaterialGraph.js';
 import { LeafAtlas } from '../renderers/webgpu-vegetation/LeafTextures.js';
 import { createCanopyBakeMaterials } from '../renderers/webgpu-vegetation/VegMaterials.js';
@@ -883,6 +883,7 @@ async function writeVegetationCanopyAtlasSidecar( output, bake ) {
 		frameGrid: bake.frameGrid,
 		variantGroups: bake.variantGroups,
 		sourceProfile: TIDEWATER_CANOPY_PROFILE,
+		appearance: TIDEWATER_CANOPY_APPEARANCE,
 		atlases: assets.map( ( { role, assetId, file, width, height, bytes } ) => ( { role, assetId, file, width, height, bytes: bytes.byteLength } ) ),
 	};
 	await writeFile( path.join( output, 'vegetation-canopy-atlas-set.json' ), `${JSON.stringify( sidecar, null, 2 )}\n` );

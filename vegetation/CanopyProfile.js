@@ -74,3 +74,12 @@ export const TIDEWATER_CANOPY_PROFILE = Object.freeze( {
 		heightScale: 0.45,
 	} ),
 } );
+
+// Runtime canopy inputs are a small renderer-neutral projection of the bake
+// profile. Backend shader code remains in ElseMesh adapters.
+export const TIDEWATER_CANOPY_APPEARANCE = Object.freeze( {
+	format: 'elsemesh.canopy-appearance/1',
+	color: TIDEWATER_CANOPY_PROFILE.color,
+	lighting: TIDEWATER_CANOPY_PROFILE.lighting,
+	wind: TIDEWATER_CANOPY_PROFILE.wind,
+} );
