@@ -261,7 +261,7 @@ try {
 		assert.deepEqual( glb.materials[ 0 ].extras.elsemeshMaterial.graph, TIDEWATER_CANOPY_MATERIAL_GRAPH, `${model.id} embeds the same renderer-neutral leaf-mask graph` );
 		assert.equal( glb.materials[ 0 ].alphaMode, 'MASK', `${model.id} uses alpha masking for leaf coverage in both visible and shadow passes` );
 		assert.equal( glb.materials[ 0 ].alphaCutoff, TIDEWATER_CANOPY_COVERAGE_CUTOFF, `${model.id} uses the canopy source coverage threshold` );
-		assert.deepEqual( glb.materials[ 0 ].pbrMetallicRoughness.baseColorFactor, [ ...TIDEWATER_CANOPY_NEAR_PBR_BASE_COLOR, 1 ], `${model.id} keeps the graph's provisional base color in the GLB` );
+		assert.deepEqual( glb.materials[ 0 ].pbrMetallicRoughness.baseColorFactor, [ ...TIDEWATER_CANOPY_NEAR_PBR_BASE_COLOR, 1 ], `${model.id} leaves near canopy color to the signed material graph` );
 		assert.ok( primitive.attributes.POSITION && primitive.attributes.NORMAL && primitive.attributes.TEXCOORD_0, `${model.id} preserves portable geometry inputs` );
 		for ( const name of [ '_ELSEMESH_VDATA', '_ELSEMESH_VDATA1', '_ELSEMESH_VDATA2' ] ) assert.equal( primitive.attributes[ name ]?.itemSize, 4, `${model.id} preserves ${name} as a VEC4 source stream` );
 	}

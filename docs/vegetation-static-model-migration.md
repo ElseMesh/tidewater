@@ -38,24 +38,25 @@ semantics recorded beside the impostor atlases. Each near GLB now carries the
 same renderer-neutral material graph as the candidate canopy descriptor. It
 selects the authored species tile, samples leaf coverage from the shared linear mask,
 and uses the same alpha-mask cutoff for visible and shadow materials in both
-engine compilers. This graph covers card cutouts only: the GLB's uniform PBR
-base color is still provisional and does not reproduce the authored canopy
-palette, baked exposure, wind deformation, or far-impostor appearance. The
-candidate remains outside the signed world source until both engine adapters
-and matched appearance review pass.
+engine compilers. The graph now supplies the authored species palette,
+instance/card color variation, leaf detail, bark weathering, roughness, ambient
+occlusion, normal bias, and leaf translucency to both compilers; the GLB keeps
+a neutral white base factor. Near wind deformation, edge-on card thinning, and
+view-dependent far-impostor presentation remain unimplemented. The candidate
+remains outside the signed world source until both engine adapters and matched
+appearance review pass.
 
 The exporter now joins the near set, both octahedral impostor atlases, the leaf
 mask, appearance inputs, and LOD rules into
 `vegetation-canopy-runtime-package.json`. Its component descriptor validates
 through the ElseMesh codec and asset loader against the actual content-addressed
-files. This package remains inactive and outside `world-source.json`: the near
-GLBs still have provisional base color and no world-driven wind, and neither
-engine backend consumes the component. The far representation still needs its
-view-dependent atlas sampler, frame blending, reprojection, wind, and distance
-thinning. ElseMesh must implement both adapters and pass matched review before
-replacing either current presenter. The remaining finite vegetation categories
-also need their source meshes, distance fades, and material inputs exported and
-validated.
+files. This package remains inactive and outside `world-source.json`: near
+wind is absent and neither engine backend consumes the component. The far
+representation still needs its view-dependent atlas sampler, frame blending,
+reprojection, wind, and distance thinning. ElseMesh must implement both
+adapters and pass matched review before replacing either current presenter.
+The remaining finite vegetation categories also need their source meshes,
+distance fades, and material inputs exported and validated.
 
 The descriptor's renderer-neutral appearance payload now carries the source
 tree and shrub palettes and seed thresholds as well as color, lighting, and
