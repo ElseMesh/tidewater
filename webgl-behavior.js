@@ -9,6 +9,7 @@ export const webglBehaviorImplementations = Object.freeze( {
 	onWebGLWorldActivated( { active, data, experience, fallback, mode, THREE } ) {
 		if ( ! active ) {
 
+			fallback.gameAdapter?.audio?.stop?.();
 			fallback.gameAdapter?.minimap?.dispose();
 			if ( fallback.gameAdapter ) fallback.gameAdapter.minimap = null;
 			return;

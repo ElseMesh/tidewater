@@ -13,6 +13,7 @@ import { FishingInputController } from '../FishingInputController.js';
 import { canFishInWorld, canInteractWithVendor, stepFishingBite, strikeFishing, stepFishingFight } from './FishingGameplay.js';
 import { buyFishingUpgrade, refuelFishingBoat, sellAllFish, sellFish } from './FishingCommerce.js';
 import { handleFishingGameKey } from './FishingGameInput.js';
+import { TidewaterFishingAudio } from './FishingAudio.js';
 
 // how long the catch card stays up unless dismissed (ms)
 const CATCH_CARD_MS = 9000;
@@ -41,9 +42,10 @@ export class Game {
 		this.boatGameplay.onFuelOut = () => this.toast( 'Out of fuel · buy diesel at the chandlery by the boathouse', 4000 );
 		this.fishCatalog = this.runtime.fishCatalog;
 		this.fishPresentation = worldFishPresentationFor( experience );
+		this.audio = typeof app.audio?.playSample === 'function' ? new TidewaterFishingAudio( app.audio ) : app.audio;
 		const fishingData = worldBehaviorData( experience, 'elsemesh.fishing-game/1' );
 		this.fishingAreas = fishingData.fishingAreas;
-		this.rod = new FishingRod( { scene: app.scene, camera: app.camera, query, terrain, audio: app.audio } );
+		this.rod = new FishingRod( { scene: app.scene, camera: app.camera, query, terrain, audio: this.audio } );
 		this.rod.onLand = ( where ) => this.onBobberLanded( where );
 		this.stand = new FishStand( { scene: app.scene, terrain, colliders, placement: fishingData?.fishStand, fishCatalog: this.fishCatalog, fishPresentation: this.fishPresentation } );
 		this.display = new CatchDisplay( { scene: app.scene, stall: this.stand.iceFish(), fishCatalog: this.fishCatalog, fishPresentation: this.fishPresentation } );
@@ -89,7 +91,10 @@ export class Game {
 	setWorldActive( active ) {
 
 		this.active = active;
-		if ( ! active ) this.runtime.cancel();
+		if ( ! active ) {
+			this.runtime.cancel();
+			this.audio?.stop?.();
+		}
 		this.stand.setActive( active );
 		this.chandlery.setActive( active, this.terrain );
 		this.display.mesh.visible = active;
@@ -351,7 +356,7 @@ export class Game {
 
 	sellAll() {
 
-		return sellAllFish( this.state, this.app.audio, ( ...args ) => this.toast( ...args ) );
+		return sellAllFish( this.state, this.audio || this.app.audio, ( ...args ) => this.toast( ...args ) );
 
 	}
 
@@ -395,7 +400,7 @@ export class Game {
 
 	updateBite( dt ) {
 
-		return stepFishingBite( { runtime: this.runtime, rod: this.rod, dt, habitat: () => this.habitat(), hour: this.hour, audio: this.app.audio, toast: ( ...args ) => this.toast( ...args ) } );
+		return stepFishingBite( { runtime: this.runtime, rod: this.rod, dt, habitat: () => this.habitat(), hour: this.hour, audio: this.audio || this.app.audio, toast: ( ...args ) => this.toast( ...args ) } );
 
 	}
 
@@ -408,7 +413,7 @@ export class Game {
 	async updateFight( dt, reeling ) {
 
 		return stepFishingFight( {
-			runtime: this.runtime, rod: this.rod, dt, reeling, hour: this.hour, audio: this.app.audio,
+			runtime: this.runtime, rod: this.rod, dt, reeling, hour: this.hour, audio: this.audio || this.app.audio,
 			toast: ( ...args ) => this.toast( ...args ),
 			onCaught: ( result ) => {
 
