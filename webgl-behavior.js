@@ -61,7 +61,7 @@ export const webglBehaviorImplementations = Object.freeze( {
 		if ( ! active ) return;
 		fallback.fishStand?.update( dt, fallback.camera.position );
 		fallback.chandlery?.update( dt, fallback.camera.position );
-		fallback.gameAdapter?.update( dt, fallback.player || fallback.camera, fallback.input, { timeOfDay: fallback.app.settings.timeOfDay, freeCam: fallback.freeCam } );
+		fallback.gameAdapter?.update( dt, fallback.player || fallback.camera, fallback.input, { timeOfDay: fallback._worldTimeOfDay(), freeCam: fallback.freeCam } );
 	},
 	} ),
 } );

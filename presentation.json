@@ -1,7 +1,8 @@
 {
 	"environment": {
 		"sky": "atmosphere",
-		"clouds": "procedural"
+		"clouds": "procedural",
+		"timeOfDay": { "hour": 16.2, "engineOverride": true }
 	},
 	"genre": "A coastal fishing adventure",
 	"tagline": "Take the boat out, work the reef and deep water, and sell your catch to Joe before dark.",
