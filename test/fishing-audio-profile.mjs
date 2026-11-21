@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict';
 import { TidewaterFishingAudio } from '../game/FishingAudio.js';
+import { SoundScape } from '../../../src/audio/SoundScape.js';
+
+const engine = new SoundScape();
+new TidewaterFishingAudio( engine );
+for ( const name of [ 'reel_wind', 'rod_swish', 'coins' ] ) assert.ok( engine._sampleInfo.has( `world.tidewater.fishing:${name}` ), `ElseMesh registers Tidewater's world-owned sample ${name}` );
 
 const calls = [];
 const registrations = [];
