@@ -62,18 +62,18 @@ try {
 		const position = [ packageData.target[ 0 ], packageData.target[ 1 ] + distance * 0.22, packageData.target[ 2 ] + distance * 0.976 ];
 		life.camera.position.set( ...position );
 		life.camera.lookAt( ...packageData.target );
-		farResult.runtime.update( 1 / 60, life.camera );
-		nearResult.runtime.update( 1 / 60, life.camera );
+		farResult.runtime.update( 0, life.camera );
+		nearResult.runtime.update( 0, life.camera );
 		const readyDeadline = Date.now() + 20000;
 		while ( ! nearResult.runtime.isCoarseReadyForView() && Date.now() < readyDeadline ) {
-			nearResult.runtime.update( 1 / 60, life.camera );
+			nearResult.runtime.update( 0, life.camera );
 			await new Promise( resolve => setTimeout( resolve, 10 ) );
 		}
 		assert.equal( nearResult.runtime.isCoarseReadyForView(), true, `candidate near models become visible for ${name}` );
 
 		for ( const mesh of canopyMeshes ) mesh.visible = true;
 		root.visible = false;
-		await life.run( 4, dt => vegetation.update( dt, life.camera ) );
+		await life.run( 4, dt => vegetation.update( dt, life.camera ), 0 );
 		await life.save( path.join( outputDirectory, `tidewater-webgpu-original-${name}.png` ) );
 
 		for ( const mesh of canopyMeshes ) mesh.visible = false;
@@ -82,7 +82,7 @@ try {
 			vegetation.update( dt, life.camera );
 			nearResult.runtime.update( dt, life.camera );
 			farResult.runtime.update( dt, life.camera );
-		} );
+		}, 0 );
 		await life.save( path.join( outputDirectory, `elsemesh-webgpu-candidate-${name}.png` ) );
 		console.log( `${name}: camera distance ${distance.toFixed( 2 )} m, candidate near instances ${root.children.filter( item => item.isInstancedMesh && item.count > 0 ).length}` );
 	}
