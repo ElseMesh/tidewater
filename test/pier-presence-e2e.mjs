@@ -12,6 +12,8 @@ import { goBuildEnvironment } from '../../../test/go-build-env.mjs';
 import { TIDEWATER_LAYOUT } from '../layout.js';
 import { TerrainData } from '../terrain/TerrainData.js';
 import { tidewaterPierColliders } from './tidewater-pier-colliders.js';
+import '../register-components.js';
+import '../register-behavior.js';
 
 const projectRoot = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '../../..' );
 const tidewaterRoot = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..' );
