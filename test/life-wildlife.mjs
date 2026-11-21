@@ -1,4 +1,4 @@
-// Wildlife (birds, sanderlings, crabs, contact shadows) and gulls, headless at 2560x1267.
+// Tidewater wildlife (birds, sanderlings, crabs, contact shadows), headless at 2560x1267.
 //   node test/life-wildlife.mjs [outDir]
 import { setupLife } from '../../../test/life-harness.mjs';
 import * as E from '../../../src/engine/index.js';
@@ -8,7 +8,6 @@ const W = + ( process.env.W || 2560 ), H = + ( process.env.H || 1267 );
 const T0 = performance.now();
 const L = await setupLife( { W, H, ground: { center: [ 20, 0 ], size: 500 }, water: true } );
 const { Wildlife } = await import( '../wildlife/Wildlife.js' );
-const { Gulls } = await import( '../../../src/world/Gulls.js' );
 const T = L.terrain;
 const spray = { emit() {}, emitAlongPoints() {} };
 // stubs of the terrain / shore stream modules for the swash probe (the real ones: TerrainGPU, ShoreWaves)
@@ -22,7 +21,6 @@ fn shoreEvaluateNoNormal( xz: vec2f, depth: f32, groundH: f32 ) -> ShoreSample {
 };
 const wl = new Wildlife( { scene: L.scene, terrain: T, csm: L.shadows, spray, shore, terrainGPU } );
 wl.blobs.mesh.userData.late = true;
-const gulls = new Gulls( { scene: L.scene } );
 console.log( 'constructed in', ( performance.now() - T0 ).toFixed( 0 ), 'ms; birds', wl.birds.agents.length );
 
 // beach line at x: z where the sand is at height h
@@ -151,7 +149,7 @@ await L.save( OUT + '/wildlife-bay.png' );
 cam.position.set( bx - 2.5, T.heightAt( bx - 2.5, bz - 5 ) + 1.2, bz - 5 );
 cam.lookAt( bx, T.heightAt( bx, bz ) + 0.1, bz );
 const withMs = await L.gpuTime( 30, upd );
-for ( const m of [ wl.birdBatch.mesh, wl.critterBatch.mesh, wl.blobs.mesh, gulls.mesh ] ) m.visible = false;
+for ( const m of [ wl.birdBatch.mesh, wl.critterBatch.mesh, wl.blobs.mesh ] ) m.visible = false;
 const without = await L.gpuTime( 30, upd );
 console.log( `frame ms: with wildlife ${ withMs.toFixed( 2 ) }, without ${ without.toFixed( 2 ) }, cpu update ${ wl.cpuMs.toFixed( 3 ) } ms` );
 await L.exit();
