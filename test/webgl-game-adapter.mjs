@@ -6,6 +6,7 @@ import { FishingRod } from '../game/FishingRod.js';
 import { PerspectiveCamera } from '../../../src/engine/index.js';
 import { SyntheticWaterQuery } from './synthetic-water-query.mjs';
 import { WebGLGameAdapter, createDeckFloodlights, createGameUI } from '../webgl/WebGLGameAdapter.js';
+import { webglBehaviorImplementations } from '../webgl-behavior.js';
 import { FishingInputController } from '../FishingInputController.js';
 import * as THREE from 'three';
 import { createFishingTestRuntime } from './fishing-test-extension.mjs';
@@ -24,6 +25,15 @@ const savedDocument = globalThis.document;
 globalThis.document = { createElement: tag => new FakeElement( tag ), body: new FakeElement( 'body' ) };
 const engineRoot = new FakeElement( 'engine-root' );
 const worldUI = createGameUI( engineRoot );
+
+let audioDeactivated = 0;
+let fishingAudioStopped = 0;
+webglBehaviorImplementations.fishingGame.onWebGLWorldActivated( {
+	active: false,
+	fallback: { gameAdapter: { audio: { deactivate() { audioDeactivated ++; }, stop() { fishingAudioStopped ++; } } } },
+} );
+assert.equal( audioDeactivated, 1, 'leaving a WebGL Tidewater world deactivates its sample bank' );
+assert.equal( fishingAudioStopped, 0, 'world deactivation does not confuse profile cleanup with fishing stop' );
 assert.equal( engineRoot.children[ 0 ], worldUI.root, 'WebGL world HUD is mounted under the engine UI root' );
 assert.equal( worldUI.root.className, 'em-root em-world-ui', 'the world HUD uses the engine-managed world UI layer' );
 assert.equal( worldUI.hud.parent, worldUI.root, 'the Tidewater HUD remains in its own removable subtree' );
