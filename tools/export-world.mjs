@@ -296,6 +296,7 @@ await mkdir( scannedStaticModelsPath, { recursive: true } );
 for ( const entry of await readdir( scannedStaticModelsPath, { withFileTypes: true } ) ) if ( entry.isFile() && /^[0-9a-f]{64}\.glb$/.test( entry.name ) && ! scannedStaticModelSet.assets.has( entry.name.slice( 0, 64 ) ) ) await rm( path.join( scannedStaticModelsPath, entry.name ) );
 for ( const [ hash, bytes ] of scannedStaticModelSet.assets ) await writeFile( path.join( scannedStaticModelsPath, `${hash}.glb` ), bytes );
 const ambientBeds = [];
+const ambientAudioProfile = [];
 const ambientBedSpecs = [
 	{ name: 'surf_far', target: MIX.surfFar, condition: 'always' },
 	{ name: 'wind', target: MIX.wind, condition: 'always' },
@@ -312,13 +313,15 @@ for ( const spec of ambientBedSpecs ) {
 	const bytes = await readFile( path.join( REPO, 'public', 'audio', bank.file ) );
 	const id = `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`;
 	staticAssets.set( id, bytes );
+	ambientAudioProfile.push( { assetId: id, condition: spec.condition } );
 	ambientBeds.push( {
 		assetId: id,
 		gain: Math.pow( 10, ( spec.target - bank.lufs ) / 20 ),
-		condition: spec.condition,
+		...( spec.condition === 'underwater' ? { acousticLayer: 'underwater' } : {} ),
 		...( spec.position ? { position: spec.position, refDistance: spec.refDistance, rolloff: spec.rolloff } : {} ),
 	} );
 }
+experience.behaviors[ 'elsemesh.fishing-game/1' ].ambientAudio = ambientAudioProfile;
 if ( reefComponents.length + 9 > 128 ) throw new Error( 'Island world exceeds the 128 component limit after adding whale, fish props, local lights, and other fixed components' );
 const assetsPath = path.join( output, 'assets' );
 await mkdir( assetsPath, { recursive: true } );

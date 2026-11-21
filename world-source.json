@@ -476,7 +476,41 @@
             "time": "night",
             "rarity": 0.2
           }
-        }
+        },
+        "ambientAudio": [
+          {
+            "assetId": "sha256:a4c0068c83ae7752c0b666cf06548ac917aefd61bb49f970d9f19d52b4f7eaa4",
+            "condition": "always"
+          },
+          {
+            "assetId": "sha256:3e5d45f75364bf797f375061ed0232724e0570c1ff8f64c4c97498093e1789ec",
+            "condition": "always"
+          },
+          {
+            "assetId": "sha256:33c89a41d0e0592cb2b6fd5592fab4e7333b090dace7fd755334cc145ef51820",
+            "condition": "always"
+          },
+          {
+            "assetId": "sha256:01b41d7e8fc719373f77f41f3936e8ccfdfee4aadea1a1dd1120206b2115d76c",
+            "condition": "night"
+          },
+          {
+            "assetId": "sha256:e020be075543b148dfb2b47540a605c1a30d25e5d18206b945b949b96a32079a",
+            "condition": "always"
+          },
+          {
+            "assetId": "sha256:121952cc2e09a3a30712e2d1038a00366e2cbad3dccf1fa2388261487028249f",
+            "condition": "underwater"
+          },
+          {
+            "assetId": "sha256:90c0b619f22842e8625520e36d6da6cad6d3cf21ade49c36a77d03ddcbde9bb8",
+            "condition": "always"
+          },
+          {
+            "assetId": "sha256:4647b53f1409faab746a18f946e76b4f4002ec6821c2be62e6f9a4f40da694a4",
+            "condition": "dawn"
+          }
+        ]
       }
     },
     "tagline": "Take the boat out, work the reef and deep water, and sell your catch to Joe before dark.",
@@ -16717,28 +16751,23 @@
         "beds": [
           {
             "assetId": "sha256:a4c0068c83ae7752c0b666cf06548ac917aefd61bb49f970d9f19d52b4f7eaa4",
-            "gain": 0.3981071705534972,
-            "condition": "always"
+            "gain": 0.3981071705534972
           },
           {
             "assetId": "sha256:3e5d45f75364bf797f375061ed0232724e0570c1ff8f64c4c97498093e1789ec",
-            "gain": 0.2398832919019491,
-            "condition": "always"
+            "gain": 0.2398832919019491
           },
           {
             "assetId": "sha256:33c89a41d0e0592cb2b6fd5592fab4e7333b090dace7fd755334cc145ef51820",
-            "gain": 0.16405897731995395,
-            "condition": "always"
+            "gain": 0.16405897731995395
           },
           {
             "assetId": "sha256:01b41d7e8fc719373f77f41f3936e8ccfdfee4aadea1a1dd1120206b2115d76c",
-            "gain": 0.31622776601683794,
-            "condition": "night"
+            "gain": 0.31622776601683794
           },
           {
             "assetId": "sha256:e020be075543b148dfb2b47540a605c1a30d25e5d18206b945b949b96a32079a",
             "gain": 0.8609937521846006,
-            "condition": "always",
             "position": [
               55,
               0,
@@ -16750,12 +16779,11 @@
           {
             "assetId": "sha256:121952cc2e09a3a30712e2d1038a00366e2cbad3dccf1fa2388261487028249f",
             "gain": 0.1,
-            "condition": "underwater"
+            "acousticLayer": "underwater"
           },
           {
             "assetId": "sha256:90c0b619f22842e8625520e36d6da6cad6d3cf21ade49c36a77d03ddcbde9bb8",
             "gain": 0.8128305161640995,
-            "condition": "always",
             "position": [
               64.5,
               0,
@@ -16766,8 +16794,7 @@
           },
           {
             "assetId": "sha256:4647b53f1409faab746a18f946e76b4f4002ec6821c2be62e6f9a4f40da694a4",
-            "gain": 0.2600159563165272,
-            "condition": "dawn"
+            "gain": 0.2600159563165272
           }
         ]
       }

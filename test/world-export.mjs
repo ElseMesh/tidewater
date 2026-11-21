@@ -611,6 +611,9 @@ try {
 	}, 'built-in island export preserves its authored avatar and boat step capabilities' );
 	const ambience = source.components.find( ( component ) => component.type === 'elsemesh.ambient-audio/1' );
 	assert.equal( componentData( ambience ).beds.length, 8, 'portable island exports its eight original ambient loop beds' );
+	assert.ok( componentData( ambience ).beds.every( bed => ! Object.hasOwn( bed, 'condition' ) ), 'generic audio beds contain no Tidewater time or environment behavior' );
+	assert.equal( componentData( ambience ).beds.filter( bed => bed.acousticLayer === 'underwater' ).length, 1, 'the reef bed declares only its generic underwater output bus' );
+	assert.equal( source.experience.behaviors[ 'elsemesh.fishing-game/1' ].ambientAudio.length, 8, 'Tidewater carries its ambient state rules in its registered world behavior' );
 	assert.ok( componentData( ambience ).beds.every( ( bed ) => firstAssets.has( bed.assetId ) && firstAssets.get( bed.assetId ).length <= 16 * 1024 * 1024 ), 'each ambience bed is bundled as a bounded content-addressed asset' );
 	const originalLoopAssets = new Map();
 	for ( const entry of Object.values( AMBIENT_BANK ) ) if ( entry.loop && entry.file ) {
