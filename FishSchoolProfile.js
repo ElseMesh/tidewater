@@ -1,5 +1,5 @@
-// Tidewater's authored species behavior data for the generic ElseMesh fish-school simulation.
-// Supported movement modes and the simulation remain engine-owned.
+// Tidewater's authored species behavior data for its fish-school simulation.
+// Mode semantics are implemented by the Tidewater-owned fish/FishSchools.js runtime.
 const base = {
 	cruise: 1, max: 2.5, burst: 6, accel: 4, sep: 2, nbr: 5, wSep: 5, wAli: 1, wCoh: 0.8, wGoal: 1, flee: 3.5,
 	depth: [ 0.1, 0.5 ], homeRadius: 6, amp: 0.08, freq: [ 1.6, 0.9 ], ceiling: - 0.7, minDepth: 1.2, band: [ 1.5, 20 ],
