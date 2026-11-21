@@ -13,7 +13,7 @@
 		"test:breaker-state-parity": "node test/breaker-state-parity.mjs",
 		"test:webgl-vegetation-adapter": "node --preserve-symlinks test/webgl-vegetation-component-adapter.mjs && node --preserve-symlinks test/webgl-vegetation-presentation.mjs",
 		"test:webgl-reef-adapter": "node --preserve-symlinks test/reef-placement-codec.mjs && node --preserve-symlinks test/webgl-reef-adapter.mjs",
-		"test:wildlife": "node --preserve-symlinks test/wildlife-runtime.mjs && node --preserve-symlinks test/wildlife-frame.mjs && node --preserve-symlinks test/hermit-crab-step.mjs && node --preserve-symlinks test/webgl-wildlife-adapter.mjs && node --preserve-symlinks test/webgl-swash-probe.mjs",
+		"test:wildlife": "node --preserve-symlinks test/wildlife-runtime.mjs && node --preserve-symlinks test/wildlife-frame.mjs && node --preserve-symlinks test/hermit-crab-step.mjs && node --preserve-symlinks test/webgl-wildlife-adapter.mjs && node --preserve-symlinks ../../test/webgl-swash-probe.mjs",
 		"test:renderer-parity": "node --preserve-symlinks test/fishing-gameplay-shared.mjs && node --preserve-symlinks test/renderer-cast-parity.mjs && node --preserve-symlinks test/renderer-gameplay-parity.mjs && node --preserve-symlinks test/pre-split-fishing-parity.mjs && node --preserve-symlinks test/pre-split-boat-gameplay-parity.mjs",
 		"test:coconut-preservation": "node test/debris-material-boundary.mjs && node test/coconut-preservation.mjs",
 		"test:pier-colliders": "node --preserve-symlinks test/pier-surface.mjs",
