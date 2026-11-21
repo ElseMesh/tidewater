@@ -1147,7 +1147,7 @@ function exportVegetationGLB( name, geometry, { materialName = 'Tidewater coconu
 	const binary = Buffer.concat( chunks );
 	const gltf = {
 		asset: { version: '2.0', generator: 'Tidewater vegetation migration exporter/1' },
-		scene: 0, scenes: [ { nodes: [ 0 ] } ], nodes: [ { name } ],
+		scene: 0, scenes: [ { nodes: [ 0 ] } ], nodes: [ { name, mesh: 0 } ],
 		meshes: [ { name, primitives: [ { attributes, indices: indexAccessor, material: 0, mode: 4 } ] } ],
 		materials: [ {
 			name: materialName,

@@ -271,6 +271,7 @@ try {
 		assert.ok( bytes, `${model.id} resolves to a near GLB in the inactive sidecar` );
 		assert.equal( `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`, assetId, `${model.id} GLB bytes match its content address` );
 		const glb = parseGLB( bytes );
+		assert.equal( glb.nodes[ 0 ].mesh, 0, `${model.id} near GLB scene node references its authored mesh` );
 		const primitive = glb.meshes[ 0 ][ 0 ];
 		assert.deepEqual( glb.materials[ 0 ].extras.elsemeshMaterial.graph, TIDEWATER_CANOPY_MATERIAL_GRAPH, `${model.id} embeds the same renderer-neutral leaf-mask graph` );
 		assert.equal( glb.materials[ 0 ].alphaMode, 'MASK', `${model.id} uses alpha masking for leaf coverage in both visible and shadow passes` );
@@ -303,6 +304,7 @@ try {
 		const parsed = parseGLB( bytes );
 		const lodIndex = vegetationSet.models[ 0 ].lods.findIndex( lod => lod.assetId === assetId );
 		assert.equal( parsed.nodes[ 0 ].name, lodIndex === 0 ? 'palm-near' : 'palm-far', 'palm GLB order follows LOD0-highest-detail convention' );
+		assert.equal( parsed.nodes[ 0 ].mesh, 0, 'palm GLB scene node references its authored mesh' );
 		const primitive = parsed.meshes[ 0 ][ 0 ];
 		const graphMaterial = parsed.materials[ 0 ].extras?.elsemeshMaterial;
 		assert.equal( graphMaterial?.profile, 'elsemesh.material-graph/1', 'palm GLB carries the world-authored renderer-neutral material graph' );
