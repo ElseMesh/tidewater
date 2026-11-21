@@ -17,6 +17,7 @@
 		"test:renderer-parity": "node --preserve-symlinks test/fishing-gameplay-shared.mjs && node --preserve-symlinks test/renderer-cast-parity.mjs && node --preserve-symlinks test/renderer-gameplay-parity.mjs && node --preserve-symlinks test/pre-split-fishing-parity.mjs && node --preserve-symlinks test/pre-split-boat-gameplay-parity.mjs",
 		"test:coconut-preservation": "node test/debris-material-boundary.mjs && node test/coconut-preservation.mjs",
 		"test:pier-colliders": "node --preserve-symlinks test/pier-surface.mjs",
+		"test:pier-presence-e2e": "node --preserve-symlinks test/pier-presence-e2e.mjs",
 		"test:webgl-beach-debris": "node --preserve-symlinks test/webgl-beach-debris.mjs",
 		"test:webgl-scanned-debris-package": "node --preserve-symlinks test/webgl-scanned-debris-package-render.mjs",
 		"test:webgpu-scanned-debris-package": "node --preserve-symlinks test/webgpu-scanned-debris-package-render.mjs",
