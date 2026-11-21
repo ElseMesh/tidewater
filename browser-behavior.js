@@ -66,5 +66,10 @@ export const browserBehaviorImplementations = Object.freeze( {
 		const hud = fallback?.gameAdapter?.hud || app?.game?.hud;
 		return !! ( hud?.standOpen || hud?.invOpen );
 	},
+	onWorldKeyDown( { app, fallback, event, active } ) {
+		if ( ! active || typeof event?.code !== 'string' ) return false;
+		const game = fallback?.gameAdapter || app?.game;
+		return !! game?.handleKey?.( event.code );
+	},
 	} ),
 } );

@@ -5,8 +5,9 @@ import { fishingHabitatAt } from '../game/Bites.js';
 import { WebGLFishingRodPresentation } from './WebGLFishingRodPresentation.js';
 import { FishingInputController } from '../FishingInputController.js';
 import { Guide } from '../game/Guide.js';
-import { canFishInWorld, canInteractWithVendor, stepFishingBite, strikeFishing, stepFishingFight } from '../game/FishingGameplay.js';
+import { canFishInWorld, stepFishingBite, strikeFishing, stepFishingFight } from '../game/FishingGameplay.js';
 import { buyFishingUpgrade, refuelFishingBoat, sellAllFish, sellFish } from '../game/FishingCommerce.js';
+import { handleFishingGameKey } from '../game/FishingGameInput.js';
 
 const CATCH_CARD_MS = 9000;
 
@@ -97,29 +98,11 @@ export class WebGLGameAdapter {
 
 	handleKey( code ) {
 
-		if ( this.hud.catchOpen && ( code === 'KeyE' || code === 'Escape' ) ) {
-			this._endLanding();
-			return true;
-		}
-
-		if ( code === 'KeyE' && canInteractWithVendor( { nearVendor: this.nearVendor, fighting: !! this.fight, catchOpen: this.hud.catchOpen } ) ) {
-			if ( this.hud.standOpen ) this.hud.closeStand();
-			else this.hud.openStand( this.activeVendor || this.vendor );
-			this.ui.root.dataset.panel = this.hud.standOpen ? 'open' : 'closed';
-			return true;
-		}
-		if ( ( code === 'KeyI' || code === 'Tab' ) && ! this.hud.standOpen ) {
-			this.hud.toggleInventory();
-			this.ui.root.dataset.panel = this.hud.invOpen ? 'open' : 'closed';
-			return true;
-		}
-		if ( code === 'Escape' && ( this.hud.standOpen || this.hud.invOpen ) ) {
-			this.hud.closeStand();
-			this.hud.toggleInventory( false );
-			this.ui.root.dataset.panel = 'closed';
-			return true;
-		}
-		return false;
+		return handleFishingGameKey( {
+			code, hud: this.hud, activeVendor: this.activeVendor, nearVendor: this.nearVendor, fighting: !! this.fight,
+			dismissCatch: () => this._endLanding(),
+			panelChanged: hud => { this.ui.root.dataset.panel = hud.standOpen || hud.invOpen ? 'open' : 'closed'; },
+		} );
 
 	}
 
@@ -152,6 +135,7 @@ export class WebGLGameAdapter {
 		this.ui.promptKey.textContent = 'E';
 		this.ui.promptText.textContent = this.hud.standOpen ? 'Leave' : `Talk to ${ ( this.activeVendor || this.vendor ).name.split( ' ·' )[ 0 ] }`;
 		this.ui.prompt.classList.toggle( 'is-on', this.nearVendor );
+		for ( const code of [ 'KeyE', 'KeyI', 'Tab', 'Escape' ] ) if ( input?.hit( code ) ) this.handleKey( code );
 		const rod = this.rod;
 		const boatGauges = this.boatGameplay?.step( dt, player.mode ) || { fuel: null, sonar: null };
 		if ( rod && input ) {
@@ -178,7 +162,7 @@ export class WebGLGameAdapter {
 				}
 				if ( landing.shown ) {
 					landing.cardT += dt;
-					if ( leftDown || input.hit( 'KeyE' ) || input.hit( 'Escape' ) || landing.cardT > CATCH_CARD_MS / 1000 ) this._endLanding();
+					if ( leftDown || landing.cardT > CATCH_CARD_MS / 1000 ) this._endLanding();
 				}
 			} else if ( landing ) this._endLanding();
 			player.busy = rod.lineInWater || rod.state === 'windup';

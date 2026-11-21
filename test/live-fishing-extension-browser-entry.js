@@ -205,8 +205,8 @@ async function createScenario( backend, { experience, assets, worldId, fishCatal
 				pressed.add( code );
 				this.frame();
 			} else {
-				const handled = dispatchWorldBehaviorHooks( experience, 'onWebGLKeyDown', { active: true, fallback, event: { code } } );
-				invariant( handled, `WebGL ${code} was not routed through the registered world input hook` );
+				const handled = dispatchWorldBehaviorHooks( experience, 'onWorldKeyDown', { active: true, fallback, event: { code } } );
+				invariant( handled, `WebGL ${code} was not routed through the renderer-neutral world input hook` );
 				this.frame();
 			}
 			await this.flush();

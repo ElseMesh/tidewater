@@ -12,6 +12,7 @@ import { worldFishPresentationFor } from '../../../src/network/WorldFishPresenta
 import { FishingInputController } from '../FishingInputController.js';
 import { canFishInWorld, canInteractWithVendor, stepFishingBite, strikeFishing, stepFishingFight } from './FishingGameplay.js';
 import { buyFishingUpgrade, refuelFishingBoat, sellAllFish, sellFish } from './FishingCommerce.js';
+import { handleFishingGameKey } from './FishingGameInput.js';
 
 // how long the catch card stays up unless dismissed (ms)
 const CATCH_CARD_MS = 9000;
@@ -180,6 +181,18 @@ export class Game {
 
 	}
 
+	handleKey( code ) {
+
+		const player = this.app.player;
+		const activeVendor = player.mode === 'walk' ? this.vendors.find( vendor => vendor.inRange( player.position ) ) || null : null;
+		return handleFishingGameKey( {
+			code, hud: this.hud, activeVendor, fighting: !! this.fight,
+			dismissCatch: () => { this._cardDismissed = true; this.endLanding(); },
+			sellWithoutHUD: () => this.sellAll(),
+		} );
+
+	}
+
 	// ---- per frame (after the player / camera update)
 	update( dt ) {
 
@@ -197,13 +210,7 @@ export class Game {
 		}
 
 		const can = this.canFish;
-		if ( this.hud && ( inp.hit( 'KeyI' ) || inp.hit( 'Tab' ) ) ) this.hud.toggleInventory();
-		if ( this.hud && inp.hit( 'Escape' ) ) {
-
-			this.hud.toggleInventory( false );
-			this.hud.closeStand();
-
-		}
+		for ( const code of [ 'KeyE', 'KeyI', 'Tab', 'Escape' ] ) if ( inp.hit( code ) ) this.handleKey( code );
 
 		const panelOpen = this.hud && ( this.hud.invOpen || this.hud.standOpen );
 		const { leftDown: lDown, leftHeld: lmb } = this.fishingInput.update( {
@@ -241,7 +248,7 @@ export class Game {
 					// a slow turn so both flanks show
 					L.cardT += dt;
 					yaw += Math.sin( L.cardT * 0.7 ) * 0.55;
-					if ( lDown || inp.hit( 'KeyE' ) || inp.hit( 'Escape' ) || L.cardT > CATCH_CARD_MS / 1000 ) {
+					if ( lDown || L.cardT > CATCH_CARD_MS / 1000 ) {
 
 						this._cardDismissed = true; // this frame's E / click belong to the card
 						this.endLanding();
@@ -270,7 +277,7 @@ export class Game {
 
 		// the traders
 		for ( const v of this.vendors ) v.update( dt, p.mode === 'walk' ? p.position : null );
-		this.updateVendors( inp, p );
+		this.updateVendors( p );
 
 		// prompts when the player has nothing to say
 		if ( ! p.prompt && can ) p.prompt = this.prompt();
@@ -331,7 +338,7 @@ export class Game {
 
 	}
 
-	updateVendors( inp, p ) {
+	updateVendors( p ) {
 
 		const hud = this.hud;
 		let near = null;
@@ -340,17 +347,6 @@ export class Game {
 		if ( hud && hud.standOpen && ( ! near || near !== hud.vendor ) ) hud.closeStand();
 		if ( ! canInteractWithVendor( { nearVendor: !! near, fighting: !! this.fight, cardDismissed: this._cardDismissed, catchOpen: !! hud?.catchOpen } ) ) return;
 		if ( ! p.prompt ) p.prompt = { key: 'E', text: hud && hud.standOpen ? 'Leave' : `Talk to ${ near.name.split( ' ·' )[ 0 ] }` };
-		if ( inp.hit( 'KeyE' ) ) {
-
-			if ( ! hud ) {
-
-				if ( near.kind === 'buyer' ) this.sellAll(); // headless: straight sale
-
-			} else if ( hud.standOpen ) hud.closeStand();
-			else hud.openStand( near );
-
-		}
-
 	}
 
 	sellAll() {

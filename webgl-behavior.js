@@ -54,9 +54,6 @@ export const webglBehaviorImplementations = Object.freeze( {
 			} );
 		}
 	},
-	onWebGLKeyDown( { active, fallback, event } ) {
-		return !! active && !! fallback.gameAdapter?.handleKey( event.code );
-	},
 	onWebGLWorldFrame( { active, fallback, dt } ) {
 		if ( ! active ) return;
 		fallback.fishStand?.update( dt, fallback.camera.position );

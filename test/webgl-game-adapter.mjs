@@ -69,9 +69,12 @@ assert.equal( adapter.handleKey( 'KeyE' ), true, 'E is consumed while the buyer 
 assert.equal( hud.standOpen, true, 'E opens the shared fish-buyer panel' );
 assert.equal( ui.root.dataset.panel, 'open' );
 assert.equal( hud.vendor, vendor );
-assert.equal( adapter.handleKey( 'Tab' ), false, 'inventory shortcuts do not replace the open buyer panel' );
+assert.equal( adapter.handleKey( 'Tab' ), true, 'Tab opens inventory over the buyer panel, matching WebGPU' );
+assert.equal( hud.standOpen, false, 'opening inventory closes the vendor panel in both renderers' );
+assert.equal( hud.invOpen, true );
 assert.equal( adapter.handleKey( 'Escape' ), true, 'Escape closes the shared panel' );
 assert.equal( hud.standOpen, false );
+assert.equal( hud.invOpen, false );
 assert.equal( ui.root.dataset.panel, 'closed' );
 
 assert.equal( adapter.handleKey( 'KeyI' ), true, 'I opens the shared inventory panel' );
