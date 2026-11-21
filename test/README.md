@@ -17,6 +17,11 @@ sources remain with the Tidewater package.
 `life-player.mjs` adds a GPU-free smoke of island walking, swimming, boarding,
 boat handling, and flying to the engine test sequence.
 
+`pier-step-movement.mjs` walks the authored beach-to-harbor route in both the
+built-in and hosted player controllers, using the production pier colliders and
+both JavaScript and WebAssembly support-height paths when the compiled kernel is
+available.
+
 `live-fishing-extension-browser.mjs` signs and serves Tidewater's owner-signed
 fishing module through `worldd` and compares WebGPU and WebGL game paths. Its
 Joe-buyer step now uses the engine `Player` from Tidewater's authored start and
