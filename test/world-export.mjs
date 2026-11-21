@@ -26,7 +26,7 @@ import { validateWorldGraphTextureBindings } from '../../../src/network/WorldGra
 import { planOctahedralCanopyInstances } from '../../../src/engine/render/OctahedralCanopyRuntime.js';
 import { decodeGrassDensityAsset } from '../../../src/network/GrassDensityAsset.js';
 import { decodeGroundDetailDensityAsset, GROUND_DETAIL_DENSITY_ASSET_KIND } from '../../../src/network/GroundDetailDensityAsset.js';
-import { BANK } from '../../../src/audio/soundBank.js';
+import AMBIENT_BANK from '../audio/ambient-bank.json' with { type: 'json' };
 import { transformBoundsCenter } from '../../../src/network/WorldStreaming.js';
 import { Vector3 } from '../../../src/engine/math/Vector3.js';
 import { Quaternion } from '../../../src/engine/math/Quaternion.js';
@@ -612,7 +612,7 @@ try {
 	assert.equal( componentData( ambience ).beds.length, 8, 'portable island exports its eight original ambient loop beds' );
 	assert.ok( componentData( ambience ).beds.every( ( bed ) => firstAssets.has( bed.assetId ) && firstAssets.get( bed.assetId ).length <= 16 * 1024 * 1024 ), 'each ambience bed is bundled as a bounded content-addressed asset' );
 	const originalLoopAssets = new Map();
-	for ( const entry of Object.values( BANK ) ) if ( entry.loop && entry.file ) {
+	for ( const entry of Object.values( AMBIENT_BANK ) ) if ( entry.loop && entry.file ) {
 		const bytes = await readFile( path.join( repositoryRoot, 'public', 'audio', entry.file ) );
 		originalLoopAssets.set( `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`, bytes );
 	}

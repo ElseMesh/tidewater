@@ -33,7 +33,7 @@ import { validateStaticModelInstanceSet } from '../../../src/network/StaticModel
 import { Reef } from '../Reef.js';
 import { encodeReefPlacements } from '../ReefPlacements.js';
 import { encodeFishPropPlacements, MAX_FISH_PROP_PLACEMENT_BYTES } from '../FishPropPlacements.js';
-import { BANK } from '../../../src/audio/soundBank.js';
+import AMBIENT_BANK from '../audio/ambient-bank.json' with { type: 'json' };
 import { MIX } from '../../../src/audio/SoundScape.js';
 import { bakeTerrainMaps } from '../../../src/world/terrain/TerrainBake.js';
 import { getDetailImage } from '../../../src/world/terrain/DetailTextureData.js';
@@ -307,7 +307,7 @@ const ambientBedSpecs = [
 	{ name: 'birds_dawn', target: MIX.birdChorus, condition: 'dawn' },
 ];
 for ( const spec of ambientBedSpecs ) {
-	const bank = BANK[ spec.name ];
+	const bank = AMBIENT_BANK[ spec.name ];
 	if ( ! bank?.loop || ! Number.isFinite( bank.lufs ) ) throw new Error( `Ambient sound ${spec.name} must have measured loop metadata` );
 	const bytes = await readFile( path.join( REPO, 'public', 'audio', bank.file ) );
 	const id = `sha256:${createHash( 'sha256' ).update( bytes ).digest( 'hex' )}`;

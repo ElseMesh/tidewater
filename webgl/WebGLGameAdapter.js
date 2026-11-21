@@ -77,6 +77,7 @@ export class WebGLGameAdapter {
 		this.ui = createGameUI( engineRoot );
 		this.vendor = vendor;
 		this.audio = typeof audio?.playSample === 'function' ? new TidewaterFishingAudio( audio ) : audio;
+		this.audio?.activate?.();
 		this.vendors = vendors;
 		this.activeVendor = vendor;
 		this.hud = new GameHUD( this.ui, this );
@@ -262,6 +263,7 @@ export class WebGLGameAdapter {
 
 	dispose() {
 
+		this.audio?.deactivate?.();
 		this._endLanding();
 		this.guide?.dispose();
 		if ( this.engineUI?.onReplayGuide === this._onReplayGuide ) this.engineUI.onReplayGuide = null;

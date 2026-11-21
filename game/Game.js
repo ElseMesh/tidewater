@@ -43,6 +43,7 @@ export class Game {
 		this.fishCatalog = this.runtime.fishCatalog;
 		this.fishPresentation = worldFishPresentationFor( experience );
 		this.audio = typeof app.audio?.playSample === 'function' ? new TidewaterFishingAudio( app.audio ) : app.audio;
+		this.audio?.activate?.();
 		const fishingData = worldBehaviorData( experience, 'elsemesh.fishing-game/1' );
 		this.fishingAreas = fishingData.fishingAreas;
 		this.rod = new FishingRod( { scene: app.scene, camera: app.camera, query, terrain, audio: this.audio } );
@@ -91,9 +92,11 @@ export class Game {
 	setWorldActive( active ) {
 
 		this.active = active;
-		if ( ! active ) {
+		if ( active ) this.audio?.activate?.();
+		else {
 			this.runtime.cancel();
-			this.audio?.stop?.();
+			if ( typeof this.audio?.deactivate === 'function' ) this.audio.deactivate();
+			else this.audio?.stop?.();
 		}
 		this.stand.setActive( active );
 		this.chandlery.setActive( active, this.terrain );

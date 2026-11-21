@@ -1,4 +1,5 @@
 import FISHING_BANK from '../tools/audio/fishing-bank.json' with { type: 'json' };
+import AMBIENT_BANK from '../audio/ambient-bank.json' with { type: 'json' };
 
 const clamp = ( value, min, max ) => Math.max( min, Math.min( max, value ) );
 const smooth = ( min, max, value ) => {
@@ -7,13 +8,18 @@ const smooth = ( min, max, value ) => {
 };
 
 const FISHING_SAMPLES = Object.freeze( Object.keys( FISHING_BANK ).filter( name => name !== 'coins' ) );
+const TIDEWATER_SOUND_BANK = Object.freeze( { ...AMBIENT_BANK, ...FISHING_BANK } );
 
 // Tidewater owns its fishing cue selection, levels, pitch variation, and reel
 // response. ElseMesh supplies only sample playback and spatial audio controls.
 export class TidewaterFishingAudio {
 	constructor( soundscape ) {
 		this.soundscape = soundscape;
-		this.samples = soundscape?.registerSampleBank?.( 'world.tidewater.fishing', FISHING_BANK ) || null;
+		this.samples = soundscape?.registerSampleBank?.( 'world.tidewater', TIDEWATER_SOUND_BANK ) || null;
+	}
+
+	activate() {
+		this.soundscape?.setActiveSampleBank?.( 'world.tidewater' );
 	}
 
 	rodReady() {
@@ -71,6 +77,11 @@ export class TidewaterFishingAudio {
 
 	stop() {
 		this.rodLoop( 0, 0, 0 );
+	}
+
+	deactivate() {
+		this.stop();
+		this.soundscape?.setActiveSampleBank?.( '' );
 	}
 
 	#play( name, targetLufs, rate, category, maxVoices, position = null, refDistance = 1, channel = 'near' ) {
