@@ -7,7 +7,7 @@ Nothing is synthesised. Source: each sound's Freesound high-quality preview.
 Processing (scratch build script): excerpt, high-pass (some), trim, fades, equal-power crossfade at the
 loop point, loudness normalisation (loops ≈ −23 LUFS integrated; one-shot slices peak-normalised to
 −1 dBFS), Opus in Ogg (64 kb/s). Wave slices were cut at detected wave onsets / peaks / troughs. One-shot files are sprites; the
-slice table is in `src/audio/soundBank.js`.
+fishing slice table is maintained by `tools/audio/fishing-bank.json`.
 
 | File | Use | Source | Author | Licence |
 |---|---|---|---|---|
