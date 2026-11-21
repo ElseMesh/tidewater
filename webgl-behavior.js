@@ -57,9 +57,6 @@ export const webglBehaviorImplementations = Object.freeze( {
 	onWebGLKeyDown( { active, fallback, event } ) {
 		return !! active && !! fallback.gameAdapter?.handleKey( event.code );
 	},
-	onWebGLBlocksPlayerInput( { active, fallback } ) {
-		return !! active && !! ( fallback.gameAdapter?.hud.standOpen || fallback.gameAdapter?.hud.invOpen );
-	},
 	onWebGLWorldFrame( { active, fallback, dt } ) {
 		if ( ! active ) return;
 		fallback.fishStand?.update( dt, fallback.camera.position );

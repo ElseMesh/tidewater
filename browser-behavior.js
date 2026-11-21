@@ -61,5 +61,10 @@ export const browserBehaviorImplementations = Object.freeze( {
 	onWorldFrame( { app, active, dt } ) {
 		if ( active && app.game?.active ) app.game.update( dt );
 	},
+	onWorldBlocksPlayerInput( { app, fallback, active } ) {
+		if ( ! active ) return false;
+		const hud = fallback?.gameAdapter?.hud || app?.game?.hud;
+		return !! ( hud?.standOpen || hud?.invOpen );
+	},
 	} ),
 } );
