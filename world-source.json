@@ -5,7 +5,11 @@
   "experience": {
     "environment": {
       "sky": "atmosphere",
-      "clouds": "procedural"
+      "clouds": "procedural",
+      "timeOfDay": {
+        "hour": 16.2,
+        "engineOverride": true
+      }
     },
     "extensions": [
       {
